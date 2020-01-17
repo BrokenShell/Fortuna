@@ -456,14 +456,18 @@ flex_cat(cat_key="Cat_B")  # returns a Value specifically from the "Cat_B" Colle
 ```
 ### Random Value Functions
 `Fortuna.random_value(Sequence[Any]) -> Any`
+
+Essentially the same as Random.choice()
 - @param data :: Sequence of Values
 - @return :: Random value from the sequence. Flat uniform distribution.
 
 `Fortuna.cumulative_weighted_choice(weighted_table: Sequence[Tuple[int, Any]]) -> Any`
+
+Similar to Random.choices()
 - @param weighted_table :: Sequence of weighted value pairs. `[(w1, v1), (w2, v2)...]`
 - @return :: Returns a random value. Distribution depends on weights.
 
-### Random Integer Generators
+### Random Integer Functions
 `Fortuna.random_below(limit: int) -> int`
 - @param limit :: Any Integer
 - @return :: Returns a random integer in the range...
@@ -474,6 +478,8 @@ flex_cat(cat_key="Cat_B")  # returns a Value specifically from the "Cat_B" Colle
 
 
 `Fortuna.random_int(left_limit: int, right_limit: int) -> int`
+
+Essentially the same as Random.randint()
 - @param left_limit :: Any Integer
 - @param right_limit :: Any Integer
 - @return :: Returns a random integer in the range [left_limit, right_limit]
@@ -484,6 +490,8 @@ flex_cat(cat_key="Cat_B")  # returns a Value specifically from the "Cat_B" Colle
 
 
 `Fortuna.random_range(start: int, stop: int = 0, step: int = 1) -> int`
+
+Essentially the same as Random.randrange()
 - @param start :: Required starting point.
     - `random_range(0) -> [0]`
     - `random_range(10) -> [0, 10)` from 0 to 9. Same as `Fortuna.random_index(N)`
@@ -504,14 +512,16 @@ flex_cat(cat_key="Cat_B")  # returns a Value specifically from the "Cat_B" Colle
 
 
 `Fortuna.d(sides: int) -> int`
-- Represents a single roll of a given size die.
+
+Represents a single roll of a given size die.
 - @param sides :: Represents the size or number of sides, most commonly six.
 - @return :: Returns a random integer in the range [1, sides].
 - Flat uniform distribution.
 
 
 `Fortuna.dice(rolls: int, sides: int) -> int`
-- Represents the sum total of multiple rolls of the same size die.
+
+Represents the sum total of multiple rolls of the same size die.
 - @param rolls :: Represents the number of times to roll the die.
 - @param sides :: Represents the die size or number of sides, most commonly six.
 - @return :: Returns a random integer in range [X, Y] where X = rolls and Y = rolls * sides.
@@ -686,6 +696,9 @@ User input is not case sensitive.
 
 
 ## Fortuna Development Log
+##### Fortuna 3.16.1
+- Documentation Update
+
 ##### Fortuna 3.16.0
 - Storm 3.3.2 Update
 
@@ -701,7 +714,7 @@ User input is not case sensitive.
 ##### Fortuna 3.14.0
 - Minor TruffleShuffle Update
 - Fisher Yates, and Knuth A Shuffle Algorithms added for comparison with Fortuna.shuffle()
-    - Some platforms may prefer one over another. Intel favors Knuth B by more than double.
+    - Some platforms may prefer one over another. Intel favors Knuth B (Fortuna.shuffle) by more than double.
 
 ##### Fortuna 3.13.0 - Internal
 - Development & Testing Environment Updated to Python 3.8
@@ -2175,8 +2188,7 @@ Total Test Time: 3.151 seconds
 
 
 ## Legal Information
-Fortuna © 2019 Robert W Sharp, all rights reserved.
-
-Fortuna is licensed under a Creative Commons Attribution-NonCommercial 3.0 Unported License.
-
+Fortuna is licensed under a Creative Commons Attribution-NonCommercial 3.0 Unported License. 
 See online version of this license here: <http://creativecommons.org/licenses/by-nc/3.0/>
+
+Other licensing options are available, please contact the author for details: [Robert Sharp](mailto:webmaster@sharpdesigndigital.com)
