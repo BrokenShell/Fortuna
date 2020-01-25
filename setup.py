@@ -23,7 +23,7 @@ setup(
     author_email="webmaster@sharpdesigndigital.com",
     requires=["Cython"],
     install_requires=["MonkeyScope", "RNG", "Pyewacket"],
-    version="3.16.1",
+    version="3.16.3",
     description="Custom Random Value Generators",
     long_description=long_description,
     long_description_content_type="text/markdown",

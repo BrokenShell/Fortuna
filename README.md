@@ -696,6 +696,12 @@ User input is not case sensitive.
 
 
 ## Fortuna Development Log
+##### Fortuna 3.16.3
+- Major TruffleShuffle performance upgrade
+
+##### Fortuna 3.16.2 - Internal
+- Testing
+
 ##### Fortuna 3.16.1
 - Documentation Update
 

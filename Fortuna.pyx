@@ -1,5 +1,6 @@
 #!python3
 #distutils: language = c++
+from copy import deepcopy
 from collections import deque
 from typing import Any, List, Sequence, Tuple, Callable, Iterable, Dict
 
@@ -438,17 +439,18 @@ class TruffleShuffle:
 
     Please refer to https://pypi.org/project/Fortuna/ for full documentation.
     """
-    __slots__ = ("flat", "data")
+    __slots__ = ("flat", "data", "rotate_size")
 
     def __init__(self, collection: Iterable[Any], flat: bool = True):
         self.flat = flat
-        tmp_data = list(collection)
+        tmp_data = list(deepcopy(collection))
         assert len(tmp_data) > 0, "Input Error, Empty Container"
         shuffle(tmp_data)
         self.data = deque(tmp_data)
+        self.rotate_size = min(len(self.data) // 2, 10)
 
     def __call__(self, *args, **kwargs) -> Any:
-        self.data.rotate(1 + _front_poisson(len(self.data) - 1))
+        self.data.rotate(1 + _front_poisson(self.rotate_size))
         return flatten(self.data[-1], *args, flat=self.flat, **kwargs)
 
     def __str__(self) -> str:
