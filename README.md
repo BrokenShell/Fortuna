@@ -90,7 +90,7 @@ science, A.I. and experimental programming, not security.
     - Range: ±9223372036854775807, approximately ±9.2 billion billion
 - Float: 64 bit floating point.
     - Range: ±1.7976931348623157e+308
-    - Epsilon Delta: 5e-305 to 5e-324, platform dependant
+    - Epsilon Delta: 5e-305 to 5e-324, platform dependent
 
 ----
 
@@ -696,6 +696,9 @@ User input is not case sensitive.
 
 
 ## Fortuna Development Log
+##### Fortuna 3.16.5
+- Documentation Update
+
 ##### Fortuna 3.16.4
 - Documentation Update
 
