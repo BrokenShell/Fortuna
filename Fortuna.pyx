@@ -2,13 +2,14 @@
 #distutils: language = c++
 from copy import deepcopy
 from collections import deque
+from math import sqrt
 from typing import Any, List, Sequence, Tuple, Callable, Iterable, Dict
 
 
 __all__ = (
     "RandomValue", "TruffleShuffle", "QuantumMonty", "FlexCat",
     "CumulativeWeightedChoice", "RelativeWeightedChoice",
-    "random_value", "cumulative_weighted_choice",
+    "random_value", "cumulative_weighted_choice", "truffle_shuffle",
     "canonical", "random_float", "triangular",
     "random_below", "random_int", "random_range", "d", "dice", "ability_dice",
     "percent_true", "plus_or_minus", "plus_or_minus_linear", "plus_or_minus_gauss",
@@ -16,7 +17,7 @@ __all__ = (
     "front_gauss", "middle_gauss", "back_gauss", "quantum_gauss",
     "front_poisson", "middle_poisson", "back_poisson", "quantum_poisson",
     "front_linear", "middle_linear", "back_linear", "quantum_linear",
-    "shuffle", "fisher_yates", "knuth_a",
+    "shuffle", "fisher_yates", "knuth_a", "distribution_range",
     "smart_clamp", "flatten", "MultiChoice",
 )
 
@@ -50,6 +51,17 @@ cdef extern from "Storm.hpp":
     long long     _quantum_linear         "Storm::quantum_linear"(long long)
     long long     _quantum_monty          "Storm::quantum_monty"(long long)
     long long     _smart_clamp            "Storm::GearBox::smart_clamp"(long long, long long, long long)
+
+
+def distribution_range(func: Callable, lo, hi):
+    """ Distribution Range: Arbitrary distribution.
+
+    @param func: ZeroCool random distribution, F(N) -> [0, N-1]
+    @param lo: minimum
+    @param hi: maximum
+    @return: random value in range [lo, hi]
+    """
+    return lo + func(hi - lo)
 
 
 def random_below(limit: int) -> int:
@@ -375,6 +387,19 @@ def cumulative_weighted_choice(weighted_table: Sequence[Tuple[int, Any]]) -> Any
             return value
 
 
+def truffle_shuffle(data: Iterable[Any]) -> Callable:
+    data = list(deepcopy(data))
+    shuffle(data)
+    data = deque(data)
+    rotate_size = int(sqrt(len(data)))
+
+    def worker() -> Any:
+        data.rotate(1 + _front_poisson(rotate_size))
+        return data[-1]
+
+    return worker
+
+
 class RandomValue:
     """ Random Value Class
     Random Value Generator Class that supports dependency injection.
@@ -447,7 +472,7 @@ class TruffleShuffle:
         assert len(tmp_data) > 0, "Input Error, Empty Container"
         shuffle(tmp_data)
         self.data = deque(tmp_data)
-        self.rotate_size = min(len(self.data) // 2, 10)
+        self.rotate_size = int(sqrt(len(self.data)))
 
     def __call__(self, *args, **kwargs) -> Any:
         self.data.rotate(1 + _front_poisson(self.rotate_size))

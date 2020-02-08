@@ -26,7 +26,10 @@ def quick_test():
 
     print("\nWide Distribution\n")
     truffle = TruffleShuffle(some_list)
-    print("truffle = TruffleShuffle(some_list)")
+    print("Truffle = TruffleShuffle(some_list)")
+    distribution_timer(truffle, label="Truffle()")
+    truffle = truffle_shuffle(some_list)
+    print("truffle = truffle_shuffle(some_list)")
     distribution_timer(truffle, label="truffle()")
 
     print("\nSingle objects with many distribution possibilities\n")
