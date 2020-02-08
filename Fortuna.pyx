@@ -388,6 +388,9 @@ def cumulative_weighted_choice(weighted_table: Sequence[Tuple[int, Any]]) -> Any
 
 
 def truffle_shuffle(data: Iterable[Any]) -> Callable:
+    """ Truffle Shuffle Function
+    Same as the class of the same name, implemented as a higher-order function.
+    """
     data = list(deepcopy(data))
     shuffle(data)
     data = deque(data)
