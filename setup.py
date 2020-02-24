@@ -12,7 +12,7 @@ setup(
             name="Fortuna",
             sources=["Fortuna.pyx"],
             language=["c++"],
-            extra_compile_args=["-std=c++17"],
+            extra_compile_args=["-std=gnu++17"],
         ),
         compiler_directives={
             'embedsignature': True,
@@ -23,7 +23,7 @@ setup(
     author_email="webmaster@sharpdesigndigital.com",
     requires=["Cython"],
     install_requires=["MonkeyScope", "RNG", "Pyewacket"],
-    version="3.17.0",
+    version="3.17.2",
     description="Custom Random Value Generators",
     long_description=long_description,
     long_description_content_type="text/markdown",

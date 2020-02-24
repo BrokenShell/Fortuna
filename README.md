@@ -708,6 +708,15 @@ User input is not case sensitive.
 
 
 ## Fortuna Development Log
+##### Fortuna 3.17.2
+- Documentation update
+
+##### Fortuna 3.17.1
+- Update for backwards compatibility for platforms that do not support std::clamp.
+
+##### Fortuna 3.17.0, internal
+- Installation issue detected on some platforms that lack std::clamp.
+
 ##### Fortuna 3.16.9
 - Documentation Update
 
