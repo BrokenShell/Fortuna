@@ -2,29 +2,31 @@
 © 2020 Robert Sharp, all rights reserved.
 
 Fortuna's main goal is to provide a quick and easy way to build custom random 
-functors for your data. Fortuna also offers a variety of high-performance random 
-number functions.
+functions for your data that are byte-code fast. Fortuna also offers a variety 
+of high-performance random number functions like `random_range()` and `dice()`.
 
-The core functionality of Fortuna is based on the Storm RNG Engine. 
-While Storm has a high quality, hardware seeded random engine - it is not 
+The core functionality of Fortuna is based on the Storm RNG Engine by the same developer (Robert Sharp). 
+While Storm is a high quality, hardware seeded random engine - it is not 
 appropriate for cryptography of any kind. Fortuna is meant for games, data 
-science, A.I. and experimental programming, not security.
+science, A.I. and experimental programming... not security!
+- Storm: Core C++ Random Number Engine. https://github.com/BrokenShell/Storm
 
 
 ### Quick Install `$ pip install Fortuna`
 
 
 ### Installation may require the following:
-- Python 3.6 or later with dev tools (setuptools, pip, etc.)
-- Cython: Bridge from C/C++ to Python.
-- Modern C++17 Compiler and Standard Library.
+- Python 3.6 or later with dev tools (setuptools, pip, etc.), 64bit preferred.
+- Cython: Bridge from C/C++ to Python. Typically not required on MacOS.
+- Modern C++17 Compiler and Standard Library. Typically not required on MacOS.
 
 
-### Sister Projects (included but documented separately):
+### Sister Projects:
 - RNG: Python3 API for the C++ Random Library. https://pypi.org/project/RNG/
 - Pyewacket: Drop-in replacement for Python3 random module. https://pypi.org/project/Pyewacket/
 - MonkeyScope: Framework for testing non-deterministic functors. https://pypi.org/project/MonkeyScope/
-- Storm: Core C++ Engine. https://github.com/BrokenShell/Storm
+
+> In an effort to streamline Fortuna, the above packages are no longer included automatically, each can be installed with pip as needed.
 
 ---
 
@@ -708,6 +710,9 @@ User input is not case sensitive.
 
 
 ## Fortuna Development Log
+##### Fortuna 3.18.0
+- Refactor
+
 ##### Fortuna 3.17.2
 - Documentation update
 
