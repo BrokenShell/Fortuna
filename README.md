@@ -710,8 +710,14 @@ User input is not case sensitive.
 
 
 ## Fortuna Development Log
-##### Fortuna 3.18.0
-- Refactor
+##### Fortuna 3.17.5
+- Typos
+
+##### Fortuna 3.17.4
+- Reorganized
+
+##### Fortuna 3.17.3
+- Streamlining: dropped auxiliary packages.
 
 ##### Fortuna 3.17.2
 - Documentation update
