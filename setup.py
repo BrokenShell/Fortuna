@@ -6,7 +6,6 @@ with open("README.md", "r") as file:
     long_description = file.read()
 
 dev_status = {
-    "Pre": "Development Status :: 2 - Pre-Alpha",
     "Alpha": "Development Status :: 3 - Alpha",
     "Beta": "Development Status :: 4 - Beta",
     "Pro": "Development Status :: 5 - Production/Stable",
@@ -30,7 +29,7 @@ setup(
     author="Robert Sharp",
     author_email="webmaster@sharpdesigndigital.com",
     requires=["Cython"],
-    version="3.17.5",
+    version="3.17.6",
     description="Custom Random Value Generators",
     long_description=long_description,
     long_description_content_type="text/markdown",

@@ -1,14 +1,16 @@
-# Fortuna: The Random Value Toolkit for Python3
+# Fortuna: Generative Modeling Toolkit for Python3
 © 2020 Robert Sharp, all rights reserved.
 
 Fortuna's main goal is to provide a quick and easy way to build custom random 
 functions for your data that are byte-code fast. Fortuna also offers a variety 
 of high-performance random number functions like `random_range()` and `dice()`.
 
-The core functionality of Fortuna is based on the Storm RNG Engine by the same developer (Robert Sharp). 
-While Storm is a high quality, hardware seeded random engine - it is not 
-appropriate for cryptography of any kind. Fortuna is meant for games, data 
-science, A.I. and experimental programming... not security!
+The core functionality of Fortuna is based on the Storm RNG Engine - created by 
+the same developer (Robert Sharp). While Storm is a high quality, hardware 
+seeded random engine - it is not appropriate for cryptography of any kind. 
+Fortuna is meant for games, data science, A.I. and experimental programming... 
+not security!
+
 - Storm: Core C++ Random Number Engine. https://github.com/BrokenShell/Storm
 
 
@@ -26,7 +28,7 @@ science, A.I. and experimental programming... not security!
 - Pyewacket: Drop-in replacement for Python3 random module. https://pypi.org/project/Pyewacket/
 - MonkeyScope: Framework for testing non-deterministic functors. https://pypi.org/project/MonkeyScope/
 
-> In an effort to streamline Fortuna, the above packages are no longer included automatically, each can be installed with pip as needed.
+> In an effort to streamline Fortuna, the above packages are no longer included automatically. Each of them can be installed with pip as needed.
 
 ---
 
@@ -710,6 +712,9 @@ User input is not case sensitive.
 
 
 ## Fortuna Development Log
+##### Fortuna 3.17.6
+- Documentation update
+
 ##### Fortuna 3.17.5
 - Typos
 
