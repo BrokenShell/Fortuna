@@ -463,7 +463,7 @@ class TruffleShuffle:
 
     TruffleShuffle is a declarative state machine. It does no comparisons,
     and keeps no history list. As such it is very fast to call and does not
-    loose performance over time, or grow in memory.
+    lose performance over time, or grow in memory.
 
     Please refer to https://pypi.org/project/Fortuna/ for full documentation.
     """

@@ -29,7 +29,7 @@ setup(
     author="Robert Sharp",
     author_email="webmaster@sharpdesigndigital.com",
     requires=["Cython"],
-    version="3.17.6",
+    version="3.17.7",
     description="Custom Random Value Generators",
     long_description=long_description,
     long_description_content_type="text/markdown",
