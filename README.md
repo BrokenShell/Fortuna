@@ -712,6 +712,12 @@ User input is not case sensitive.
 
 
 ## Fortuna Development Log
+##### Fortuna 3.17.9
+- Typo
+
+##### Fortuna 3.17.8
+- Typo
+
 ##### Fortuna 3.17.7
 - Typo
 

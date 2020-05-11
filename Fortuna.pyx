@@ -239,7 +239,6 @@ def flatten(maybe_callable: Any, *args, flat: bool = True, **kwargs):
 
 def shuffle(array: List[Any]):
     """ Knuth B Shuffle Algorithm
-    Knuth_B Shuffle Algorithm.
     Destructive, in-place shuffle.
     Reverse Order Random Swap to Back
 
@@ -265,7 +264,6 @@ def knuth_a(array: List[Any]):
 
 def fisher_yates(array: List[Any]):
     """ Fisher Yates Shuffle Algorithm
-    Fisher Yates Shuffle Algorithm.
     Destructive, in-place shuffle.
     Reverse Order Random Swap to Front
 
