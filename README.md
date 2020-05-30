@@ -18,10 +18,12 @@ not security!
 
 
 ### Installation may require the following:
+- MacOS or Linux. Windows is not directly supported at this time.
 - Python 3.6 or later with dev tools (setuptools, pip, etc.), 64bit preferred.
-- Cython: Bridge from C/C++ to Python. Typically not required on MacOS.
+- Cython: Python library. `$ pip install Cython`. Serves as a bridge from C/C++ to Python.
 - Modern C++17 Compiler and Standard Library. Typically not required on MacOS.
-
+    - If you're running an older version of MacOS you can simply install Xcode to get Clang.
+    - For Linux this is typically GCC and it comes pre-installed on many systems, Clang should also work.
 
 ### Sister Projects:
 - RNG: Python3 API for the C++ Random Library. https://pypi.org/project/RNG/
