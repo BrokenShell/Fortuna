@@ -28,7 +28,7 @@ setup(
     ),
     author="Robert Sharp",
     author_email="webmaster@sharpdesigndigital.com",
-    version="3.17.10",
+    version="3.17.11",
     description="Custom Random Value Generators",
     long_description=long_description,
     long_description_content_type="text/markdown",

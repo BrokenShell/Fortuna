@@ -105,8 +105,11 @@ not security!
 
 ### Fortuna.RandomValue
 `Fortuna.RandomValue(collection: Iterable[Any], zero_cool=random_index, flat=True) -> Callable -> Value`
-
 Random Value Engine Class that supports dependency injection.
+
+Takes an iterable (tuple) and a distribution function and returns
+a callable to produce random values from the iterable with the same distribution.
+
 - @param collection :: Iterable of Values. Tuple recommended.
 - @param zero_cool :: Optional ZeroCool Callable, kwarg only. Default = random_index(). This function must follow the ZeroCool Spec.
 - @param flat :: Bool. Default: True. Option to automatically flatten callable values with lazy evaluation.
@@ -118,12 +121,15 @@ Random Value Engine Class that supports dependency injection.
 RandomValue supports dependency injection, it is the only Fortuna class to do so.
 The injected functor must follow the ZeroCool Specification:
 f(x: int) -> int in [0, x) with any distribution. Many ZeroCool functions are provided,
-in this example we'll see front_linear and back_linear used together.
+in the following example we'll see front_linear and back_linear used together.
 
-In reality, if one of the builtin ZeroCool functions is required, it is 
-recommended to employ QuantumMonty rather than RandomValue. QuantumMonty offers 
-the same behaviors with less overhead. RandomValue is specifically designed for 
-custom dependency injection. 
+> Typically if one of the builtin ZeroCool functions is required, it is 
+highly recommended to employ QuantumMonty rather than RandomValue. 
+They're used here for demonstration purposes only. QuantumMonty offers 
+the same ZeroCool functions, but as methods with less overhead. RandomValue is 
+specifically designed for custom dependency injection, where you might design 
+your own distribution as use it with RandomValue.
+
 ```python
 from Fortuna import RandomValue, front_linear, back_linear
 
@@ -147,11 +153,11 @@ random_fruit = RandomValue((
 
 # Usage
 print(random_fruit())
-# prints a random fruit with the correct distribution
+# prints a random fruit with the correct compound distribution
 
 ```
 #### QuantumMonty: Rare Apples Example
-Same as above but with QuantumMonty.
+Same as above but with QuantumMonty - for syntax comparison.
 ```python
 from Fortuna import QuantumMonty
 
@@ -175,13 +181,17 @@ random_fruit = QuantumMonty((
 
 # Usage
 print(random_fruit())
-# prints a random fruit with the correct distribution
+# prints a random fruit with the correct compound distribution
 
 ```
 
-
+### Auto Flattening
 #### RandomValue with Auto Flattening
-Auto Flattening work with all random generator classes in Fortuna.
+Auto Flattening works with all random generator classes in Fortuna, and it's on by default.
+Flattening is lazy: it happens at call time as the last step. 
+Flattening is recursive: this allows a nested lambda stack to be collapsed automatically.
+Flattening resilient: if for any reason a callable can not be flatted - it will 
+be returned in an un-flattened state without error. 
 ```python
 from Fortuna import RandomValue
 
@@ -205,7 +215,7 @@ print(auto_un_flat()(1))  # will print the value 1, 2 or 3, mind the double-doub
 ```
 
 #### Mixing Static Objects with Callable Objects
-Auto Flattening work with all random generator classes in Fortuna.
+Auto Flattening works with all random generator classes in Fortuna, and it's on by default.
 ```python
 from Fortuna import RandomValue
 
@@ -240,25 +250,6 @@ dynamic_string = RandomValue((
 print(dynamic_string())  # prints a random dynamic string, generated at call time.
 ```
 
-#### Nesting Dolls
-This works with all random generator classes in Fortuna.
-```python
-from Fortuna import RandomValue
-
-# Data Setup
-nesting_dolls = RandomValue((
-    RandomValue(("A", "B", "C", "D", "E")),
-    RandomValue(("F", "G", "H", "I", "J")),
-    RandomValue(("K", "L", "M", "N", "O")),
-    RandomValue(("P", "Q", "R", "S", "T")),
-))
-
-# Usage
-print(nesting_dolls())  
-# prints one of the letters A-T, flat uniform distribution of each category and within each category.
-```
-
-
 ### TruffleShuffle
 `Fortuna.TruffleShuffle(collection: Iterable[Any], flat=True) -> Callable -> Value`
 - @param collection :: Iterable of Values. Set recommended but not required.
@@ -282,6 +273,25 @@ print(truffle_shuffle())  # this will print one of the numbers 1-6,
 # repeated calls will produce a wide distribution.
 ```
 
+#### Nesting Dolls
+This works with all random generator classes in Fortuna, interchangeably.
+```python
+from Fortuna import RandomValue, TruffleShuffle
+
+# Data Setup
+nesting_dolls = TruffleShuffle((
+    RandomValue(("A", "B", "C", "D", "E")),
+    RandomValue(("F", "G", "H", "I", "J")),
+    RandomValue(("K", "L", "M", "N", "O")),
+    RandomValue(("P", "Q", "R", "S", "T")),
+))
+
+# Usage
+print(nesting_dolls())  
+# Prints one of the letters A-T.
+# Produces a wide distribution of each category -
+# and a flat uniform distribution within each category.
+```
 
 ### QuantumMonty
 `Fortuna.QuantumMonty(collection: Iterable[Any], flat=True) -> Callable -> Value`
@@ -714,6 +724,12 @@ User input is not case sensitive.
 
 
 ## Fortuna Development Log
+##### Fortuna 3.17.11
+- Documentation Update
+
+##### Fortuna 3.17.10
+- Documentation Update
+
 ##### Fortuna 3.17.9
 - Typo
 
