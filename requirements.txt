@@ -1,6 +1,7 @@
-Wheel
-twine
+setuptools
+wheel
 Cython
+twine
 MonkeyScope
 RNG
 Pyewacket
