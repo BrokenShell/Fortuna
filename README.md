@@ -724,6 +724,9 @@ User input is not case sensitive.
 
 
 ## Fortuna Development Log
+##### Fortuna 3.17.12
+- Adds pyproject.toml file to ease the installation process.
+
 ##### Fortuna 3.17.11
 - Documentation Update
 
