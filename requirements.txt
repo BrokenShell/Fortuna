@@ -1,7 +1,7 @@
 setuptools
 wheel
-Cython
 twine
+Cython
 MonkeyScope
 RNG
 Pyewacket

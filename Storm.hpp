@@ -4,17 +4,17 @@
 #include <functional>       // greater
 #include <limits>           // numeric_limits
 #include <numeric>          // accumulate
-#include <random>           // generate_canonical, uniform_real_distribution, uniform_int_distribution ...
+#include <random>           // all
 #include <vector>           // vector
 
 
-namespace Storm {  // Version 3.3.3
+namespace Storm {  // Version 3.3.4
     using Integer = long long;
 
     namespace Engine {
         using MT_Engine = std::mt19937_64;
-        using DB_Engine = std::discard_block_engine<MT_Engine, 64, 42>;
-        using RNG_Engine = std::shuffle_order_engine<DB_Engine, 256>;
+        using DB_Engine = std::discard_block_engine<MT_Engine, 20, 16>;
+        using RNG_Engine = std::shuffle_order_engine<DB_Engine, 64>;
         static RNG_Engine Hurricane { std::random_device()() };
     }
 
