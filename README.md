@@ -724,8 +724,12 @@ User input is not case sensitive.
 
 
 ## Fortuna Development Log
+##### Fortuna 3.18.1
+- Install update
+
 ##### Fortuna 3.18.0
 - Performance Enhancement
+- Storm 3.3.4 update
 - updated test output
 
 ##### Fortuna 3.17.13
