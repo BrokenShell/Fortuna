@@ -14,7 +14,7 @@ not security!
 - Storm: Core C++ Random Number Engine. https://github.com/BrokenShell/Storm
 
 
-### Quick Install `$ pip install Cython Fortuna`
+### Quick Install `$ pip install Fortuna`
 
 
 ### Installation may require the following:
@@ -724,6 +724,9 @@ User input is not case sensitive.
 
 
 ## Fortuna Development Log
+##### Fortuna 3.18.2
+- Fixes typos
+
 ##### Fortuna 3.18.1
 - Install update
 
