@@ -18,7 +18,8 @@ __all__ = (
     "front_poisson", "middle_poisson", "back_poisson", "quantum_poisson",
     "front_linear", "middle_linear", "back_linear", "quantum_linear",
     "shuffle", "fisher_yates", "knuth_a", "distribution_range",
-    "smart_clamp", "flatten", "MultiChoice",
+    "smart_clamp", "flatten", "MultiChoice", "min_int", "max_int", "min_float",
+    "max_float", "min_below", "min_above",
 )
 
 
@@ -51,6 +52,36 @@ cdef extern from "Storm.hpp":
     long long     _quantum_linear         "Storm::quantum_linear"(long long)
     long long     _quantum_monty          "Storm::quantum_monty"(long long)
     long long     _smart_clamp            "Storm::GearBox::smart_clamp"(long long, long long, long long)
+    long long     _min_int                "Storm::Meters::min_int"()
+    long long     _max_int                "Storm::Meters::max_int"()
+    double        _min_float              "Storm::Meters::min_float"()
+    double        _max_float              "Storm::Meters::max_float"()
+    double        _min_below              "Storm::Meters::min_below"()
+    double        _min_above              "Storm::Meters::min_above"()
+
+
+def max_int():
+    return _max_int()
+
+
+def min_int():
+    return _min_int()
+
+
+def min_float():
+    return _min_float()
+
+
+def max_float():
+    return _max_float()
+
+
+def min_below():
+    return _min_below()
+
+
+def min_above():
+    return _min_above()
 
 
 def distribution_range(func: Callable, lo, hi):

@@ -1,23 +1,23 @@
 #pragma once
 
-#include <algorithm>        // generate_n, partial_sort, min, max
-#include <cmath>            // abs, cos, acos, atan, sqrt, fmod, exp, nextafter
-#include <functional>       // greater
-#include <limits>           // numeric_limits
-#include <numeric>          // accumulate
-#include <random>           // all
-#include <vector>           // vector
+#include <algorithm>
+#include <cmath>
+#include <functional>
+#include <limits>
+#include <numeric>
+#include <random>
+#include <vector>
 
 
-namespace Storm {  // Version 3.3.6
+namespace Storm {  // Version 3.4.0
     using Integer = long long;
-
 
     namespace Engine {
         using MT_Engine = std::mt19937_64;
         using DB_Engine = std::discard_block_engine<MT_Engine, 20, 16>;
         using RNG_Engine = std::shuffle_order_engine<DB_Engine, 64>;
-        static Engine::RNG_Engine Hurricane{std::random_device()()}; // NOLINT(cert-err58-cpp)
+        thread_local std::random_device RandomDevice{std::random_device()}; // NOLINT(cert-err58-cpp)
+        thread_local Engine::RNG_Engine Hurricane{RandomDevice()}; // NOLINT(cert-err58-cpp)
     }
 
     namespace GearBox {
@@ -25,48 +25,33 @@ namespace Storm {  // Version 3.3.6
         constexpr const T &clamp(const T &v, const T &lo, const T &hi) {
             return v < hi ? std::max(v, lo) : std::min(v, hi);
         }
-
         auto smart_clamp(Storm::Integer a, Storm::Integer b, Storm::Integer c) -> Storm::Integer {
             return GearBox::clamp(a, std::min(b, c), std::max(c, b));
         }
-
         template<typename Callable>
-        auto approximation_clamp(Callable &&approximation_function, Storm::Integer target,
+        auto approximation_clamp(Callable &&approximation_function,
+                                 Storm::Integer target,
                                  Storm::Integer upper_bound) -> Storm::Integer {
             if (target >= 0 and target < upper_bound) return target;
             else return approximation_function(upper_bound);
         }
-
         template<typename Callable>
-        auto analytic_continuation(Callable &&func, Storm::Integer input, Storm::Integer offset) -> Storm::Integer {
+        auto analytic_continuation(Callable &&func,
+                                   Storm::Integer input,
+                                   Storm::Integer offset) -> Storm::Integer {
             if (input > 0) return func(input);
             else if (input < 0) return -func(-input) + offset;
             else return offset;
         }
-    } // end GearBox namespace
-
-    auto min_int() -> Storm::Integer {
-        return -std::numeric_limits<Storm::Integer>::max();
     }
 
-    auto max_int() -> Storm::Integer {
-        return std::numeric_limits<Storm::Integer>::max();
-    }
-
-    auto min_float() -> double {
-        return std::numeric_limits<double>::lowest();
-    }
-
-    auto max_float() -> double {
-        return std::numeric_limits<double>::max();
-    }
-
-    auto min_below() -> double {
-        return std::nextafter(0.0, std::numeric_limits<double>::lowest());
-    }
-
-    auto min_above() -> double {
-        return std::nextafter(0.0, std::numeric_limits<double>::max());
+    namespace Meters {
+        auto min_int() -> Storm::Integer { return -std::numeric_limits<Storm::Integer>::max(); }
+        auto max_int() -> Storm::Integer { return std::numeric_limits<Storm::Integer>::max(); }
+        auto min_float() -> double { return std::numeric_limits<double>::lowest(); }
+        auto max_float() -> double { return std::numeric_limits<double>::max(); }
+        auto min_below() -> double { return std::nextafter(0.0, std::numeric_limits<double>::lowest()); }
+        auto min_above() -> double { return std::nextafter(0.0, std::numeric_limits<double>::max()); }
     }
 
     auto canonical_variate() -> double {
