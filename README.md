@@ -693,6 +693,9 @@ Essentially, this turns a function like random_below(N) into random_int(A, B).
 
 
 ## Fortuna Development Log
+##### Fortuna 3.20.1
+- fixes typos
+
 ##### Fortuna 3.20.0
 - Updates Storm: 3.4.0
 - Adds platform limit meters
