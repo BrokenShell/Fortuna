@@ -2271,25 +2271,25 @@ some_med_list = [i for i in range(100)]
 some_large_list = [i for i in range(1000)]
 
 Base Case:
-Random.shuffle()  # fisher_yates
-Typical Timing: 3492 ± 206 ns
-Typical Timing: 40614 ± 9614 ns
-Typical Timing: 337656 ± 13370 ns
+Random.shuffle()  # fisher_yates in python
+Typical Timing: 3601 ± 173 ns
+Typical Timing: 33312 ± 1312 ns
+Typical Timing: 335616 ± 3473 ns
 
-Fortuna.shuffle()  # knuth_b
-Typical Timing: 366 ± 80 ns
-Typical Timing: 4763 ± 1192 ns
-Typical Timing: 36107 ± 107 ns
+Fortuna.shuffle()  # knuth_b in cython
+Typical Timing: 483 ± 54 ns
+Typical Timing: 3769 ± 54 ns
+Typical Timing: 37115 ± 115 ns
 
-Fortuna.knuth_a()
-Typical Timing: 756 ± 42 ns
-Typical Timing: 6336 ± 50 ns
-Typical Timing: 80833 ± 3118 ns
+Fortuna.knuth_a()  # knuth_a in cython
+Typical Timing: 885 ± 27 ns
+Typical Timing: 6651 ± 80 ns
+Typical Timing: 81524 ± 1952 ns
 
-Fortuna.fisher_yates()
-Typical Timing: 914 ± 57 ns
-Typical Timing: 6512 ± 83 ns
-Typical Timing: 79123 ± 266 ns
+Fortuna.fisher_yates()  # fisher_yates in cython
+Typical Timing: 907 ± 50 ns
+Typical Timing: 6764 ± 50 ns
+Typical Timing: 81367 ± 1224 ns
 
 
 -------------------------------------------------------------------------
