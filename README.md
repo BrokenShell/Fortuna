@@ -2,8 +2,9 @@
 © 2020 Robert Sharp, all rights reserved.
 
 Fortuna's main goal is to provide a quick and easy way to build custom random 
-functions for your data that are byte-code fast. Fortuna also offers a variety 
-of high-performance random number functions like `random_range()` and `dice()`.
+functions for your data that are byte-code fast and thread aware. Fortuna also 
+offers a variety of high-performance random number functions like 
+`random_range()` and `dice()`.
 
 The core functionality of Fortuna is based on the Cpp Storm RNG Engine - created 
 by the same developer (Robert Sharp). While Storm is a high quality, hardware 
@@ -11,11 +12,9 @@ seeded random engine - it is not appropriate for cryptography of any kind.
 Fortuna is meant for games, data science, A.I. and experimental programming... 
 not security!
 
-- Storm: Core C++ Random Number Engine. https://github.com/BrokenShell/Storm
-
+Storm: Fortuna's Random Number Engine. https://github.com/BrokenShell/Storm
 
 ### Quick Install `$ pip install Fortuna`
-
 
 ### Installation may require the following:
 - MacOS or Linux. Windows is not directly supported without WSL: Windows Subsystem for Linux.
@@ -693,11 +692,14 @@ Essentially, this turns a function like random_below(N) into random_int(A, B).
 
 
 ## Fortuna Development Log
+##### Fortuna 3.20.2
+- adds example: fortuna_extras/multi_threading.py
+
 ##### Fortuna 3.20.1
 - fixes typos
 
 ##### Fortuna 3.20.0
-- Updates Storm: 3.4.0
+- Updates Storm: 3.4.0: Storm is now Thread Safe
 - Adds platform limit meters
 - Deprecates MultiChoice
 
