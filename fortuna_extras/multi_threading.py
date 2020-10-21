@@ -1,4 +1,8 @@
-from Fortuna import *
+""" Random Number Tests with Multithreading.
+The builtin Python Random library is not thread compatible and incorrectly
+produces the same `random` number for all threads. Conversely, Fortuna is thread
+compatible and will correctly produce random results for all threads. """
+from Fortuna import random_range
 from random import randrange
 import concurrent.futures
 import time
@@ -6,24 +10,20 @@ import time
 
 if __name__ == '__main__':
     rand_limit = 100  # Distribution range 0-99
-    n_jobs = 4  # Total number of threads
+    n_jobs = 8  # Total number of threads
 
-    print("\nBase Case: Random.randrange")
+    print("\nRandom.randrange:")
     start = time.perf_counter()
     with concurrent.futures.ProcessPoolExecutor() as executor:
-        args = [rand_limit] * n_jobs
-        results = executor.map(randrange, args)
-        for result in results:
-            print(result)
+        results = executor.map(randrange, [rand_limit] * n_jobs)
+    print(list(results))
     finish = time.perf_counter()
-    print(f'Random.randrange: {round(finish-start, 2)} second(s)')
+    print(f'Time: {round(finish-start, 2)} second(s)')
 
-    print("\nTest Case: Fortuna.random_below")
+    print("\nFortuna.random_range:")
     start = time.perf_counter()
     with concurrent.futures.ProcessPoolExecutor() as executor:
-        args = [rand_limit] * n_jobs
-        results = executor.map(random_range, args)
-        for result in results:
-            print(result)
+        results = executor.map(random_range, [rand_limit] * n_jobs)
+    print(list(results))
     finish = time.perf_counter()
-    print(f'Fortuna.random_below: {round(finish-start, 2)} second(s)')
+    print(f'Time: {round(finish-start, 2)} second(s)')

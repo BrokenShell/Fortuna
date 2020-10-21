@@ -1,7 +1,6 @@
 from setuptools import setup, Extension
 from Cython.Build import cythonize
 
-
 with open("README.md", "r") as file:
     long_description = file.read()
 
@@ -28,14 +27,14 @@ setup(
     ),
     author="Robert Sharp",
     author_email="webmaster@sharpdesigndigital.com",
-    version="3.20.2",
-    description="Random Value Toolkit",
+    version="3.20.3",
+    description="High Performance Random Value Toolkit",
     long_description=long_description,
     long_description_content_type="text/markdown",
     license="Free for non-commercial use",
     platforms=["Darwin", "Linux"],
     classifiers=[
-        dev_status["Pro"],
+        dev_status["Mature"],
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Cython",
         "Programming Language :: C++",
@@ -44,11 +43,12 @@ setup(
         "Topic :: Software Development :: Libraries :: Python Modules",
     ],
     keywords=[
-        "Fortuna", "Random Patterns", "Data Perturbation", "Game Dice",
-        "WeightedChoice", "Random Value Generator", "Gaussian Distribution",
+        "Fortuna", "High Performance Random Value Toolkit", "Random Patterns",
+        "Data Perturbation", "Game Dice", "WeightedChoice",
+        "Random Value Generator", "Gaussian Distribution",
         "Linear Distribution", "TruffleShuffle", "FlexCat", "Percent True",
         "ZeroCool", "QuantumMonty", "Custom Distribution", "Rarity Table",
-        "D20", "Generative Modeling",
+        "D20", "Generative Modeling", "Multithreading Aware Random Engine",
     ],
     python_requires='>=3.6',
 )
