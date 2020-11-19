@@ -85,15 +85,15 @@ def min_above():
     return _min_above()
 
 
-def distribution_range(func: Callable, lo, hi):
-    """ Distribution Range: Arbitrary distribution.
+def distribution_range(func: Callable, lo, hi) -> Callable:
+    """ Distribution Range
 
     @param func: ZeroCool random distribution, F(N) -> [0, N-1]
     @param lo: minimum
     @param hi: maximum
     @return: random value in range [lo, hi]
     """
-    return lo + func(hi - lo)
+    return lambda: lo + func(1 + hi - lo)
 
 
 def random_below(limit: int) -> int:

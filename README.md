@@ -97,6 +97,7 @@ not security!
 - Utilities
     - `flatten(Object, *args, Boolean, **kwargs) -> Object`
     - `smart_clamp(Integer, Integer, Integer) -> Integer`
+    - `distribution_range(Callable, Integer, Integer) -> Callable`
     - `min_float() -> Float`
     - `max_float() -> Float`
     - `min_below() -> Float`
@@ -772,19 +773,23 @@ print(some_list[quantum_gauss(-10)])
 - Essentially the same as median for exactly three integers.
 - @return :: Returns the middle value, input order does not matter.
 
-`Fortuna.distribution_range(func: Callable, lo, hi)`
-Higher-order function for producing arbitrary distribution ranges.
+`Fortuna.distribution_range(func: Callable, lo: int, hi: int) -> Callable`
+Higher-order function for producing integer distribution ranges based on a ZeroCool function.
 If given a function like random_below, this function will produce random values
 with the same distribution but in the range lo to hi, rather than from zero to N-1.
-Essentially, this turns a function like random_below(N) into random_int(A, B).
+Essentially, this turns a function like random_below(B+1) into random_int(A, B).
 
 - @param func: ZeroCool random distribution, F(N) -> `[0, N-1]`
 - @param lo: minimum limit
 - @param hi: maximum limit
-- @return: random value in range `[lo, hi]`
+- @return: Callable() -> int
+    - @return: random value in range `[lo, hi]`
 
 
 ## Fortuna Development Log
+##### Fortuna 4.1.0
+- Adds distribution_range utility
+
 ##### Fortuna 4.0.0
 - RNG merge, adds all features from the RNG library that were not already here
 
