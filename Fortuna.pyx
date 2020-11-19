@@ -6,28 +6,9 @@ from math import sqrt
 from typing import Any, List, Sequence, Tuple, Callable, Iterable, Dict
 
 
-__all__ = (
-    "RandomValue", "TruffleShuffle", "QuantumMonty", "FlexCat",
-    "CumulativeWeightedChoice", "RelativeWeightedChoice",
-    "random_value", "cumulative_weighted_choice", "truffle_shuffle",
-    "canonical", "random_float", "triangular",
-    "random_below", "random_int", "random_range", "d", "dice", "ability_dice",
-    "percent_true", "plus_or_minus", "plus_or_minus_linear", "plus_or_minus_gauss",
-    "ZeroCool", "random_index", "quantum_monty",
-    "front_gauss", "middle_gauss", "back_gauss", "quantum_gauss",
-    "front_poisson", "middle_poisson", "back_poisson", "quantum_poisson",
-    "front_linear", "middle_linear", "back_linear", "quantum_linear",
-    "shuffle", "fisher_yates", "knuth_a", "distribution_range",
-    "smart_clamp", "flatten", "MultiChoice", "min_int", "max_int", "min_float",
-    "max_float", "min_below", "min_above",
-)
-
-
 cdef extern from "Storm.hpp":
     int           _percent_true           "Storm::percent_true"(double)
-    double        _canonical              "Storm::canonical_variate"()
-    double        _random_float           "Storm::uniform_real_variate"(double, double)
-    double        _triangular             "Storm::triangular_variate"(double, double, double)
+    int           _bernoulli              "Storm::bernoulli_variate"(double)
     long long     _random_below           "Storm::random_below"(long long)
     long long     _random_int             "Storm::uniform_int_variate"(long long, long long)
     long long     _random_range           "Storm::random_range"(long long, long long, long long)
@@ -54,6 +35,26 @@ cdef extern from "Storm.hpp":
     long long     _smart_clamp            "Storm::GearBox::smart_clamp"(long long, long long, long long)
     long long     _min_int                "Storm::Meters::min_int"()
     long long     _max_int                "Storm::Meters::max_int"()
+    long long     _binomial               "Storm::binomial_variate"(long long, double)
+    long long     _neg_binomial           "Storm::negative_binomial_variate"(long long, double)
+    long long     _geometric              "Storm::geometric_variate"(double)
+    long long     _poisson                "Storm::poisson_variate"(double)
+    double        _canonical              "Storm::canonical_variate"()
+    double        _random_float           "Storm::uniform_real_variate"(double, double)
+    double        _triangular             "Storm::triangular_variate"(double, double, double)
+    double        _exponential            "Storm::exponential_variate"(double)
+    double        _gamma                  "Storm::gamma_variate"(double, double)
+    double        _weibull                "Storm::weibull_variate"(double, double)
+    double        _normal                 "Storm::normal_variate"(double, double)
+    double        _lognormal              "Storm::lognormal_variate"(double, double)
+    double        _extreme_value          "Storm::extreme_value_variate"(double, double)
+    double        _chi_squared            "Storm::chi_squared_variate"(double)
+    double        _cauchy                 "Storm::cauchy_variate"(double, double)
+    double        _fisher_f               "Storm::fisher_f_variate"(double, double)
+    double        _student_t              "Storm::student_t_variate"(double)
+    double        _beta                   "Storm::beta_variate"(double, double)
+    double        _pareto                 "Storm::pareto_variate"(double)
+    double        _vonmises               "Storm::vonmises_variate"(double, double)
     double        _min_float              "Storm::Meters::min_float"()
     double        _max_float              "Storm::Meters::max_float"()
     double        _min_below              "Storm::Meters::min_below"()
@@ -864,3 +865,75 @@ class MultiChoice:
             return selection.title()
         else:
             return self()
+
+
+def beta_variate(alpha: float, beta:float) -> float:
+    return _beta(alpha, beta)
+
+
+def pareto_variate(alpha: float) -> float:
+    return _pareto(alpha)
+
+
+def vonmises_variate(mu: float, kappa: float) -> float:
+    return _vonmises(mu, kappa)
+
+
+def bernoulli_variate(ratio_of_truth: float) -> bool:
+    return _bernoulli(ratio_of_truth) == 1
+
+
+def binomial_variate(number_of_trials: int, probability: float) -> int:
+    return _binomial(number_of_trials, probability)
+
+
+def negative_binomial_variate(number_of_trials: int, probability: float) -> int:
+    return _neg_binomial(number_of_trials, probability)
+
+
+def geometric_variate(probability: float) -> int:
+    return _geometric(probability)
+
+
+def poisson_variate(mean: float) -> int:
+    return _poisson(mean)
+
+
+def exponential_variate(lambda_rate: float) -> float:
+    return _exponential(lambda_rate)
+
+
+def gamma_variate(shape: float, scale: float) -> float:
+    return _gamma(shape, scale)
+
+
+def weibull_variate(shape: float, scale: float) -> float:
+    return _weibull(shape, scale)
+
+
+def normal_variate(mean: float, std_dev: float) -> float:
+    return _normal(mean, std_dev)
+
+
+def lognormal_variate(log_mean: float, log_deviation: float) -> float:
+    return _lognormal(log_mean, log_deviation)
+
+
+def extreme_value_variate(location: float, scale: float) -> float:
+    return _extreme_value(location, scale)
+
+
+def chi_squared_variate(degrees_of_freedom: float) -> float:
+    return _chi_squared(degrees_of_freedom)
+
+
+def cauchy_variate(location: float, scale: float) -> float:
+    return _cauchy(location, scale)
+
+
+def fisher_f_variate(degrees_of_freedom_1: float, degrees_of_freedom_2: float) -> float:
+    return _fisher_f(degrees_of_freedom_1, degrees_of_freedom_2)
+
+
+def student_t_variate(degrees_of_freedom: float) -> float:
+    return _student_t(degrees_of_freedom)

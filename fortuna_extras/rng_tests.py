@@ -2,7 +2,7 @@ import time as _time
 import math as _math
 import random as _random
 
-from RNG import *
+from Fortuna import *
 from MonkeyScope import distribution_timer
 
 
@@ -17,9 +17,6 @@ def quick_test():
     distribution_timer(bernoulli_variate, 2/3)
 
     print("\nInteger Variate Distributions\n")
-    print("Base Case")
-    distribution_timer(_random.randint, 1, 6)
-    distribution_timer(uniform_int_variate, 1, 6)
     print("Fortuna")
     distribution_timer(binomial_variate, 4, 0.5)
     distribution_timer(negative_binomial_variate, 5, 0.75)
@@ -29,10 +26,10 @@ def quick_test():
     print("\nFloating Point Variate Distributions\n")
     print("Base Case")
     distribution_timer(_random.random, post_processor=round)
-    distribution_timer(generate_canonical, post_processor=round)
+    distribution_timer(canonical, post_processor=round)
     print("Base Case")
     distribution_timer(_random.uniform, 0.0, 10.0, post_processor=_math.floor)
-    distribution_timer(uniform_real_variate, 0.0, 10.0, post_processor=_math.floor)
+    distribution_timer(random_float, 0.0, 10.0, post_processor=_math.floor)
     print("Base Case")
     distribution_timer(_random.expovariate, 1.0, post_processor=_math.floor)
     distribution_timer(exponential_variate, 1.0, post_processor=_math.floor)
