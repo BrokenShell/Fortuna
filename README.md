@@ -787,6 +787,9 @@ Essentially, this turns a function like random_below(B+1) into random_int(A, B).
 
 
 ## Fortuna Development Log
+##### Fortuna 4.1.1
+- Fixes some minor typos
+
 ##### Fortuna 4.1.0
 - Adds distribution_range utility
 
