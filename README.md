@@ -4,31 +4,27 @@
 Fortuna's main goal is to provide a quick and easy way to build custom random 
 functions for your data that are byte-code fast and thread aware. Fortuna also 
 offers a variety of high-performance random number functions like 
-`random_range()` and `dice()`.
+`random_range(start, stop, step)` and `dice(rolls, sides)`.
 
-The core functionality of Fortuna is based on the Cpp Storm RNG Engine - created 
+The core functionality of Fortuna is based on the Storm Engine - created 
 by the same developer (Robert Sharp). While Storm is a high quality, hardware 
 seeded random engine - it is not appropriate for cryptography of any kind. 
 Fortuna is meant for games, data science, A.I. and experimental programming... 
 not security!
 
-Storm: Fortuna's Random Number Engine. https://github.com/BrokenShell/Storm
-
 ### Quick Install `$ pip install Fortuna`
 
 ### Installation may require the following:
-- MacOS or Linux. Windows is not directly supported without WSL: Windows Subsystem for Linux.
-- Python 3.6 or later with dev tools (setuptools, pip, etc.), 64bit preferred.
-- Cython: Python library. `$ pip install Cython`. Serves as a bridge from C/C++ to Python.
-- Modern C++17 Compiler and Standard Library: Clang or GCC. Typically not required on MacOS.
-    - If you're running an older version of MacOS you can install Xcode to get the Clang compiler.
+- Modern version of MacOS or Linux.
+- WSL: Windows requires Fortuna to be installed via Python3 running inside the Windows Subsystem for Linux.
+- Modern C++17 Compiler and Standard Library: Clang or GCC. Typically not required on the latest version of MacOS.
+    - If you're running an older version of MacOS you can install Xcode to get the Clang compiler and all dependencies.
 
 ### Sister Projects:
-- RNG: Python3 API for the C++ Random Library. https://pypi.org/project/RNG/
 - Pyewacket: Drop-in replacement for Python3 random module. https://pypi.org/project/Pyewacket/
-- MonkeyScope: Framework for testing non-deterministic functors. https://pypi.org/project/MonkeyScope/
+- MonkeyScope: Framework for testing non-deterministic functions and methods. https://pypi.org/project/MonkeyScope/
+- Storm: Fortuna's Random Number Engine. https://github.com/BrokenShell/Storm
 
-> In an effort to streamline Fortuna, the above packages are no longer included automatically. Each of them can be installed with pip as needed.
 
 ---
 
@@ -54,6 +50,10 @@ Storm: Fortuna's Random Number Engine. https://github.com/BrokenShell/Storm
     - `plus_or_minus(Integer) -> Integer`
     - `plus_or_minus_linear(Integer) -> Integer`
     - `plus_or_minus_gauss(Integer) -> Integer`
+    - `binomial_variate(Integer, Float) -> Integer`
+    - `negative_binomial_variate(Integer, Float) -> Integer`
+    - `geometric_variate(Float) -> Integer`
+    - `poisson_variate(Float) -> Integer`
 - Random Index Functions 
     - ZeroCool Specification: `f(N) -> [0, N)` or `f(-N) -> [-N, 0)`
     - `random_index(Integer) -> Integer`
@@ -74,8 +74,22 @@ Storm: Fortuna's Random Number Engine. https://github.com/BrokenShell/Storm
     - `canonical() -> Float`
     - `random_float(Float, Float) -> Float`
     - `triangular(Float, Float, Float) -> Float`
+    - `normal_variate(Float, Float) -> Float`
+    - `lognormal_variate(Float, Float) -> Float`
+    - `exponential_variate(Float) -> Float`
+    - `gamma_variate(Float, Float) -> Float`
+    - `weibull_variate(Float, Float) -> Float`
+    - `extreme_value_variate(Float, Float) -> Float`
+    - `chi_squared_variate(Float) -> Float`
+    - `cauchy_variate(Float, Float) -> Float`
+    - `fisher_f_variate(Float, Float) -> Float`
+    - `student_t_variate(Float) -> Float`
+    - `beta_variate(Float, Float) -> Float`
+    - `pareto_variate(Float) -> Float`
+    - `vonmises_variate(Float, Float) -> Float`
 - Random Boolean Functions
     - `percent_true(Float) -> Boolean`
+    - `bernoulli_variate(Float) -> Boolean`
 - Inplace Shuffle Algorithms
     - `shuffle(List[Any]) -> None`
     - `knuth_a(List[Any]) -> None`
@@ -83,8 +97,10 @@ Storm: Fortuna's Random Number Engine. https://github.com/BrokenShell/Storm
 - Utilities
     - `flatten(Object, *args, Boolean, **kwargs) -> Object`
     - `smart_clamp(Integer, Integer, Integer) -> Integer`
-- Experimental
-    - `MultiChoice(str, Iterable[str], str, bool, str) -> Callable -> str`
+    - `min_float() -> Float`
+    - `max_float() -> Float`
+    - `min_below() -> Float`
+    - `min_above() -> Float`
 - Development Log
 - Test Suite Output
 - Legal Information
@@ -490,7 +506,7 @@ Similar to Random.choices()
 
 ### Random Integer Functions
 `Fortuna.random_below(limit: int) -> int`
-- @param limit :: Any Integer
+- @param limit :: Any 64bit Integer
 - @return :: Returns a random integer in the range...
     - `random_below(N) -> [0, N)` for positive limit.
     - `random_below(N) -> (N, 0]` for negative limit.
@@ -568,6 +584,29 @@ Represents the sum total of multiple rolls of the same size die.
 - Stretched gaussian distribution centered on zero.
 
 
+`Fortuna.binomial_variate(number_of_trials: int, probability: float) -> int`
+- Based on the idea of flipping a coin and counting how many heads come up after some number of flips.
+- @param number_of_trials :: how many times to flip a coin.
+- @param probability :: how likely heads will be flipped. 0.5 is a fair coin. 1.0 is a double headed coin.
+- @return :: count of how many heads came up.
+
+
+`Fortuna.negative_binomial_variate(trial_successes: int, probability: float) -> int`
+- Based on the idea of flipping a coin as long as it takes to succeed.
+- @param trial_successes :: the required number of heads flipped to succeed.
+- @param probability :: how likely heads will be flipped. 0.50 is a fair coin.
+- @return :: the count of how many tails came up before the required number of heads.
+
+
+`Fortuna.geometric_variate(probability: float) -> int`
+- Same as random_negative_binomial(1, probability). 
+
+
+`Fortuna.poisson_variate(mean: float) -> int`
+- @param mean :: sets the average output of the function.
+- @return :: random integer, poisson distribution centered on the mean.
+
+
 ### Random Index, ZeroCool Specification
 ZeroCool Methods are used to generate random Sequence indices.
 
@@ -636,15 +675,69 @@ print(some_list[quantum_gauss(-10)])
 - @param low :: Float, minimum output
 - @param high :: Float, maximum output
 - @param mode :: Float, most common output, mode must be in range `[low, high]`
-- @return :: random number in range `[low, high]` with a linear distribution about the mode.
+- @return :: random Float in range `[low, high]` with a linear distribution about the mode.
+
+`Fortuna.normal_variate(mean: Float, std_dev: Float) -> Float`
+- @param mean :: Float, sets the average output of the function.
+- @param std_dev :: Float, standard deviation. Specifies spread of data from the mean.
+
+`Fortuna.lognormal_variate(log_mean: Float, log_deviation: Float) -> Float`
+- @param log_mean :: Float, sets the log of the mean of the function.
+- @param log_deviation :: Float, log of the standard deviation. Specifies spread of data from the mean.
+
+`Fortuna.exponential_variate(lambda_rate: Float) -> Float`
+- Produces random non-negative floating-point values, distributed according to probability density function.
+- @param lambda_rate :: Float, λ constant rate of a random event per unit of time/distance.
+- @return :: Float, the time/distance until the next random event. For example, this distribution describes the time between the clicks of a Geiger counter or the distance between point mutations in a DNA strand.
+
+`Fortuna.gamma_variate(shape: Float, scale: Float) -> Float`
+- Generalization of the exponential distribution.
+- Produces random positive floating-point values, distributed according to probability density function.    
+- @param shape :: Float, α the number of independent exponentially distributed random variables.
+- @param scale :: Float, β the scale factor or the mean of each of the distributed random variables.
+- @return :: Float, the sum of α independent exponentially distributed random variables, each of which has a mean of β.
+
+`Fortuna.weibull_variate(shape: Float, scale: Float) -> Float`
+- Generalization of the exponential distribution.
+- Similar to the gamma distribution but uses a closed form distribution function.
+- Popular in reliability and survival analysis.
+
+`Fortuna.extreme_value_variate(location: Float, scale: Float) -> Float`
+- Based on Extreme Value Theory. 
+- Used for statistical models of the magnitude of earthquakes and volcanoes.
+
+`Fortuna.chi_squared_variate(degrees_of_freedom: Float) -> Float`
+- Used with the Chi Squared Test and Null Hypotheses to test if sample data fits an expected distribution.
+
+`Fortuna.cauchy_variate(location: Float, scale: Float) -> Float`
+- @param location :: Float, specifies the location of the peak. The default value is 0.0.
+- @param scale :: Float, represents the half-width at half-maximum. The default value is 1.0.
+- @return :: Float, Continuous Distribution.
+
+`Fortuna.fisher_f_variate(degrees_of_freedom_1: Float, degrees_of_freedom_2: Float) -> Float`
+- F distributions often arise when comparing ratios of variances.
+
+`Fortuna.student_t_variate(degrees_of_freedom: Float) -> Float`
+- T distribution. Same as a normal distribution except it uses the sample standard deviation rather than the population standard deviation.
+- As degrees_of_freedom goes to infinity it converges with the normal distribution.
+
+`Fortuna.beta_variate(alpha: Float, beta: Float) -> Float`
+
+`Fortuna.pareto_variate(alpha: Float) -> Float`
+
+`Fortuna.vonmises_variate(mu: Float, kappa: Float) -> Float`
 
 
-### Random Truth Function
-`Fortuna.percent_true(truth_factor: Float = 50.0) -> bool`
-- @param truth_factor :: The probability of True as a percentage. Default is 50 percent.
+### Random Truth Functions
+`Fortuna.percent_true(truth_factor: Float = 50.0) -> Boolean`
+- Produces a distribution of boolean values.
+- @param truth_factor :: Float, probability of True as a percentage. Default is 50 percent. Expected input range: `[0.0, 100.0]`, clamped.
 - @return :: Produces True or False based on the truth_factor as a percent of true.
-    - Always returns False if num is 0 or less
-    - Always returns True if num is 100 or more.
+
+`Fortuna.bernoulli_variate(ratio_of_truth: Float) -> Boolean`
+- Produces a Bernoulli distribution of boolean values.
+- @param ratio_of_truth :: Float, the probability of True as a ratio. Expected input range: `[0.0, 1.0]`, clamped.
+- @return :: True or False
 
 
 ### Shuffle Algorithm
@@ -692,6 +785,9 @@ Essentially, this turns a function like random_below(N) into random_int(A, B).
 
 
 ## Fortuna Development Log
+##### Fortuna 4.0.0
+- RNG merge, adds all features from the RNG library that were not already here
+
 ##### Fortuna 3.20.3
 - Minor low level Storm update
 - Minor test tweaks
