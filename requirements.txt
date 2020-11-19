@@ -3,5 +3,4 @@ wheel
 twine
 Cython
 MonkeyScope
-RNG
 Pyewacket

@@ -34,12 +34,12 @@ def hardware_seed_test(seed_test_size):
 
 
 def quick_test():
-    R = _random.Random()
     print("\nMonkeyScope: Pyewacket\n")
     start_test = _time.time()
-    print("Base Case")
-    distribution_timer(R._randbelow, 10)
-    distribution_timer(randbelow, 10)
+    print("Seed tests")
+    software_seed_test(100)
+    hardware_seed_test(100)
+    print()
     print("Base Case")
     distribution_timer(_random.randint, 1, 10)
     distribution_timer(randint, 1, 10)

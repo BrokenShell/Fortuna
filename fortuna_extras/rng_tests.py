@@ -17,7 +17,7 @@ def quick_test():
     distribution_timer(bernoulli_variate, 2/3)
 
     print("\nInteger Variate Distributions\n")
-    print("Fortuna")
+    print("Fortuna only")
     distribution_timer(binomial_variate, 4, 0.5)
     distribution_timer(negative_binomial_variate, 5, 0.75)
     distribution_timer(geometric_variate, 0.75)

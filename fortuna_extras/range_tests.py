@@ -125,4 +125,4 @@ def range_tests(verbose=False):
 
 
 if __name__ == "__main__":
-    range_tests(verbose=True)
+    range_tests(verbose=False)

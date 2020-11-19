@@ -5,10 +5,6 @@ import random as _random
 from Fortuna import *
 from MonkeyScope import distribution_timer, timer
 
-__all__ = (
-    "quick_test",
-)
-
 
 def quick_test():
     print("\nMonkeyScope: Fortuna Quick Test")
