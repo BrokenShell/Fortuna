@@ -15,15 +15,15 @@ not security!
 ### Quick Install `$ pip install Fortuna`
 
 ### Installation may require the following:
-- Modern version of MacOS or Linux.
+- Modern version of macOS or Linux.
 - WSL: Windows requires Fortuna to be installed via Python3 running inside the Windows Subsystem for Linux.
-- Modern C++17 Compiler and Standard Library: Clang or GCC. Typically not required on the latest version of MacOS.
-    - If you're running an older version of MacOS you can install Xcode to get the Clang compiler and all dependencies.
+- Modern C++17 Compiler and Standard Library: Clang or GCC. Typically, not required on the latest version of macOS.
+    - If you're running an older version of macOS you can install Xcode to get the Clang compiler and all dependencies.
 
 ### Sister Projects:
 - Pyewacket: Drop-in replacement for Python3 random module. https://pypi.org/project/Pyewacket/
 - MonkeyScope: Framework for testing non-deterministic functions and methods. https://pypi.org/project/MonkeyScope/
-- Storm: Fortuna's Random Number Engine. https://github.com/BrokenShell/Storm
+- Storm: Random Number Engine. https://github.com/BrokenShell/Storm
 
 
 ---
@@ -202,12 +202,13 @@ print(random_fruit())
 ```
 
 ### Auto Flattening
-#### RandomValue with Auto Flattening
 Auto Flattening works with all random generator classes in Fortuna, and it's on by default.
 Flattening is lazy: it happens at call time as the last step. 
 Flattening is recursive: this allows a nested lambda stack to be collapsed automatically.
 Flattening is resilient: if for any reason a callable can not be flatted - it will 
 be returned in an un-flattened state without error. 
+
+#### Example: RandomValue with Auto Flattening
 ```python
 from Fortuna import RandomValue
 
