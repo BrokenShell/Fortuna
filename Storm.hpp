@@ -8,14 +8,14 @@
 #include <random>
 #include <vector>
 
-namespace Storm {  // Version 3.4.2
+namespace Storm {  // Version 3.4.3
 using Integer = long long;
 
 namespace Engine {
 using MT_Engine = std::mt19937_64;
 using DB_Engine = std::discard_block_engine<MT_Engine, 24, 16>;
 using RNG_Engine = std::shuffle_order_engine<DB_Engine, 64>;
-thread_local Engine::RNG_Engine Hurricane{std::random_device()()};
+thread_local Engine::RNG_Engine Hurricane{std::random_device()()}; // NOLINT(cert-err58-cpp)
 }
 
 namespace GearBox {
@@ -179,16 +179,17 @@ auto pareto_variate(double alpha) -> double {
   return 1.0 / std::pow(u, 1.0 / alpha);
 }
 
-auto vonmises_variate(double mu, double kappa) -> double {
-  static const double PI{4 * std::atan(1)};
-  static const double TAU{8 * std::atan(1)};
+auto vonmises_variate(double mu, double kappa) -> long double {
+  static const long double PI{4 * std::atan(1)};
+  static const long double TAU{8 * std::atan(1)};
   if (kappa <= 0.000001) return TAU * Storm::canonical_variate();
-  const double s{0.5 / kappa};
-  const double r{s + std::sqrt(1 + s * s)};
-  double u1;
-  double z;
-  double d;
-  double u2;
+  const long double s{0.5 / kappa};
+  const long double t{1 + s * s};
+  const long double r{s + std::sqrt(t)};
+  long double u1;
+  long double z;
+  long double d;
+  long double u2;
   while (true) {
     u1 = Storm::canonical_variate();
     u2 = Storm::canonical_variate();
@@ -196,19 +197,21 @@ auto vonmises_variate(double mu, double kappa) -> double {
     d = z / (r + z);
     if (u2 < 1.0 - d * d or u2 <= (1.0 - d) * std::exp(d)) break;
   }
-  const double q{1.0 / r};
-  const double f{(q + z) / (1.0 + q * z)};
-  const double u3{Storm::canonical_variate()};
+  const long double q{1.0 / r};
+  const long double f{(q + z) / (1.0 + q * z)};
+  const long double u3{Storm::canonical_variate()};
   if (u3 > 0.5) return std::fmod(mu + std::acos(f), TAU);
   return std::fmod(mu - std::acos(f), TAU);
 }
 
-auto triangular_variate(double low, double high, double mode) -> double {
+auto triangular_variate(double low, double high, double mode) -> long double {
   if (low == high) return low;
   const double rand{Storm::canonical_variate()};
   const double mode_factor{(mode - low) / (high - low)};
-  if (rand > mode_factor) return high + (low - high) * std::sqrt((1.0 - rand) * (1.0 - mode_factor));
-  return low + (high - low) * std::sqrt(rand * mode_factor);
+  const long double rand_factor{(1.0 - rand) * (1.0 - mode_factor)};
+  if (rand > mode_factor) return high + (low - high) * std::sqrt(rand_factor);
+  const long double rand_mode{rand * mode_factor};
+  return low + (high - low) * std::sqrt(rand_mode);
 }
 
 auto percent_true(double truth_factor) -> bool {
@@ -253,7 +256,8 @@ auto plus_or_minus_linear(Storm::Integer number) -> Storm::Integer {
 auto plus_or_minus_gauss(Storm::Integer number) -> Storm::Integer {
   static const auto PI{4 * std::atan(1)};
   const auto num{std::abs(number)};
-  const auto result{Storm::Integer(std::round(Storm::normal_variate(0.0, num / PI)))};
+  const long double normal_v{Storm::normal_variate(0.0, num / PI)};
+  const auto result{Storm::Integer(std::round(normal_v))};
   if (result >= -num and result <= num) return result;
   return Storm::plus_or_minus_linear(num);
 }
@@ -296,7 +300,8 @@ auto back_gauss(Storm::Integer) -> Storm::Integer;
 
 auto front_gauss(Storm::Integer number) -> Storm::Integer {
   if (number > 0) {
-    const auto result{Storm::Integer(std::floor(Storm::gamma_variate(1.0, number / 10.0)))};
+    const long double gamma_v{Storm::gamma_variate(1.0, number / 10.0)};
+    const auto result{Storm::Integer(std::floor(gamma_v))};
     return GearBox::approximation_clamp(Storm::front_linear, result, number);
   }
   return GearBox::analytic_continuation(Storm::back_gauss, number, -1);
@@ -304,7 +309,8 @@ auto front_gauss(Storm::Integer number) -> Storm::Integer {
 
 auto middle_gauss(Storm::Integer number) -> Storm::Integer {
   if (number > 0) {
-    const auto result{Storm::Integer(std::floor(Storm::normal_variate(number / 2.0, number / 10.0)))};
+    const long double normal_v{Storm::normal_variate(number / 2.0, number / 10.0)};
+    const auto result{Storm::Integer(std::floor(normal_v))};
     return GearBox::approximation_clamp(Storm::middle_linear, result, number);
   }
   return GearBox::analytic_continuation(Storm::middle_gauss, number, -1);
