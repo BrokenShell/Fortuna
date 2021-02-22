@@ -788,6 +788,12 @@ Essentially, this turns a function like random_below(B+1) into random_int(A, B).
 
 
 ## Fortuna Development Log
+##### Fortuna 4.1.6
+- Fixes 'zero rolls' bug in 'dice()'
+
+##### Fortuna 4.1.5
+- Fixes minor bug
+
 ##### Fortuna 4.1.4
 - Updates requirements.txt
 
