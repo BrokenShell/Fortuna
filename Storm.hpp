@@ -8,7 +8,7 @@
 #include <random>
 #include <vector>
 
-namespace Storm {  // Version 3.4.3
+namespace Storm {  // Version 3.4.4
 using Integer = long long;
 
 namespace Engine {
@@ -231,6 +231,9 @@ auto dice(Storm::Integer rolls, Storm::Integer sides) -> Storm::Integer {
     auto total{0};
     for (auto i{0}; i < rolls; ++i) total += d(sides);
     return total;
+  }
+  if (rolls == 0) {
+    return 0;
   }
   return -Storm::dice(-rolls, sides);
 }
