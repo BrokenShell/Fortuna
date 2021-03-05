@@ -21,8 +21,8 @@ setup(
             extra_compile_args=["-std=c++17"],
         ),
         compiler_directives={
-            'embedsignature': True,
-            'language_level': 3,
+            "embedsignature": True,
+            "language_level": 3,
         },
     ),
     author="Robert Sharp",
@@ -57,5 +57,5 @@ setup(
         "beta_variate", "pareto_variate", "vonmises_variate",
         "triangular_variate",
     ],
-    python_requires='>=3.6',
+    python_requires=">=3.6",
 )
