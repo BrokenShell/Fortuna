@@ -8,10 +8,11 @@ from concurrent.futures import ProcessPoolExecutor
 
 
 if __name__ == '__main__':
+
     rand_limit = 100  # Distribution range 0-99
     n_jobs = 8  # Total number of threads
 
-    print(f"\nMulti-threaded randrange/random_range test")
+    print(f"\nMulti-threaded randrange/random_range test: {n_jobs} threads")
 
     print("\nRandom.randrange:")
     with ProcessPoolExecutor() as executor:
