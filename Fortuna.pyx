@@ -438,7 +438,7 @@ class RandomValue:
     Random Value Generator Class that supports dependency injection.
     @param collection :: Collection of Values. Tuple recommended.
     @param zero_cool :: Optional ZeroCool Method, kwarg only.
-        Default = random_index().
+        Default = random_index()
     @param flat :: Bool. Default: True.
         Option to automatically flatten callable values with lazy evaluation.
     @return :: Callable Object. `Callable(*args, **kwargs) -> Value`

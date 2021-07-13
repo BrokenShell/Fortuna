@@ -13,6 +13,7 @@ dev_status = {
 
 setup(
     name="Fortuna",
+    url='https://github.com/BrokenShell/Fortuna',
     ext_modules=cythonize(
         Extension(
             name="Fortuna",
@@ -27,7 +28,7 @@ setup(
     ),
     author="Robert Sharp",
     author_email="webmaster@sharpdesigndigital.com",
-    version="4.1.6",
+    version="4.1.7",
     description="High Performance Random Value Toolkit",
     long_description=long_description,
     long_description_content_type="text/markdown",

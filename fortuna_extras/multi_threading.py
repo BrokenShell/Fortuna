@@ -17,9 +17,9 @@ if __name__ == '__main__':
     print("\nRandom.randrange:")
     with ProcessPoolExecutor() as executor:
         results = executor.map(randrange, [rand_limit] * n_jobs)
-    print(list(results))
+    print(' '.join(map(str, results)))
 
     print("\nFortuna.random_range:")
     with ProcessPoolExecutor() as executor:
         results = executor.map(random_range, [rand_limit] * n_jobs)
-    print(list(results))
+    print(' '.join(map(str, results)))

@@ -788,6 +788,10 @@ Essentially, this turns a function like random_below(B+1) into random_int(A, B).
 
 
 ## Fortuna Development Log
+##### Fortuna 4.1.7
+- Adds GitHub repo link to the project for PyPi
+- Adds minor documentation & example file updates
+
 ##### Fortuna 4.1.6
 - Fixes 'zero rolls' bug in 'dice()'
 

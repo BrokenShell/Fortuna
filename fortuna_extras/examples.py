@@ -32,8 +32,13 @@ random_spell_9 = TruffleShuffle({
     "Weird", "Wish",
 })
 
+
+def spell_9():
+    return f"Spell scroll (9th level) {random_spell_9()}"
+
+
 treasure_table_f = CumulativeWeightedChoice({
-    (30, lambda: f"Spell scroll (8th level) {random_spell_8()}"),
+    (30, random_spell_8),
     (55, "Potion of storm giant strength"),
     (70, "Potion of supreme healing"),
     (85, lambda: f"Spell scroll (9th level) {random_spell_9()}"),
