@@ -28,7 +28,7 @@ setup(
     ),
     author="Robert Sharp",
     author_email="webmaster@sharpdesigndigital.com",
-    version="4.1.7",
+    version="4.1.8",
     description="High Performance Random Value Toolkit",
     long_description=long_description,
     long_description_content_type="text/markdown",
