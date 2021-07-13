@@ -6,19 +6,27 @@ functions for your data that are byte-code fast and thread aware. Fortuna also
 offers a variety of high-performance random number functions like 
 `random_range(start, stop, step)` and `dice(rolls, sides)`.
 
-The core functionality of Fortuna is based on the Storm Engine - created 
-by the same developer (Robert Sharp). While Storm is a high quality, hardware 
+The core functionality of Fortuna (the Storm Engine) was created 
+by the same developer - Robert Sharp. While Storm is a high quality, hardware 
 seeded random engine - it is not appropriate for cryptography of any kind. 
-Fortuna is meant for games, data science, A.I. and experimental programming... 
-not security!
+Fortuna is intended for games, data science, Generative A.I. and experimental 
+programming... not security, hashing or gambling! Fortuna is free for 
+non-commercial use. Contact the developer for details about commercial licensing 
+and current availability of FortunaPro.
 
 ### Quick Install `$ pip install Fortuna`
 
-### Installation may require the following:
-- Modern version of macOS or Linux.
-- WSL: Windows requires Fortuna to be installed via Python3 running inside the Windows Subsystem for Linux.
-- Modern C++17 Compiler and Standard Library: Clang or GCC. Typically, not required on the latest version of macOS.
-    - If you're running an older version of macOS you can install Xcode to get the Clang compiler and all dependencies.
+### Installation Notes:
+- Fortuna is designed for macOS & Linux.
+- Fortuna requires a modern C++17 Compiler and the C++ Standard Library.
+    - Supported compilers: Clang & GCC. 
+    - If you're on the latest version of macOS, you shouldn't need to install anything manually.
+    - If you're running an older version of macOS you can install Xcode to get the Clang compiler and all its dependencies.
+- Windows Options
+    - WSL: Windows Subsystem for Linux
+    - Docker image with Python support
+    - Google Colab
+
 
 ### Sister Projects:
 - Pyewacket: Drop-in replacement for Python3 random module. https://pypi.org/project/Pyewacket/
@@ -788,6 +796,12 @@ Essentially, this turns a function like random_below(B+1) into random_int(A, B).
 
 
 ## Fortuna Development Log
+##### Fortuna 4.1.9
+- Updates documentation - installation notes, copyright date and other small tweaks
+
+##### Fortuna 4.1.8
+- Updates performance test output for Fortuna 4.1.x on Big Sur with Python 3.9.x
+
 ##### Fortuna 4.1.7
 - Adds GitHub repo link to the project for PyPi
 - Adds minor documentation & example file updates
