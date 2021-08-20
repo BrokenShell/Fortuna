@@ -150,8 +150,8 @@ def d(sides: int = 20) -> int:
     """ D: Flat uniform distribution.
     Represents a single roll of a given die, d20 by default.
     Flat uniform distribution.
-    @param sides int :: The size of the die is equal to the number of sides.
-    @return int :: Value of the die rolled.
+    @param sides: The size of the die is equal to the number of sides.
+    @return: Value of the die rolled.
     """
     return _d(sides)
 
@@ -160,9 +160,9 @@ def dice(rolls: int = 1, sides: int = 20) -> int:
     """ Dice: Geometric distribution.
     Represents the sum of multiple rolls of the same size die.
     Geometric distribution based on the number and size of the dice rolled.
-    @param rolls int :: The number of rolls to make.
-    @param sides int :: The size of the die is equal to the number of sides.
-    @return int :: Sum of the dice rolled.
+    @param rolls: The number of rolls to make.
+    @param sides: The size of the die is equal to the number of sides.
+    @return: Sum of the dice rolled.
     """
     return _dice(rolls, sides)
 
@@ -417,7 +417,7 @@ def cumulative_weighted_choice(weighted_table: Sequence[Tuple[int, Any]]) -> Any
             return value
 
 
-def truffle_shuffle(data: Iterable[Any]) -> Callable:
+def truffle_shuffle(data: List[Any]) -> Callable:
     """ Truffle Shuffle Function
     Same as the class of the same name, implemented as a higher-order function.
     """
