@@ -7,9 +7,13 @@
 #include <numeric>
 #include <random>
 #include <vector>
+#include <Python.h>
 
 namespace Storm {
-    const auto version{"Storm Version 3.5.1"};
+    const auto cpp_version {"3.5.3"};
+    [[maybe_unused]] auto version() {
+        return PyUnicode_FromString(cpp_version);
+    }
     using Integer = long long;
     using Float = double;
 

@@ -2,24 +2,34 @@
 The builtin Python Random library is not thread compatible and incorrectly
 produces the same `random` number for all threads. Conversely, Fortuna is thread
 compatible and will correctly produce random results for all threads. """
+import time
+
 from Fortuna import random_range
 from random import randrange
 from concurrent.futures import ProcessPoolExecutor
 
 
+def proc_pool(func):
+    jobs = 16
+    limit = 100
+    with ProcessPoolExecutor() as exe:
+        result = exe.map(func, [limit] * jobs)
+    return tuple(result)
+
+
 if __name__ == '__main__':
+    print("Baseline:")
+    start = time.perf_counter()
+    print(f"{tuple(random_range(100) for _ in range(820000))}")
+    stop = time.perf_counter()
+    print(f"Wall Time: {stop - start:.3f}s\n")
 
-    rand_limit = 100  # Distribution range 0-99
-    n_jobs = 8  # Total number of threads
+    start = time.perf_counter()
+    print(f"{proc_pool(randrange) = }")
+    stop = time.perf_counter()
+    print(f"Wall Time: {stop - start:.3f}s\n")
 
-    print(f"\nMulti-threaded randrange/random_range test: {n_jobs} threads")
-
-    print("\nRandom.randrange:")
-    with ProcessPoolExecutor() as executor:
-        results = executor.map(randrange, [rand_limit] * n_jobs)
-    print(' '.join(map(str, results)))
-
-    print("\nFortuna.random_range:")
-    with ProcessPoolExecutor() as executor:
-        results = executor.map(random_range, [rand_limit] * n_jobs)
-    print(' '.join(map(str, results)))
+    start = time.perf_counter()
+    print(f"{proc_pool(random_range) = }")
+    stop = time.perf_counter()
+    print(f"Wall Time: {stop - start:.3f}s\n")

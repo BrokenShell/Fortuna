@@ -9,8 +9,11 @@ from MonkeyScope import distribution_timer, timer
 def quick_test():
     print("\nMonkeyScope: Fortuna Quick Test")
     print("\nRandom Sequence Values:\n")
+    print("Fortuna Version: 4.2.2")
+    print(f"Storm Version: {storm_version()}")
     start_test = _time.time()
     some_list = [i for i in range(10)]
+    print("\nData:")
     print(f"some_list = {some_list}\n")
     print("Base Case")
     distribution_timer(
