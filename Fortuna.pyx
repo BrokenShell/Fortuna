@@ -878,7 +878,7 @@ class MultiChoice:
             return self()
 
 
-def beta_variate(alpha: float, beta:float) -> float:
+def beta_variate(alpha: float, beta: float) -> float:
     return _beta(alpha, beta)
 
 
