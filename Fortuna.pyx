@@ -3,7 +3,7 @@
 from copy import deepcopy
 from collections import deque
 from math import sqrt
-from typing import Any, List, Sequence, Tuple, Callable, Iterable, Dict, AnyStr
+from typing import Any, List, Sequence, Tuple, Callable, Iterable, Dict
 
 
 cdef extern from "Storm.hpp":
