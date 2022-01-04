@@ -8,8 +8,7 @@ from MonkeyScope import distribution_timer, timer
 
 def quick_test():
     print("\nMonkeyScope: Fortuna Quick Test")
-    print("\nRandom Sequence Values:\n")
-    print("Fortuna Version: 4.2.2")
+    print("Fortuna Version: 4.3.0")
     print(f"Storm Version: {storm_version()}")
     start_test = _time.time()
     some_list = [i for i in range(10)]

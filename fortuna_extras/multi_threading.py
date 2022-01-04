@@ -18,18 +18,19 @@ def proc_pool(func):
 
 
 if __name__ == '__main__':
-    print("Baseline:")
+    num = 1024000
+    print(f"No Proc Pool Baseline: {num}")
     start = time.perf_counter()
-    print(f"{tuple(random_range(100) for _ in range(820000))}")
-    stop = time.perf_counter()
-    print(f"Wall Time: {stop - start:.3f}s\n")
-
-    start = time.perf_counter()
-    print(f"{proc_pool(randrange) = }")
+    test1 = tuple(random_range(100) for _ in range(num))
     stop = time.perf_counter()
     print(f"Wall Time: {stop - start:.3f}s\n")
 
     start = time.perf_counter()
     print(f"{proc_pool(random_range) = }")
+    stop = time.perf_counter()
+    print(f"Wall Time: {stop - start:.3f}s\n")
+
+    start = time.perf_counter()
+    print(f"{proc_pool(randrange) = }")
     stop = time.perf_counter()
     print(f"Wall Time: {stop - start:.3f}s\n")

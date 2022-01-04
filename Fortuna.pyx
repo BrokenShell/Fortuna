@@ -7,7 +7,7 @@ from typing import Any, List, Sequence, Tuple, Callable, Iterable, Dict
 
 
 cdef extern from "Storm.hpp":
-    object _version "Storm::version"()
+    object _storm_version "Storm::storm_version_py"()
     long long _smart_clamp "Storm::GearBox::smart_clamp"(long long, long long, long long)
 
     long long _min_int "Storm::Meters::min_int"()
@@ -68,41 +68,48 @@ cdef extern from "Storm.hpp":
     double _vonmises "Storm::GetFloat::vonmises_variate"(double, double)
 
 
-def storm_version():
-    return _version()
+def storm_version() -> str:
+    """ Current version of Storm """
+    return _storm_version()
 
 
-def max_int():
+def max_int() -> int:
+    """ Maximum Integer """
     return _max_int()
 
 
-def min_int():
+def min_int() -> int:
+    """ Minimum Integer """
     return _min_int()
 
 
-def min_float():
+def min_float() -> float:
+    """ Minimum Float """
     return _min_float()
 
 
-def max_float():
+def max_float() -> float:
+    """ Maximum Float """
     return _max_float()
 
 
-def min_below():
+def min_below() -> float:
+    """ Minimum Float below zero """
     return _min_below()
 
 
-def min_above():
+def min_above() -> float:
+    """ Minimum Float above zero """
     return _min_above()
 
 
 def distribution_range(func: Callable, lo, hi) -> Callable:
-    """ Distribution Range
+    """ Distribution Range: Function Factory
 
     @param func: ZeroCool random distribution, F(N) -> [0, N-1]
     @param lo: minimum
     @param hi: maximum
-    @return: random value in range [lo, hi]
+    @return: lambda that returns random value in range [lo, hi]
     """
     return lambda: lo + func(1 + hi - lo)
 
@@ -429,7 +436,7 @@ def cumulative_weighted_choice(weighted_table: Sequence[Tuple[int, Any]]) -> Any
 
 
 def truffle_shuffle(data: List[Any]) -> Callable:
-    """ Truffle Shuffle Function
+    """ Truffle Shuffle Function: Function Factory
     Same as the class of the same name, implemented as a higher-order function.
     """
     data = list(deepcopy(data))

@@ -1,36 +1,29 @@
 #pragma once
 
-#include <algorithm>
-#include <cmath>
-#include <functional>
-#include <limits>
-#include <numeric>
 #include <random>
+#include <algorithm>
+#include <numeric>
 #include <vector>
+#include <limits>
 #include <Python.h>
 
 namespace Storm {
-    const auto cpp_version {"3.5.3"};
-    [[maybe_unused]] auto version() {
-        return PyUnicode_FromString(cpp_version);
-    }
     using Integer = long long;
     using Float = double;
 
+    const auto storm_version{"3.5.5"};
+    auto storm_version_py() {
+        return PyUnicode_FromString(storm_version);
+    }
+
     namespace Engine {
-        using MT_Engine = std::mt19937_64;
-        using DB_Engine = std::discard_block_engine<MT_Engine, 24, 16>;
-        using RNG_Engine = std::shuffle_order_engine<DB_Engine, 64>;
-        thread_local Engine::RNG_Engine Hurricane{std::random_device()()}; // NOLINT(cert-err58-cpp)
+        using Typhoon = std::shuffle_order_engine<std::discard_block_engine<std::mt19937_64, 12, 8>, 128>;
+        thread_local Engine::Typhoon Hurricane{std::random_device()()}; // NOLINT(cert-err58-cpp)
     }
 
     namespace GearBox {
-        template<typename T>
-        constexpr const T &clamp(const T &v, const T &lo, const T &hi) {
-            return v < hi ? std::max(v, lo) : std::min(v, hi);
-        }
         auto smart_clamp(Storm::Integer a, Storm::Integer b, Storm::Integer c) -> Storm::Integer {
-            return GearBox::clamp(a, std::min(b, c), std::max(c, b));
+            return std::clamp(a, std::min(b, c), std::max(c, b));
         }
         template<typename Callable>
         auto approximation_clamp(Callable &&approximation_function,
@@ -172,7 +165,7 @@ namespace Storm {
     namespace GetBool {
         auto bernoulli_variate(double truth_factor) -> bool {
             std::bernoulli_distribution distribution{
-                GearBox::clamp(truth_factor, 0.0, 1.0)
+                std::clamp(truth_factor, 0.0, 1.0)
             };
             return distribution(Engine::Hurricane);
         }
@@ -189,20 +182,20 @@ namespace Storm {
         auto binomial_variate(Storm::Integer number_of_trials, double probability) -> Storm::Integer {
             std::binomial_distribution<Storm::Integer> distribution{
                 std::max(number_of_trials, Storm::Integer(1)),
-                GearBox::clamp(probability, 0.0, 1.0)
+                std::clamp(probability, 0.0, 1.0)
             };
             return distribution(Engine::Hurricane);
         }
         auto negative_binomial_variate(Storm::Integer number_of_trials, double probability) -> Storm::Integer {
             std::negative_binomial_distribution<Storm::Integer> distribution{
                 std::max(number_of_trials, Storm::Integer(1)),
-                GearBox::clamp(probability, 0.0, 1.0)
+                std::clamp(probability, 0.0, 1.0)
             };
             return distribution(Engine::Hurricane);
         }
         auto geometric_variate(double probability) -> Storm::Integer {
             std::geometric_distribution<Storm::Integer> distribution{
-                GearBox::clamp(probability, 0.0, 1.0)
+                std::clamp(probability, 0.0, 1.0)
             };
             return distribution(Engine::Hurricane);
         }
@@ -239,7 +232,7 @@ namespace Storm {
             return -GetInt::dice(-rolls, sides);
         }
         auto ability_dice(Storm::Integer number) -> Storm::Integer {
-            const Storm::Integer num{GearBox::clamp(number, Storm::Integer(3), Storm::Integer(9))};
+            const Storm::Integer num{std::clamp(number, Storm::Integer(3), Storm::Integer(9))};
             if (num == 3) return GetInt::dice(3, 6);
             std::vector<Storm::Integer> the_rolls(num);
             std::generate_n(the_rolls.begin(), num, []() { return GetInt::d(6); });
