@@ -795,10 +795,14 @@ Essentially, this turns a function like random_below(B+1) into random_int(A, B).
 
 
 ## Fortuna Development Log
+##### Fortuna 4.3.1
+- Fixes installer for Linux
+
 ##### Fortuna 4.3.0
 - Updates Storm to 3.5.5
 - Adds minor documentation
 - Updates tests
+- Installer now requires C++20 compiler
 
 ##### Fortuna 4.2.3
 - Updates Storm to 3.5.4
