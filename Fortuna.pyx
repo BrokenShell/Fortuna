@@ -1,6 +1,5 @@
 #!python3
 #distutils: language = c++
-from copy import deepcopy
 from collections import deque
 from math import sqrt
 from typing import Any, List, Sequence, Tuple, Callable, Iterable, Dict
@@ -439,7 +438,7 @@ def truffle_shuffle(data: List[Any]) -> Callable:
     """ Truffle Shuffle Function: Function Factory
     Same as the class of the same name, implemented as a higher-order function.
     """
-    data = list(deepcopy(data))
+    data = list(data)
     shuffle(data)
     data = deque(data)
     rotate_size = int(sqrt(len(data)))
@@ -519,10 +518,9 @@ class TruffleShuffle:
 
     def __init__(self, collection: Iterable[Any], flat: bool = True):
         self.flat = flat
-        tmp_data = list(deepcopy(collection))
-        assert len(tmp_data) > 0, "Input Error, Empty Container"
-        shuffle(tmp_data)
-        self.data = deque(tmp_data)
+        data = list(collection)
+        shuffle(data)
+        self.data = deque(collection)
         self.rotate_size = int(sqrt(len(self.data)))
 
     def __call__(self, *args, **kwargs) -> Any:

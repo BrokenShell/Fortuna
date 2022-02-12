@@ -795,6 +795,9 @@ Essentially, this turns a function like random_below(B+1) into random_int(A, B).
 
 
 ## Fortuna Development Log
+##### Fortuna 4.3.3
+- TruffleShuffle update
+
 ##### Fortuna 4.3.2
 - Fixes installer for Google Colab
 
