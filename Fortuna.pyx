@@ -450,10 +450,25 @@ def truffle_shuffle(data: List[Any]) -> Callable:
     return worker
 
 
-def sample(population: Sequence, k: int):
-    arr = list(range(len(population)))
-    shuffle(arr)
-    return [population[i] for i in arr[:k]]
+def sample(population: Sequence[Any], k: int) -> List[Any]:
+    n = len(population)
+    assert 0 < k <= n, "Sample size k is larger than population or is negative"
+    if k == 1:
+        return [random_value(population)]
+    elif k >= n // 2:
+        result = list(population)
+        shuffle(result)
+        return result[:k]
+    else:
+        result = []
+        selected = set()
+        for i in range(k):
+            j = _random_index(n)
+            while j in selected:
+                j = _random_index(n)
+            selected.add(j)
+            result.append(population[j])
+        return result
 
 
 class RandomValue:
