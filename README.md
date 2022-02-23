@@ -802,6 +802,12 @@ Essentially, this turns a function like random_below(B+1) into random_int(A, B).
 
 
 ## Fortuna Development Log
+##### Fortuna 4.3.5
+- Performance update `sample`
+
+##### Fortuna 4.3.4
+- Added `sample`
+
 ##### Fortuna 4.3.3
 - TruffleShuffle update
 
