@@ -450,6 +450,12 @@ def truffle_shuffle(data: List[Any]) -> Callable:
     return worker
 
 
+def sample(population: Sequence, k: int):
+    arr = list(range(len(population)))
+    shuffle(arr)
+    return [population[i] for i in arr[:k]]
+
+
 class RandomValue:
     """ Random Value Class
     Random Value Generator Class that supports dependency injection.

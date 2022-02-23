@@ -102,6 +102,7 @@ and current availability of FortunaPro.
     - `knuth_a(List[Any]) -> None`
     - `fisher_yates(List[Any]) -> None`
 - Utilities
+    - `sample(population: Sequence, k: int) -> List`
     - `flatten(Object, *args, Boolean, **kwargs) -> Object`
     - `smart_clamp(Integer, Integer, Integer) -> Integer`
     - `distribution_range(Callable, Integer, Integer) -> Callable`
@@ -767,6 +768,12 @@ print(some_list[quantum_gauss(-10)])
 
 
 ### Utilities
+`Fortuna.sample(population: Sequence, k: int) -> List`
+- Replacement for `random.sample`, approximately 2x performance.
+- @param population :: Sequence of Any.
+- @param k :: Represents the number of samples to be returned. Param k must be <= len(population).
+- @return :: Returns list of k random samples from the population data without duplication.
+
 `Fortuna.flatten(maybe_callable, *args, flat=True, **kwargs) -> flatten(maybe_callable(*args, **kwargs))`
 - Recursively calls the input object and returns the result. The arguments are only passed in on the first evaluation.
 - If the maybe_callable is not callable it is simply returned without error. 
