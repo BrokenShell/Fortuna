@@ -6,7 +6,9 @@ from typing import Any, List, Sequence, Tuple, Callable, Iterable, Dict
 
 
 cdef extern from "Storm.hpp":
-    object _storm_version "Storm::storm_version_py"()
+    object _storm_version "Storm::Version()"()
+    void _seed "Storm::Engine::seed"(unsigned long long)
+
     long long _smart_clamp "Storm::GearBox::smart_clamp"(long long, long long, long long)
 
     long long _min_int "Storm::Meters::min_int"()
@@ -71,6 +73,13 @@ def storm_version() -> str:
     """ Current version of Storm """
     return _storm_version()
 
+
+def seed(seed=0) -> None:
+    """ Seeds the Hurricane Engine
+    Uses a hardware seeding methodology iff the host supports it and seed == 0
+    :param seed: Integer [0, 18446744073709551615] default: 0, best if very large or 0
+    :return: None """
+    _seed(seed)
 
 def max_int() -> int:
     """ Maximum Integer """

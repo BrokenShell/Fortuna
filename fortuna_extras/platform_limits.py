@@ -1,11 +1,15 @@
-from Fortuna import min_int, max_int, min_float, max_float, min_above, min_below
-
-
-if __name__ == '__main__':
-    print("\nLocal Platform Limits:")
-    print(f"Min Int:   {min_int()}")
-    print(f"Max Int:    {max_int()}")
-    print(f"Min Float: {min_float()}")
-    print(f"Max Float:  {max_float()}")
-    print(f"Min Below: {min_below()}")
-    print(f"Min Above:  {min_above()}")
+""" DocTests
+>>> import Fortuna
+>>> Fortuna.min_int()
+-9223372036854775807
+>>> Fortuna.max_int()
+9223372036854775807
+>>> Fortuna.min_float()
+-1.7976931348623157e+308
+>>> Fortuna.max_float()
+1.7976931348623157e+308
+>>> Fortuna.min_above()
+5e-324
+>>> Fortuna.min_below()
+-5e-324
+"""

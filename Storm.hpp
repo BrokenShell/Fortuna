@@ -11,14 +11,24 @@ namespace Storm {
     using Integer = long long;
     using Float = double;
 
-    const auto storm_version{"3.5.5"};
-    auto storm_version_py() {
-        return PyUnicode_FromString(storm_version);
-    }
+    struct Version {
+        constexpr const static auto storm_version{"3.5.7"};
+        auto operator()() {
+            return PyUnicode_FromString(storm_version);
+        }
+    };
 
     namespace Engine {
-        using Typhoon = std::shuffle_order_engine<std::discard_block_engine<std::mt19937_64, 12, 8>, 128>;
-        thread_local Engine::Typhoon Hurricane{std::random_device()()}; // NOLINT(cert-err58-cpp)
+        using Typhoon = std::shuffle_order_engine<std::discard_block_engine<std::mt19937_64, 12, 8>, 256>;
+        thread_local Engine::Typhoon Hurricane { std::random_device()() };
+        template <typename Distribution>
+        auto engine(Distribution distribution) {
+            return distribution(Hurricane);
+        }
+        auto seed(unsigned long long seed) -> void {
+            thread_local Engine::Typhoon seeded_storm { seed == 0 ? std::random_device()() : seed };
+            Engine::Hurricane = seeded_storm;
+        }
     }
 
     namespace GearBox {

@@ -54,4 +54,5 @@ def lambda_monty_tests():
 
 
 if __name__ == "__main__":
+    monty_tests()
     lambda_monty_tests()
