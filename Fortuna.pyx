@@ -74,12 +74,12 @@ def storm_version() -> str:
     return _storm_version()
 
 
-def seed(seed=0) -> None:
+def seed(value: int = 0) -> None:
     """ Seeds the Hurricane Engine
-    Uses a hardware seeding methodology iff the host supports it and seed == 0
-    :param seed: Integer [0, 18446744073709551615] default: 0, best if very large or 0
+    Uses a hardware seeding methodology iff the host supports it and value == 0
+    :param value: Integer [0, 18446744073709551615] default: 0, best if very large or 0
     :return: None """
-    _seed(seed)
+    _seed(value)
 
 def max_int() -> int:
     """ Maximum Integer """
