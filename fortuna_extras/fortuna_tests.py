@@ -8,9 +8,28 @@ from MonkeyScope import distribution_timer, timer
 
 def quick_test():
     print("\nMonkeyScope: Fortuna Quick Test")
-    print("Fortuna Version: 4.4.1")
+    print("Fortuna Version: 4.4.2")
     print(f"Storm Version: {storm_version()}")
     start_test = _time.time()
+
+    clamps = [
+        float_clamp(1.0, 2.0, 3.0) == 2.0,
+        float_clamp(1.0, 3.0, 2.0) == 2.0,
+        float_clamp(2.0, 1.0, 3.0) == 2.0,
+        float_clamp(2.0, 3.0, 1.0) == 2.0,
+        float_clamp(3.0, 1.0, 2.0) == 2.0,
+        float_clamp(3.0, 2.0, 1.0) == 2.0,
+    ]
+    print(f"\nFloat Clamp {all(clamps)}")
+    clamps = [
+        smart_clamp(1, 2, 3) == 2,
+        smart_clamp(1, 3, 2) == 2,
+        smart_clamp(2, 1, 3) == 2,
+        smart_clamp(2, 3, 1) == 2,
+        smart_clamp(3, 1, 2) == 2,
+        smart_clamp(3, 2, 1) == 2,
+    ]
+    print(f"Smart Clamp: {all(clamps)}")
     some_list = [i for i in range(10)]
     print("\nData:")
     print(f"some_list = {some_list}\n")

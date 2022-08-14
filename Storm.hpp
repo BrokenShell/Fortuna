@@ -12,7 +12,7 @@ namespace Storm {
     using Float = double;
 
     struct Version {
-        constexpr const static auto storm_version{"3.5.7"};
+        constexpr const static auto storm_version{"3.5.8"};
         auto operator()() {
             return PyUnicode_FromString(storm_version);
         }
@@ -32,6 +32,9 @@ namespace Storm {
     }
 
     namespace GearBox {
+        auto float_clamp(Storm::Float a, Storm::Float b, Storm::Float c) -> Storm::Float {
+            return std::clamp(a, std::min(b, c), std::max(c, b));
+        }
         auto smart_clamp(Storm::Integer a, Storm::Integer b, Storm::Integer c) -> Storm::Integer {
             return std::clamp(a, std::min(b, c), std::max(c, b));
         }
@@ -53,6 +56,9 @@ namespace Storm {
     }
 
     namespace Meters {
+        auto max_uint() -> Storm::Integer {
+            return std::numeric_limits<unsigned long long>::max();
+        }
         auto min_int() -> Storm::Integer {
             return -std::numeric_limits<Storm::Integer>::max();
         }

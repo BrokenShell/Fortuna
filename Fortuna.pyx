@@ -9,8 +9,10 @@ cdef extern from "Storm.hpp":
     object _storm_version "Storm::Version()"()
     void _seed "Storm::Engine::seed"(unsigned long long)
 
+    double _float_clamp "Storm::GearBox::float_clamp"(double, double, double)
     long long _smart_clamp "Storm::GearBox::smart_clamp"(long long, long long, long long)
 
+    unsigned long long _max_uint "Storm::Meters::max_uint"()
     long long _min_int "Storm::Meters::min_int"()
     long long _max_int "Storm::Meters::max_int"()
     double _min_float "Storm::Meters::min_float"()
@@ -77,9 +79,16 @@ def storm_version() -> str:
 def seed(value: int = 0) -> None:
     """ Seeds the Hurricane Engine
     Uses a hardware seeding methodology iff the host supports it and value == 0
+    Seeding should be avoided in multi-thread applications.
     :param value: Integer [0, 18446744073709551615] default: 0, best if very large or 0
     :return: None """
     _seed(value)
+
+
+def max_uint() -> int:
+    """ Maximum Unsigned Integer """
+    return _max_uint()
+
 
 def max_int() -> int:
     """ Maximum Integer """
@@ -259,6 +268,15 @@ def triangular(low: float, high: float, mode: float) -> float:
     Returns a random float in range [low, high] with a linear
         distribution about the mode. """
     return _triangular(low, high, mode)
+
+
+def float_clamp(target: float, lo: float, hi: float) -> float:
+    """ Float Clamp
+    Essentially the same as median but considerably faster.
+    @return :: Returns the middle value of three float arguments,
+        input order does not matter.
+    """
+    return _float_clamp(target, lo, hi)
 
 
 def smart_clamp(target: int, lo: int, hi: int) -> int:
