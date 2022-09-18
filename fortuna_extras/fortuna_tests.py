@@ -1,4 +1,5 @@
 import time as _time
+
 import math as _math
 import random as _random
 
@@ -8,31 +9,32 @@ from MonkeyScope import distribution_timer, timer
 
 def quick_test():
     print("\nMonkeyScope: Fortuna Quick Test")
-    print("Fortuna Version: 4.4.2")
+    print(f"Fortuna Version: 4.4.4")
     print(f"Storm Version: {storm_version()}")
     start_test = _time.time()
-
-    clamps = [
-        float_clamp(1.0, 2.0, 3.0) == 2.0,
-        float_clamp(1.0, 3.0, 2.0) == 2.0,
-        float_clamp(2.0, 1.0, 3.0) == 2.0,
-        float_clamp(2.0, 3.0, 1.0) == 2.0,
-        float_clamp(3.0, 1.0, 2.0) == 2.0,
-        float_clamp(3.0, 2.0, 1.0) == 2.0,
+    i_clamps = [
+        smart_clamp(1, 2, 3),
+        smart_clamp(1, 3, 2),
+        smart_clamp(2, 1, 3),
+        smart_clamp(2, 3, 1),
+        smart_clamp(3, 1, 2),
+        smart_clamp(3, 2, 1),
     ]
-    print(f"\nFloat Clamp {all(clamps)}")
-    clamps = [
-        smart_clamp(1, 2, 3) == 2,
-        smart_clamp(1, 3, 2) == 2,
-        smart_clamp(2, 1, 3) == 2,
-        smart_clamp(2, 3, 1) == 2,
-        smart_clamp(3, 1, 2) == 2,
-        smart_clamp(3, 2, 1) == 2,
+    print(f"\nSmart Clamp: "
+          f"{'Pass' if all(val == 2 for val in i_clamps) else 'Fail'}")
+    f_clamps = [
+        float_clamp(0.1, 0.2, 0.3),
+        float_clamp(0.1, 0.3, 0.2),
+        float_clamp(0.2, 0.1, 0.3),
+        float_clamp(0.2, 0.3, 0.1),
+        float_clamp(0.3, 0.1, 0.2),
+        float_clamp(0.3, 0.2, 0.1),
     ]
-    print(f"Smart Clamp: {all(clamps)}")
+    print(f"Float Clamp: "
+          f"{'Pass' if all(val == 0.2 for val in f_clamps) else 'Fail'}")
     some_list = [i for i in range(10)]
     print("\nData:")
-    print(f"some_list = {some_list}\n")
+    print(f"{some_list = }\n")
     print("Base Case")
     distribution_timer(
         _random.choice, some_list, label="Random.choice(some_list)"
@@ -172,10 +174,10 @@ def quick_test():
     timer(fisher_yates, some_small_list, cycles=shuffle_cycles)
     timer(fisher_yates, some_med_list, cycles=shuffle_cycles)
     timer(fisher_yates, some_large_list, cycles=shuffle_cycles)
-    print("\n")
 
-    print("-" * 73)
     stop_test = _time.time()
+    print()
+    print("-" * 73)
     print(f"Total Test Time: {round(stop_test - start_test, 3)} seconds")
 
 

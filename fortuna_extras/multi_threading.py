@@ -1,7 +1,13 @@
 """ Random Number Tests with Multithreading.
 The builtin Python Random library is not thread compatible and incorrectly
 produces the same `random` number for all threads. Conversely, Fortuna is thread
-compatible and will correctly produce random results for all threads. """
+compatible and will correctly produce random results for all threads.
+
+*Notes:
+- `Fortuna.seed` is not meant to be used in a multithreading context.
+- Fortuna can produce a half a million random numbers on a single processor
+    in approximately the same time it can produce 4 random numbers on 4 cores.
+    In other words, take nothing for granted - benchmark everything! """
 import time
 
 import Fortuna

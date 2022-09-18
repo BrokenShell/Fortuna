@@ -12,22 +12,19 @@ namespace Storm {
     using Float = double;
 
     struct Version {
-        constexpr const static auto storm_version{"3.5.8"};
+        constexpr const static auto version{"3.6.0"};
         auto operator()() {
-            return PyUnicode_FromString(storm_version);
+            return PyUnicode_FromString(Version::version);
         }
     };
+    constexpr const static auto version = Storm::Version::version;
 
     namespace Engine {
         using Typhoon = std::shuffle_order_engine<std::discard_block_engine<std::mt19937_64, 12, 8>, 256>;
-        thread_local Engine::Typhoon Hurricane { std::random_device()() };
-        template <typename Distribution>
-        auto engine(Distribution distribution) {
-            return distribution(Hurricane);
-        }
+        thread_local Engine::Typhoon Hurricane { std::random_device()() }; // NOLINT(cert-err58-cpp)
         auto seed(unsigned long long seed) -> void {
-            thread_local Engine::Typhoon seeded_storm { seed == 0 ? std::random_device()() : seed };
-            Engine::Hurricane = seeded_storm;
+            thread_local Engine::Typhoon seeded { seed == 0 ? std::random_device()() : seed };
+            Engine::Hurricane = seeded;
         }
     }
 
@@ -56,7 +53,7 @@ namespace Storm {
     }
 
     namespace Meters {
-        auto max_uint() -> Storm::Integer {
+        auto max_uint() -> unsigned long long {
             return std::numeric_limits<unsigned long long>::max();
         }
         auto min_int() -> Storm::Integer {

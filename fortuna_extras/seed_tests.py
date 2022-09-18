@@ -1,5 +1,5 @@
-"""
-DocTests
+""" DocTests
+>>> import Fortuna
 >>> Fortuna.seed(18446744073709551615)
 
 # Dice
@@ -94,4 +94,3 @@ False
 >>> Fortuna.weibull_variate(1.0, 1.0)
 0.024648454486182848
 """
-import Fortuna
