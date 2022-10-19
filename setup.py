@@ -13,9 +13,9 @@ dev_status = {
     "Mature": "Development Status :: 6 - Mature",
 }
 compiler_args = {
-    "Linux": ["-std=c++17", "-O3", "-arch=native"],
-    "Darwin": ["-std=c++17", "-Ofast", "-arch=native"],
-    "Windows": ["/std:c++17", "/O2"],
+    "Linux": ["-std=c++20", "-O3", "-arch=native"],
+    "Darwin": ["-std=c++20", "-Ofast", "-arch=native"],
+    "Windows": ["/std:c++20", "/O2"],
 }.get(system())
 
 setup(
