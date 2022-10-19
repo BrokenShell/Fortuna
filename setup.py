@@ -12,6 +12,11 @@ dev_status = {
     "Pro": "Development Status :: 5 - Production/Stable",
     "Mature": "Development Status :: 6 - Mature",
 }
+compiler_args = {
+    "Linux": ["-std=c++17", "-O3", "-arch=native"],
+    "Darwin": ["-std=c++17", "-Ofast", "-arch=native"],
+    "Windows": ["/std:c++17", "/O2"],
+}.get(system())
 
 setup(
     name="Fortuna",
@@ -21,7 +26,7 @@ setup(
             name="Fortuna",
             sources=["Fortuna.pyx"],
             language=["c++"],
-            extra_compile_args=["-std=c++20"] if system() in ("Linux", "Darwin") else ["/std:c++20"],
+            extra_compile_args=compiler_args,
         ),
         compiler_directives={
             "embedsignature": True,
@@ -30,7 +35,7 @@ setup(
     ),
     author="Robert Sharp",
     author_email="webmaster@sharpdesigndigital.com",
-    version="5.0.0rc1",
+    version="5.0.0rc3",
     description="High Performance Random Value Toolkit",
     long_description=long_description,
     long_description_content_type="text/markdown",
