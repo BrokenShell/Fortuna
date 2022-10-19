@@ -158,8 +158,8 @@ def random_index(limit: int) -> int:
 def random_int(left_limit: int, right_limit: int) -> int:
     """ Random Integer: Flat uniform distribution.
 
-    @param left_limit: Integer. Typically the lower of the two.
-    @param right_limit: Integer. Typically the higher of the two.
+    @param left_limit: Integer. Typically, the lower of the two.
+    @param right_limit: Integer. Typically, the higher of the two.
     @return: Integer. Random integer in the range [left_limit, right_limit].
     """
     return _random_int(left_limit, right_limit)
@@ -170,7 +170,7 @@ def random_range(start: int, stop: int = 0, step: int = 1) -> int:
     The order of the inputs `start` and `stop` are interchangeable.
     Conceptually: A = min(start, stop), B = max(start, stop), C = step
     The sign of the step parameter controls the phase of the output.
-    Negative stepping will flip the inclusively of the distribution.
+    Negative stepping will flip the inclusivity of the distribution.
     In other words: a negative step means to count down, not up.
 
     @param start: Typically the lower bound. Inclusive.
@@ -709,7 +709,7 @@ class QuantumMonty:
 
 class FlexCat:
     """ Flex Cat
-    FlexCat is a lot like a multi-dimensional QuantumMonty.
+    FlexCat is a lot like a multidimensional QuantumMonty.
 
     The initializer takes two optional keyword arguments to specify the
     algorithms to be used to make random selections. The algorithm specified
@@ -720,7 +720,7 @@ class FlexCat:
 
     By default, FlexCat will use key_bias="front_linear"
     and val_bias="truffle_shuffle", this will make the top of the data
-    structure geometrically more common than the bottom and it will
+    structure geometrically more common than the bottom, and it will
     truffle shuffle the sequence values. This config is known as TopCat,
     it produces a descending-step, micro-shuffled distribution sequence.
     Many other combinations are available.
@@ -772,7 +772,7 @@ class FlexCat:
 
 
 class WeightedChoice:
-    """ Weighted Choice Base Class
+    """ Weighted Choice
     Base Class, internal only.
 
     Weighted Choice offers two strategies for selecting random values

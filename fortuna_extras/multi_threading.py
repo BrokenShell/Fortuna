@@ -9,23 +9,23 @@ compatible and will correctly produce random results for all threads.
     in approximately the same time it can produce 4 random numbers on 4 cores.
     In other words, take nothing for granted - benchmark everything! """
 import time
+from multiprocessing import Pool
 
 import Fortuna
 import random
-from concurrent.futures import ProcessPoolExecutor
 
 
 def proc_pool(func):
-    jobs = 4
+    jobs = 6
     limit = 100
-    with ProcessPoolExecutor() as exe:
-        result = exe.map(func, [limit] * jobs)
+    with Pool(processes=jobs) as pool:
+        result = pool.map(func, [limit] * jobs, chunksize=1)
     return tuple(result)
 
 
 if __name__ == '__main__':
     num = 512000
-    print(f"Fortuna No Proc Pool Baseline: {num} random numbers")
+    print(f"Fortuna No Pool Baseline: {num} random numbers")
     start = time.perf_counter()
     test1 = tuple(Fortuna.random_range(100) for _ in range(num))
     stop = time.perf_counter()
