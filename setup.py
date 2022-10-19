@@ -1,5 +1,6 @@
 from setuptools import setup, Extension
 from Cython.Build import cythonize
+from platform import system
 
 
 with open("README.md", "r") as file:
@@ -20,7 +21,7 @@ setup(
             name="Fortuna",
             sources=["Fortuna.pyx"],
             language=["c++"],
-            extra_compile_args=["-std=c++latest"],
+            extra_compile_args=["-std=c++20"] if system() in ("Linux", "Darwin") else ["/std:c++20"],
         ),
         compiler_directives={
             "embedsignature": True,
@@ -29,12 +30,12 @@ setup(
     ),
     author="Robert Sharp",
     author_email="webmaster@sharpdesigndigital.com",
-    version="4.5.1b1",
+    version="5.0.0rc1",
     description="High Performance Random Value Toolkit",
     long_description=long_description,
     long_description_content_type="text/markdown",
     license="Free for non-commercial use",
-    # platforms=["Darwin", "Linux"],
+    platforms=["Darwin", "Linux", "Windows"],
     classifiers=[
         dev_status["Mature"],
         "Programming Language :: Python :: 3.10",
@@ -42,6 +43,7 @@ setup(
         "Programming Language :: C++",
         "Operating System :: MacOS :: MacOS X",
         "Operating System :: POSIX :: Linux",
+        "Operating System :: Microsoft :: Windows",
         "Topic :: Software Development :: Libraries :: Python Modules",
     ],
     keywords=[
