@@ -18,15 +18,12 @@ and current availability of FortunaPro.
 
 ### Installation Notes:
 - Fortuna is optimized for macOS & Linux.
-- Fortuna now supports Windows MSVC. New in version 5.0.0.
-  - Linux, macOS and Windows are supported
-- Installation requires a C++ Compiler and the C++20 Standard Library.
-  - Clang, GCC and MSVC are supported
-
+- Fortuna now supports Windows. New in version 5.0.0.
+- Installation requires a C++ Compiler and the C++ Standard Library.
 
 ### Sister Projects:
 - [MonkeyScope](https://pypi.org/project/MonkeyScope): Framework for testing non-deterministic functions and methods.
-- [Storm](https://github.com/BrokenShell/Storm): Random Number Engine.
+- [Storm](https://github.com/BrokenShell/Storm): C++ Random Number Engine.
 
 
 ---
