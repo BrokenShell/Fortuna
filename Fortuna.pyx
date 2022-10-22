@@ -75,7 +75,6 @@ def storm_version() -> str:
     """ Current version of Storm """
     return _storm_version()
 
-
 def seed(value: int = 0) -> None:
     """ Seeds the Hurricane Engine
     Uses a hardware seeding methodology iff the host supports it and value == 0
@@ -84,41 +83,33 @@ def seed(value: int = 0) -> None:
     :return: None """
     _seed(value)
 
-
 def max_uint() -> int:
     """ Maximum Unsigned Integer """
     return _max_uint()
-
 
 def max_int() -> int:
     """ Maximum Integer """
     return _max_int()
 
-
 def min_int() -> int:
     """ Minimum Integer """
     return _min_int()
-
 
 def min_float() -> float:
     """ Minimum Float """
     return _min_float()
 
-
 def max_float() -> float:
     """ Maximum Float """
     return _max_float()
-
 
 def min_below() -> float:
     """ Minimum Float below zero """
     return _min_below()
 
-
 def min_above() -> float:
     """ Minimum Float above zero """
     return _min_above()
-
 
 def distribution_range(func: Callable, lo, hi) -> Callable:
     """ Distribution Range: Function Factory
@@ -130,7 +121,6 @@ def distribution_range(func: Callable, lo, hi) -> Callable:
     """
     return lambda: lo + func(1 + hi - lo)
 
-
 def random_below(limit: int) -> int:
     """ Random Below: Flat uniform distribution.
     Returns a random integer in the range [0, limit), or (limit, 0] for
@@ -140,7 +130,6 @@ def random_below(limit: int) -> int:
     @return: Random integer in the range [0, limit), or (limit, 0]
     """
     return _random_below(limit)
-
 
 def random_index(limit: int) -> int:
     """ Random Index: Flat uniform distribution.
@@ -154,7 +143,6 @@ def random_index(limit: int) -> int:
     """
     return _random_index(limit)
 
-
 def random_int(left_limit: int, right_limit: int) -> int:
     """ Random Integer: Flat uniform distribution.
 
@@ -163,7 +151,6 @@ def random_int(left_limit: int, right_limit: int) -> int:
     @return: Integer. Random integer in the range [left_limit, right_limit].
     """
     return _random_int(left_limit, right_limit)
-
 
 def random_range(start: int, stop: int = 0, step: int = 1) -> int:
     """ Random Range: Flat uniform distribution.
@@ -180,7 +167,6 @@ def random_range(start: int, stop: int = 0, step: int = 1) -> int:
     """
     return _random_range(start, stop, step)
 
-
 def d(sides: int = 20) -> int:
     """ D: Flat uniform distribution.
     Represents a single roll of a given die, d20 by default.
@@ -189,7 +175,6 @@ def d(sides: int = 20) -> int:
     @return: Value of the die rolled.
     """
     return _d(sides)
-
 
 def dice(rolls: int = 1, sides: int = 20) -> int:
     """ Dice: Geometric distribution.
@@ -201,14 +186,12 @@ def dice(rolls: int = 1, sides: int = 20) -> int:
     """
     return _dice(rolls, sides)
 
-
 def ability_dice(rolls: int = 4) -> int:
     """ Ability Dice: Geometric distribution.
     @param rolls :: Number of d6 rolls. Default = 4. Clamped in range [3, 9]
     @return int :: Returns the sum of the top 3 of N d(6), where N = rolls.
     """
     return _ability_dice(rolls)
-
 
 def plus_or_minus(number: int = 1) -> int:
     """ Plus or Minus: Flat uniform distribution.
@@ -218,7 +201,6 @@ def plus_or_minus(number: int = 1) -> int:
     """
     return _plus_or_minus(number)
 
-
 def plus_or_minus_linear(number: int = 1) -> int:
     """ Plus or Minus Linear: Linear distribution centered on zero.
 
@@ -227,7 +209,6 @@ def plus_or_minus_linear(number: int = 1) -> int:
     """
     return _plus_or_minus_linear(number)
 
-
 def plus_or_minus_gauss(number: int = 1) -> int:
     """ Plus or Minus Gaussian: Gaussian distribution centered on zero.
 
@@ -235,7 +216,6 @@ def plus_or_minus_gauss(number: int = 1) -> int:
     @return: Random integer in range [-number, number]. Mean = 0.
     """
     return _plus_or_minus_gauss(number)
-
 
 def percent_true(truth_factor: float = 50.0) -> bool:
     """ Percent True
@@ -246,7 +226,6 @@ def percent_true(truth_factor: float = 50.0) -> bool:
     """
     return _percent_true(truth_factor) == 1
 
-
 def canonical() -> float:
     """ Canonical: Flat uniform distribution.
     Inclusiveness can vary across platforms.
@@ -255,20 +234,17 @@ def canonical() -> float:
     """
     return _canonical()
 
-
 def random_float(left_limit: float = 0.0, right_limit: float = 1.0) -> float:
     """ Random Floating Point: Flat uniform distribution.
     Returns a random float in range [left_limit, right_limit).
     """
     return _random_float(left_limit, right_limit)
 
-
 def triangular(low: float, high: float, mode: float) -> float:
     """ Triangular
     Returns a random float in range [low, high] with a linear
         distribution about the mode. """
     return _triangular(low, high, mode)
-
 
 def float_clamp(target: float, lo: float, hi: float) -> float:
     """ Float Clamp
@@ -278,7 +254,6 @@ def float_clamp(target: float, lo: float, hi: float) -> float:
     """
     return _float_clamp(target, lo, hi)
 
-
 def smart_clamp(target: int, lo: int, hi: int) -> int:
     """ Smart Clamp
     Essentially the same as median but considerably faster.
@@ -287,9 +262,9 @@ def smart_clamp(target: int, lo: int, hi: int) -> int:
     """
     return _smart_clamp(target, lo, hi)
 
-
 def flatten(maybe_callable: Any, *args, flat: bool = True, **kwargs):
     """ Flatten
+    Internal only.
     Recursively calls the input object and returns the result.
     The arguments are only passed in on the first evaluation.
     If the object is not callable it is simply returned without error.
@@ -312,7 +287,6 @@ def flatten(maybe_callable: Any, *args, flat: bool = True, **kwargs):
         except TypeError:
             return maybe_callable
 
-
 def shuffle(array: List[Any]):
     """ Knuth B Shuffle Algorithm
     Destructive, in-place shuffle.
@@ -325,7 +299,6 @@ def shuffle(array: List[Any]):
         j = _random_int(i, size)
         array[i], array[j] = array[j], array[i]
 
-
 def knuth_a(array: List[Any]):
     """ Knuth A Shuffle Algorithm
     Destructive, in-place shuffle.
@@ -336,7 +309,6 @@ def knuth_a(array: List[Any]):
     for i in range(1, len(array)):
         j = _random_below(i + 1)
         array[i], array[j] = array[j], array[i]
-
 
 def fisher_yates(array: List[Any]):
     """ Fisher Yates Shuffle Algorithm
@@ -349,77 +321,63 @@ def fisher_yates(array: List[Any]):
         j = _random_below(i + 1)
         array[i], array[j] = array[j], array[i]
 
-
 def front_gauss(size: int) -> int:
     """ Gamma Index Distribution: Front Peak. """
     return _front_gauss(size)
-
 
 def middle_gauss(size: int) -> int:
     """ Gaussian Index Distribution: Middle Peak. """
     return _middle_gauss(size)
 
-
 def back_gauss(size: int) -> int:
     """ Gamma Index Distribution: Back Peak. """
     return _back_gauss(size)
-
 
 def quantum_gauss(size: int) -> int:
     """ Quantum Gaussian Index Distribution: Three-way Monty. """
     return _quantum_gauss(size)
 
-
 def front_poisson(size: int) -> int:
     """ Poisson Index Distribution: Front 1/3 Peak. """
     return _front_poisson(size)
-
 
 def middle_poisson(size: int) -> int:
     """ Symmetric Poisson Index Distribution. """
     return _middle_poisson(size)
 
-
 def back_poisson(size: int) -> int:
     """ Poisson Index Distribution: Back 1/3 Peak. """
     return _back_poisson(size)
-
 
 def quantum_poisson(size: int) -> int:
     """ Quantum Poisson Index Distribution: Three-way Monty.
         Twin Peaks """
     return _quantum_poisson(size)
 
-
 def front_linear(size: int) -> int:
     """ Linear Geometric Index Distribution: 45 Degree Front Peak.
         Left Triangle """
     return _front_linear(size)
-
 
 def middle_linear(size: int) -> int:
     """ Linear Geometric Index Distribution: 45 Degree Middle Peak.
         Pyramid """
     return _middle_linear(size)
 
-
 def back_linear(size: int) -> int:
     """ Linear Geometric Index Distribution: 45 Degree Back Peak.
         Right Triangle """
     return _back_linear(size)
-
 
 def quantum_linear(size: int) -> int:
     """ Quantum Geometric Index Distribution: Three-way Monty.
         Saw Tooth """
     return _quantum_linear(size)
 
-
 def quantum_monty(size: int) -> int:
     """ Quantum Monty Index Distribution: Nine-way Monty.
         Quantum Wave. """
     return _quantum_monty(size)
-
 
 ZeroCool = {
     "random_index": random_index,
@@ -438,7 +396,6 @@ ZeroCool = {
     "quantum_monty": quantum_monty,
 }
 
-
 def random_value(data: Sequence[Any]) -> Any:
     """ Random Value Function
     Equivalent to Random.choice. Flat uniform distribution.
@@ -446,7 +403,6 @@ def random_value(data: Sequence[Any]) -> Any:
     The function is measurably faster than the class,
         but the class offers far more flexibility. """
     return data[_random_index(len(data))]
-
 
 def cumulative_weighted_choice(weighted_table: Sequence[Tuple[int, Any]]) -> Any:
     """ Cumulative Weighted Choice Function
@@ -459,7 +415,6 @@ def cumulative_weighted_choice(weighted_table: Sequence[Tuple[int, Any]]) -> Any
     for weight, value in weighted_table:
         if weight > rand:
             return value
-
 
 def truffle_shuffle(data: List[Any]) -> Callable:
     """ Truffle Shuffle Function: Function Factory
@@ -475,7 +430,6 @@ def truffle_shuffle(data: List[Any]) -> Callable:
         return data[-1]
 
     return worker
-
 
 def sample(population: Sequence[Any], k: int) -> List[Any]:
     n = len(population)
@@ -514,11 +468,10 @@ class RandomValue:
     """
     __slots__ = ("data", "zero_cool", "flat")
 
-    def __init__(
-            self,
-            collection: Iterable[Any],
-            zero_cool: Callable[[int], int] = random_index,
-            flat: bool = True):
+    def __init__(self,
+                 collection: Iterable[Any],
+                 zero_cool: Callable[[int], int] = random_index,
+                 flat: bool = True):
         self.data = tuple(collection)
         assert len(self.data) > 0, "Input Error, Empty Container"
         self.zero_cool = zero_cool
@@ -729,12 +682,11 @@ class FlexCat:
     """
     __slots__ = ("random_cat", "random_selection", "cat_keys")
 
-    def __init__(
-            self,
-            matrix_data: Dict[str, Iterable[Any]],
-            key_bias: str = "front_linear",
-            val_bias: str = "truffle_shuffle",
-            flat: bool = True):
+    def __init__(self,
+                 matrix_data: Dict[str, Iterable[Any]],
+                 key_bias: str = "front_linear",
+                 val_bias: str = "truffle_shuffle",
+                 flat: bool = True):
         """
         @param matrix_data :: Dictionary of Value Sequences.
         @parm key_bias :: Default is "front_linear". String indicating the
@@ -803,12 +755,12 @@ class WeightedChoice:
 
 
 class RelativeWeightedChoice(WeightedChoice):
+    """ Relative Weighted Choice """
     __slots__ = ("flat", "max_weight", "data")
 
-    def __init__(
-            self,
-            weighted_table: Iterable[Tuple[int, Any]],
-            flat: bool = True):
+    def __init__(self,
+                 weighted_table: Iterable[Tuple[int, Any]],
+                 flat: bool = True):
         """
         @param weighted_table :: Table of weighted pairs.
             [ (w1, v1), (w2, v2), (w3, v3)... ] or zip(weights, values)
@@ -837,12 +789,12 @@ class RelativeWeightedChoice(WeightedChoice):
 
 
 class CumulativeWeightedChoice(WeightedChoice):
+    """ Cumulative Weighted Choice """
     __slots__ = ("flat", "max_weight", "data")
 
-    def __init__(
-            self,
-            weighted_table: Iterable[Tuple[int, Any]],
-            flat: bool = True):
+    def __init__(self,
+                 weighted_table: Iterable[Tuple[int, Any]],
+                 flat: bool = True):
         """
         @param weighted_table :: Table of weighted pairs.
         @param flat :: Bool. Default: True. Option to automatically
@@ -877,14 +829,13 @@ class MultiChoice:
     """ Multiple Choice
     MultiChoice: generates multiple choice style questions on the terminal. """
 
-    def __init__(
-            self,
-            query: str,
-            *,
-            options: Iterable[str] = (),
-            default: str = "",
-            strict: bool = False,
-            cursor: str = ">>>"):
+    def __init__(self,
+                 query: str,
+                 *,
+                 options: Iterable[str] = (),
+                 default: str = "",
+                 strict: bool = False,
+                 cursor: str = ">>>"):
         """ Multiple Choice
         @param query: String.
             Question for the user.
@@ -934,70 +885,53 @@ class MultiChoice:
 def beta_variate(alpha: float, beta: float) -> float:
     return _beta(alpha, beta)
 
-
 def pareto_variate(alpha: float) -> float:
     return _pareto(alpha)
-
 
 def vonmises_variate(mu: float, kappa: float) -> float:
     return _vonmises(mu, kappa)
 
-
 def bernoulli_variate(ratio_of_truth: float) -> bool:
     return _bernoulli(ratio_of_truth) == 1
-
 
 def binomial_variate(number_of_trials: int, probability: float) -> int:
     return _binomial(number_of_trials, probability)
 
-
 def negative_binomial_variate(number_of_trials: int, probability: float) -> int:
     return _neg_binomial(number_of_trials, probability)
-
 
 def geometric_variate(probability: float) -> int:
     return _geometric(probability)
 
-
 def poisson_variate(mean: float) -> int:
     return _poisson(mean)
-
 
 def exponential_variate(lambda_rate: float) -> float:
     return _exponential(lambda_rate)
 
-
 def gamma_variate(shape: float, scale: float) -> float:
     return _gamma(shape, scale)
-
 
 def weibull_variate(shape: float, scale: float) -> float:
     return _weibull(shape, scale)
 
-
 def normal_variate(mean: float, std_dev: float) -> float:
     return _normal(mean, std_dev)
-
 
 def lognormal_variate(log_mean: float, log_deviation: float) -> float:
     return _lognormal(log_mean, log_deviation)
 
-
 def extreme_value_variate(location: float, scale: float) -> float:
     return _extreme_value(location, scale)
-
 
 def chi_squared_variate(degrees_of_freedom: float) -> float:
     return _chi_squared(degrees_of_freedom)
 
-
 def cauchy_variate(location: float, scale: float) -> float:
     return _cauchy(location, scale)
 
-
 def fisher_f_variate(degrees_of_freedom_1: float, degrees_of_freedom_2: float) -> float:
     return _fisher_f(degrees_of_freedom_1, degrees_of_freedom_2)
-
 
 def student_t_variate(degrees_of_freedom: float) -> float:
     return _student_t(degrees_of_freedom)
