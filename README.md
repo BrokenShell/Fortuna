@@ -158,7 +158,7 @@ where you might design your own distribution and use it with RandomValue.
 from Fortuna import RandomValue, front_linear, back_linear
 
 
-# Data Setup
+# Setup
 random_apple = RandomValue((
     "Delicious", 
     "Empire", 
@@ -187,7 +187,7 @@ Same as above but with QuantumMonty - for syntax comparison.
 from Fortuna import QuantumMonty
 
 
-# Data Setup
+# Setup
 random_apple = QuantumMonty((
     "Delicious", 
     "Empire", 
@@ -289,7 +289,7 @@ Wide Uniform Distribution: "Wide" refers to the average distance between consecu
 ```python
 from Fortuna import TruffleShuffle
 
-# Data Setup
+# Setup
 list_of_values = { 1, 2, 3, 4, 5, 6 }
 truffle_shuffle = TruffleShuffle(list_of_values)
 
@@ -303,7 +303,7 @@ This works with all random generator classes in Fortuna, interchangeably.
 ```python
 from Fortuna import RandomValue, TruffleShuffle
 
-# Data Setup
+# Setup
 nesting_dolls = TruffleShuffle((
     RandomValue(("A", "B", "C", "D", "E")),
     RandomValue(("F", "G", "H", "I", "J")),
@@ -329,7 +329,7 @@ print(nesting_dolls())
 ```python
 from Fortuna import QuantumMonty
 
-# Data Setup
+# Setup
 list_of_values = [1, 2, 3, 4, 5, 6]
 monty = QuantumMonty(list_of_values)
 
@@ -348,7 +348,7 @@ There are three primary method families: linear, gaussian, and poisson. Each fam
 ```python
 import Fortuna
 
-# Data Setup
+# Setup
 monty = Fortuna.QuantumMonty(
     ["Alpha", "Beta", "Delta", "Eta", "Gamma", "Kappa", "Zeta"]
 )
@@ -401,7 +401,7 @@ _Note: Logic dictates Cumulative Weights must be unique!_
 ```python
 from Fortuna import CumulativeWeightedChoice
 
-# Data Setup
+# Setup
 cum_weighted_choice = CumulativeWeightedChoice((
     (7, "Apple"),
     (11, "Banana"),
@@ -827,6 +827,21 @@ Minimum float above zero. Should be 5e-324.
 Minimum float below zero. Should be -5e-324.
 
 ## Fortuna Development Log
+##### Fortuna 5.0.5
+- Documentation Update
+
+##### Fortuna 5.0.4
+- Performance Tuning
+
+##### Fortuna 5.0.3
+- Test Update
+
+##### Fortuna 5.0.2
+- Performance Tuning
+
+##### Fortuna 5.0.1
+- Bug Fixes
+
 ##### Fortuna 5.0.0
 - Adds MSVC support
 

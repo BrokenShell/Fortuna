@@ -416,19 +416,17 @@ def cumulative_weighted_choice(weighted_table: Sequence[Tuple[int, Any]]) -> Any
         if weight > rand:
             return value
 
-def truffle_shuffle(data: List[Any]) -> Callable:
+def truffle_shuffle(data: Sequence[Any]) -> Callable:
     """ Truffle Shuffle Function: Function Factory
     Same as the class of the same name, implemented as a higher-order function.
     """
-    data = list(data)
-    shuffle(data)
-    data = deque(data)
-    rotate_size = int(sqrt(len(data)))
-
+    working_data = list(data)
+    shuffle(working_data)
+    data = deque(working_data)
+    rotate_size = int(sqrt(len(working_data)))
     def worker() -> Any:
         data.rotate(1 + _front_poisson(rotate_size))
         return data[-1]
-
     return worker
 
 def sample(population: Sequence[Any], k: int) -> List[Any]:
@@ -478,12 +476,7 @@ class RandomValue:
         self.flat = flat
 
     def __call__(self, *args, **kwargs) -> Any:
-        return flatten(
-            self.data[self.zero_cool(len(self.data))],
-            *args, flat=self.flat, **kwargs)
-
-    def __str__(self) -> str:
-        return "RandomValue(collection, zero_cool, flat)"
+        return flatten(self.data[self.zero_cool(len(self.data))], *args, flat=self.flat, **kwargs)
 
 
 class TruffleShuffle:
@@ -509,9 +502,9 @@ class TruffleShuffle:
     given set, but the repetitiveness of the output sequence will be
     very different.
 
-    TruffleShuffle is a declarative state machine. It does no comparisons,
-    and keeps no history list. As such it is very fast to call and does not
-    lose performance over time, or grow in memory.
+    TruffleShuffle is a state machine. It does no comparisons, and keeps no
+    additional history list. As such it is very fast to call and does not
+    lose performance or grow in memory over time.
 
     Please refer to https://pypi.org/project/Fortuna/ for full documentation.
     """
@@ -527,14 +520,6 @@ class TruffleShuffle:
     def __call__(self, *args, **kwargs) -> Any:
         self.data.rotate(1 + _front_poisson(self.rotate_size))
         return flatten(self.data[-1], *args, flat=self.flat, **kwargs)
-
-    def __str__(self) -> str:
-        output = (
-            "TruffleShuffle(collection",
-            "" if self.flat else ", flat=False",
-            ")",
-        )
-        return "".join(output)
 
 
 class QuantumMonty:
@@ -563,7 +548,7 @@ class QuantumMonty:
         return self.quantum_monty(*args, **kwargs)
 
     def dispatch(self, monty: str) -> Callable:
-        """ Prefer to use the methods directly. """
+        """ For automation, prefer to use the methods directly when possible. """
         return {
             "flat_uniform": self.flat_uniform,
             "truffle_shuffle": self.truffle_shuffle,
@@ -651,14 +636,6 @@ class QuantumMonty:
             self.data[_quantum_monty(self.size)], *args, flat=self.flat, **kwargs
         )
 
-    def __str__(self) -> str:
-        output = (
-            "QuantumMonty(collection",
-            "" if self.flat else ", flat=False",
-            ")",
-        )
-        return "".join(output)
-
 
 class FlexCat:
     """ Flex Cat
@@ -675,7 +652,7 @@ class FlexCat:
     and val_bias="truffle_shuffle", this will make the top of the data
     structure geometrically more common than the bottom, and it will
     truffle shuffle the sequence values. This config is known as TopCat,
-    it produces a descending-step, micro-shuffled distribution sequence.
+    it produces a descending-step, wide inner-distribution sequence.
     Many other combinations are available.
 
     Please refer to https://pypi.org/project/Fortuna/ for full documentation.
@@ -683,7 +660,7 @@ class FlexCat:
     __slots__ = ("random_cat", "random_selection", "cat_keys")
 
     def __init__(self,
-                 matrix_data: Dict[str, Iterable[Any]],
+                 matrix_data: Dict[Any, Iterable[Any]],
                  key_bias: str = "front_linear",
                  val_bias: str = "truffle_shuffle",
                  flat: bool = True):
@@ -699,14 +676,18 @@ class FlexCat:
         """
         self.cat_keys = matrix_data.keys()
         self.random_cat = QuantumMonty(
-            tuple(self.cat_keys), flat=False).dispatch(key_bias)
+            tuple(self.cat_keys),
+            flat=False,
+        ).dispatch(key_bias)
         self.random_selection = {
             key: QuantumMonty(
                 tuple(seq),
-                flat=flat).dispatch(val_bias) for key, seq in matrix_data.items()
+                flat=flat,
+            ).dispatch(val_bias)
+            for key, seq in matrix_data.items()
         }
 
-    def __call__(self, cat_key: str = "", *args, **kwargs) -> Any:
+    def __call__(self, cat_key=None, *args, **kwargs) -> Any:
         """
         @param cat_key :: Optional String. Default is None.
             Key selection by name.
@@ -716,11 +697,8 @@ class FlexCat:
             from a random sequence generated with key_bias.
         """
         monty = self.random_selection
-        key = cat_key if cat_key is not "" else self.random_cat()
+        key = cat_key if cat_key is not None else self.random_cat()
         return monty[key](*args, **kwargs)
-
-    def __str__(self) -> str:
-        return "FlexCat(matrix_data, key_bias, val_bias, flat)"
 
 
 class WeightedChoice:
@@ -779,14 +757,6 @@ class RelativeWeightedChoice(WeightedChoice):
         self.max_weight = optimized_data[-1][0]
         self.data = tuple(tuple(itm) for itm in optimized_data)
 
-    def __str__(self) -> str:
-        output = (
-            "RelativeWeightedChoice(weighted_table",
-            "" if self.flat else ", flat=False",
-            ")",
-        )
-        return "".join(output)
-
 
 class CumulativeWeightedChoice(WeightedChoice):
     """ Cumulative Weighted Choice """
@@ -815,14 +785,6 @@ class CumulativeWeightedChoice(WeightedChoice):
             w_pair[0] = cum_weight
         self.max_weight = optimized_data[-1][0]
         self.data = tuple(tuple(itm) for itm in optimized_data)
-
-    def __str__(self) -> str:
-        output = (
-            "CumulativeWeightedChoice(weighted_table",
-            "" if self.flat else ", flat=False",
-            ")",
-        )
-        return "".join(output)
 
 
 class MultiChoice:
