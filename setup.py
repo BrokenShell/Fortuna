@@ -13,9 +13,9 @@ dev_status = {
     "Mature": "Development Status :: 6 - Mature",
 }
 compiler_args = {
-    "Darwin": ["-std=c++17", "-Ofast"],  # Clang
-    "Linux": ["-std=gnu++17", "-O3"],    # GCC
-    "Windows": ["/std:c++20", "/O2"],    # MSVC
+    "Darwin": ["-std=gnu++20", "-Ofast"],
+    "Linux": ["-std=gnu++20", "-O3"],
+    "Windows": ["/std:c++20", "/O2"],
 }.get(system())
 
 setup(
@@ -35,12 +35,15 @@ setup(
     ),
     author="Robert Sharp",
     author_email="webmaster@sharpdesigndigital.com",
-    version="5.0.5",
+    version="5.0.6",
     description="High Performance Random Value Toolkit",
     long_description=long_description,
     long_description_content_type="text/markdown",
     license="Free for non-commercial use",
     platforms=["Darwin", "Linux", "Windows"],
+    extras_require={
+        'scope': ['MonkeyScope>=1.4.4'],
+    },
     classifiers=[
         dev_status["Mature"],
         "Programming Language :: Python :: 3.10",

@@ -9,8 +9,8 @@ cdef extern from "Storm.hpp":
     object _storm_version "Storm::Version()"()
     void _seed "Storm::Engine::seed"(unsigned long long)
 
-    double _float_clamp "Storm::GearBox::float_clamp"(double, double, double)
-    long long _smart_clamp "Storm::GearBox::smart_clamp"(long long, long long, long long)
+    double _float_clamp "Storm::GearBox::clamp"(double, double, double)
+    long long _smart_clamp "Storm::GearBox::clamp"(long long, long long, long long)
 
     unsigned long long _max_uint "Storm::Meters::max_uint"()
     long long _min_int "Storm::Meters::min_int"()
