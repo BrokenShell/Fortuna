@@ -45,7 +45,7 @@ setup(
         'scope': ['MonkeyScope>=1.4.4'],
     },
     classifiers=[
-        dev_status["Beta"],
+        dev_status["Mature"],
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Cython",
         "Programming Language :: C++",
