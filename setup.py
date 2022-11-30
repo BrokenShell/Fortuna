@@ -14,7 +14,7 @@ dev_status = {
 }
 compiler_args = {
     "Darwin": ["-std=gnu++20", "-Ofast"],
-    "Linux": ["-std=gnu++20", "-O3"],
+    "Linux": ["-std=gnu++17", "-O3"],
     "Windows": ["/std:c++20", "/O2"],
 }.get(system())
 
@@ -35,7 +35,7 @@ setup(
     ),
     author="Robert Sharp",
     author_email="webmaster@sharpdesigndigital.com",
-    version="5.0.6",
+    version="5.0.7",
     description="High Performance Random Value Toolkit",
     long_description=long_description,
     long_description_content_type="text/markdown",
