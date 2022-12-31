@@ -6,7 +6,7 @@ from typing import Any, List, Sequence, Tuple, Callable, Iterable, Dict
 
 
 cdef extern from "Storm.hpp":
-    object _storm_version "Storm::Version()"()
+    object _storm_version "Storm::py_version"()
     void _seed "Storm::Engine::seed"(unsigned long long)
 
     double _float_clamp "Storm::GearBox::clamp"(double, double, double)

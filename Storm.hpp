@@ -11,16 +11,15 @@ namespace Storm {
     using Integer = long long;
     using Float = double;
 
-    struct Version {
-        constexpr const static char *version{"3.6.4"};
-
-        auto operator()() -> PyObject * {
-            return PyUnicode_FromString(Version::version);
-        }
-    };
+    auto version{"3.7.0"};
+    auto py_version() -> PyObject * {
+        return PyUnicode_FromString(Storm::version);
+    }
 
     namespace Engine {
-        using Typhoon = std::shuffle_order_engine<std::discard_block_engine<std::mt19937_64, 12, 8>, 256>;
+        using Twister = std::discard_block_engine<std::mt19937_64, 12, 8>;
+        using Typhoon = std::shuffle_order_engine<Engine::Twister, 256>;
+
         thread_local Engine::Typhoon Hurricane{std::random_device()()};
 
         auto seed(unsigned long long seed_value) -> void {
@@ -269,11 +268,9 @@ namespace Storm {
                 Storm::Integer total{0};
                 for (auto i{0}; i < rolls; ++i) total += d(sides);
                 return total;
-            }
-            else if (rolls == 0) {
+            } else if (rolls == 0) {
                 return 0;
-            }
-            else {
+            } else {
                 Storm::Integer total{0};
                 for (auto i{0}; i < -rolls; ++i) total += d(sides);
                 return -total;
