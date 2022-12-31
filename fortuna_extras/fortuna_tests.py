@@ -9,7 +9,7 @@ from MonkeyScope import distribution_timer, timer
 
 def quick_test():
     print("\nMonkeyScope: Fortuna Quick Test")
-    print(f"Fortuna Version: 5.0.6")
+    print(f"Fortuna Version: 5.1.0")
     print(f"Storm Version: {storm_version()}")
     start_test = _time.time()
     i_clamps = [
@@ -183,7 +183,7 @@ def quick_test():
 
     print("\nsmart_clamp(3, 2, 1) # should be 2: ", smart_clamp(3, 2, 1))
     timer(smart_clamp, 3, 2, 1, cycles=shuffle_cycles)
-    print("float_clamp(3, 2, 1) # should be 2.0: ", float_clamp(3.0, 2.0, 1.0))
+    print("float_clamp(3.0, 2.0, 1.0) # should be 2.0: ", float_clamp(3.0, 2.0, 1.0))
     timer(float_clamp, 3.0, 2.0, 1.0, cycles=shuffle_cycles)
 
     stop_test = _time.time()

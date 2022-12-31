@@ -35,14 +35,14 @@ setup(
     ),
     author="Robert Sharp",
     author_email="webmaster@sharpdesigndigital.com",
-    version="5.0.7",
+    version="5.1.0",
     description="High Performance Random Value Toolkit",
     long_description=long_description,
     long_description_content_type="text/markdown",
     license="Free for non-commercial use",
     platforms=["Darwin", "Linux", "Windows"],
     extras_require={
-        'scope': ['MonkeyScope>=1.4.4'],
+        'scope': ['MonkeyScope>=1.5.0'],
     },
     classifiers=[
         dev_status["Mature"],

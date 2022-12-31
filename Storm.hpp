@@ -12,7 +12,7 @@ namespace Storm {
     using Float = double;
 
     struct Version {
-        constexpr const static char *version{"3.6.3"};
+        constexpr const static char *version{"3.6.4"};
 
         auto operator()() -> PyObject * {
             return PyUnicode_FromString(Version::version);
@@ -264,16 +264,20 @@ namespace Storm {
             return GearBox::analytic_continuation(GetInt::d, sides, 0);
         }
 
-        auto dice(Storm::Integer rolls, Storm::Integer sides) -> Storm::Integer { // NOLINT
+        auto dice(Storm::Integer rolls, Storm::Integer sides) -> Storm::Integer {
             if (rolls > 0) {
                 Storm::Integer total{0};
                 for (auto i{0}; i < rolls; ++i) total += d(sides);
                 return total;
             }
-            if (rolls == 0) {
+            else if (rolls == 0) {
                 return 0;
             }
-            return -GetInt::dice(-rolls, sides);
+            else {
+                Storm::Integer total{0};
+                for (auto i{0}; i < -rolls; ++i) total += d(sides);
+                return -total;
+            }
         }
 
         auto ability_dice(size_t number) -> Storm::Integer {
