@@ -32,12 +32,12 @@ and current availability of FortunaPro.
 - Numeric Limits
     - `Storm::Metrics`
 - Random Value Classes
-    - `RandomValue(Iterable) -> Callable -> Value`
-    - `TruffleShuffle(Iterable) -> Callable -> Value`
-    - `QuantumMonty(Iterable) -> Callable -> Value`
-    - `CumulativeWeightedChoice(Iterable[Tuple[int, Any]]) -> Callable -> Value`
-    - `RelativeWeightedChoice(Iterable[Tuple[int, Any]]) -> Callable -> Value`
-    - `FlexCat(Dict[str, Iterable[Any]]) -> Callable -> Value`
+    - `RandomValue(Iterable[Any]) -> Callable -> Any`
+    - `TruffleShuffle(Iterable[Any]) -> Callable -> Any`
+    - `QuantumMonty(Iterable[Any]) -> Callable -> Any`
+    - `CumulativeWeightedChoice(Iterable[Tuple[int, Any]]) -> Callable -> Any`
+    - `RelativeWeightedChoice(Iterable[Tuple[int, Any]]) -> Callable -> Any`
+    - `FlexCat(Dict[str, Iterable[Any]]) -> Callable -> Any`
 - Random Value Functions
     - `random_value(data: Sequence[Any]) -> Any`
     - `cumulative_weighted_choice(Sequence[Tuple[int, Any]]) -> Any`
