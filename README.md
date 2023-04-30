@@ -1722,12 +1722,13 @@ control the length of the list via the n_samples argument.
 
 ## Distribution and Performance Tests
 Testbed:
-- Hardware: Intel 8 Core i9-9880H, 16GB RAM, 1TB SSD
-- Software: MacOS 12.6, Python 3.10.2
+- Hardware: M1 Ultra
+- Software: MacOS 13.3, Python 3.11.1
+
 ```
 MonkeyScope: Fortuna Quick Test
-Fortuna Version: 5.1.1
-Storm Version: 3.7.0
+Fortuna Version: 5.1.2
+Storm Version: 3.7.1
 
 Smart Clamp: Pass
 Float Clamp: Pass
@@ -1737,89 +1738,89 @@ some_list = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
 
 Base Case
 Output Analysis: Random.choice(some_list)
-Typical Timing: 381 ± 72 ns
-Statistics of 1000 samples:
- Minimum: 0
- Median: 5
- Maximum: 9
- Mean: 4.519
- Std Deviation: 2.8315466898246013
-Distribution of 100000 samples:
- 0: 10.065%
- 1: 9.923%
- 2: 9.983%
- 3: 9.941%
- 4: 10.2%
- 5: 9.996%
- 6: 9.933%
- 7: 10.153%
- 8: 10.03%
- 9: 9.776%
-
-Output Analysis: random_value(some_list)
-Typical Timing: 70 ± 10 ns
+Typical Timing: 164 ± 6 ns
 Statistics of 1000 samples:
  Minimum: 0
  Median: 4
  Maximum: 9
- Mean: 4.471
- Std Deviation: 2.9624204520855804
+ Mean: 4.491
+ Std Deviation: 2.888643845001191
 Distribution of 100000 samples:
- 0: 10.071%
- 1: 9.953%
- 2: 10.037%
- 3: 10.069%
- 4: 9.996%
- 5: 9.968%
- 6: 10.039%
- 7: 10.055%
- 8: 9.844%
- 9: 9.968%
+ 0: 9.889%
+ 1: 9.852%
+ 2: 10.226%
+ 3: 9.986%
+ 4: 10.261%
+ 5: 9.781%
+ 6: 10.07%
+ 7: 10.042%
+ 8: 9.913%
+ 9: 9.98%
+
+Output Analysis: random_value(some_list)
+Typical Timing: 38 ± 2 ns
+Statistics of 1000 samples:
+ Minimum: 0
+ Median: 5
+ Maximum: 9
+ Mean: 4.607
+ Std Deviation: 2.9153130277982244
+Distribution of 100000 samples:
+ 0: 10.033%
+ 1: 10.002%
+ 2: 9.978%
+ 3: 9.867%
+ 4: 9.777%
+ 5: 10.086%
+ 6: 9.917%
+ 7: 10.013%
+ 8: 10.172%
+ 9: 10.155%
 
 
 Wide Distribution
 
 Truffle = TruffleShuffle(some_list)
 Output Analysis: Truffle()
-Typical Timing: 398 ± 53 ns
+Typical Timing: 218 ± 4 ns
 Statistics of 1000 samples:
  Minimum: 0
  Median: 4
  Maximum: 9
- Mean: 4.475
- Std Deviation: 2.8403243551472146
+ Mean: 4.423
+ Std Deviation: 2.838684401114208
 Distribution of 100000 samples:
- 0: 10.078%
- 1: 9.878%
- 2: 9.932%
- 3: 9.98%
- 4: 10.108%
- 5: 10.049%
- 6: 9.935%
- 7: 10.063%
- 8: 10.01%
- 9: 9.967%
+ 0: 10.022%
+ 1: 10.017%
+ 2: 9.979%
+ 3: 10.049%
+ 4: 9.842%
+ 5: 10.077%
+ 6: 9.932%
+ 7: 9.98%
+ 8: 10.049%
+ 9: 10.053%
 
 truffle = truffle_shuffle(some_list)
 Output Analysis: truffle()
-Typical Timing: 180 ± 35 ns
+Typical Timing: 95 ± 2 ns
 Statistics of 1000 samples:
  Minimum: 0
  Median: 4
  Maximum: 9
- Mean: 4.417
- Std Deviation: 2.8592457547902885
+ Mean: 4.404
+ Std Deviation: 2.8458536299119257
 Distribution of 100000 samples:
- 0: 9.997%
- 1: 9.912%
- 2: 10.052%
- 3: 9.928%
- 4: 9.966%
- 5: 9.891%
- 6: 10.131%
- 7: 10.022%
- 8: 10.155%
- 9: 9.946%
+ 0: 10.055%
+ 1: 9.932%
+ 2: 10.068%
+ 3: 10.164%
+ 4: 9.957%
+ 5: 9.924%
+ 6: 9.897%
+ 7: 9.973%
+ 8: 10.021%
+ 9: 10.009%
 
 
 Single objects with many distribution possibilities
@@ -1828,45 +1829,45 @@ some_tuple = tuple(i for i in range(10))
 
 monty = QuantumMonty(some_tuple)
 Output Analysis: monty()
-Typical Timing: 489 ± 94 ns
+Typical Timing: 244 ± 5 ns
 Statistics of 1000 samples:
  Minimum: 0
  Median: 5
  Maximum: 9
- Mean: 4.674
- Std Deviation: 2.82979358465096
+ Mean: 4.621
+ Std Deviation: 2.8473613164588834
 Distribution of 100000 samples:
- 0: 10.877%
- 1: 8.894%
- 2: 9.079%
- 3: 9.761%
- 4: 11.342%
- 5: 11.566%
- 6: 9.619%
- 7: 8.878%
- 8: 9.105%
- 9: 10.879%
+ 0: 10.746%
+ 1: 8.946%
+ 2: 8.872%
+ 3: 9.792%
+ 4: 11.491%
+ 5: 11.546%
+ 6: 9.528%
+ 7: 9.138%
+ 8: 8.905%
+ 9: 11.036%
 
-rand_value = <Fortuna.RandomValue object at 0x1039b49c0>
+rand_value = <Fortuna.RandomValue object at 0x102259940>
 Output Analysis: rand_value()
-Typical Timing: 321 ± 34 ns
+Typical Timing: 170 ± 2 ns
 Statistics of 1000 samples:
  Minimum: 0
  Median: 4
  Maximum: 9
- Mean: 4.405
- Std Deviation: 2.856069350021482
+ Mean: 4.453
+ Std Deviation: 2.927517952355094
 Distribution of 100000 samples:
- 0: 9.93%
- 1: 10.121%
- 2: 10.099%
- 3: 9.859%
- 4: 9.958%
- 5: 10.056%
- 6: 10.037%
- 7: 10.067%
- 8: 9.944%
- 9: 9.929%
+ 0: 10.009%
+ 1: 10.144%
+ 2: 10.021%
+ 3: 10.037%
+ 4: 10.113%
+ 5: 9.985%
+ 6: 9.951%
+ 7: 9.88%
+ 8: 9.915%
+ 9: 9.945%
 
 
 Weighted Tables:
@@ -1879,47 +1880,47 @@ rel_weighted_table = zip(rel_weights, population)
 
 Cumulative Base Case
 Output Analysis: Random.choices(population, cum_weights=cum_weights)
-Typical Timing: 1097 ± 151 ns
+Typical Timing: 550 ± 11 ns
 Distribution of 100000 samples:
- A: 9.82%
- B: 20.102%
- C: 30.135%
- D: 39.943%
+ A: 10.182%
+ B: 19.882%
+ C: 30.056%
+ D: 39.88%
 
 cum_weighted_choice = CumulativeWeightedChoice(cum_weighted_table)
 Output Analysis: cum_weighted_choice()
-Typical Timing: 349 ± 69 ns
+Typical Timing: 178 ± 3 ns
 Distribution of 100000 samples:
- A: 10.027%
- B: 20.129%
- C: 29.924%
- D: 39.92%
+ A: 9.897%
+ B: 20.05%
+ C: 29.86%
+ D: 40.193%
 
 Output Analysis: cumulative_weighted_choice(tuple(zip(cum_weights, population)))
-Typical Timing: 134 ± 18 ns
+Typical Timing: 75 ± 1 ns
 Distribution of 100000 samples:
- A: 10.188%
- B: 20.03%
- C: 29.914%
- D: 39.868%
+ A: 9.975%
+ B: 19.875%
+ C: 30.033%
+ D: 40.117%
 
 Relative Base Case
 Output Analysis: Random.choices(population, weights=rel_weights)
-Typical Timing: 1243 ± 86 ns
+Typical Timing: 690 ± 14 ns
 Distribution of 100000 samples:
- A: 10.006%
- B: 20.072%
- C: 29.978%
- D: 39.944%
+ A: 9.932%
+ B: 20.288%
+ C: 30.191%
+ D: 39.589%
 
 rel_weighted_choice = RelativeWeightedChoice(rel_weighted_table)
 Output Analysis: rel_weighted_choice()
-Typical Timing: 315 ± 42 ns
+Typical Timing: 178 ± 4 ns
 Distribution of 100000 samples:
- A: 10.055%
- B: 19.633%
- C: 30.257%
- D: 40.055%
+ A: 9.89%
+ B: 19.927%
+ C: 30.302%
+ D: 39.881%
 
 
 Random Matrix Values:
@@ -1928,604 +1929,604 @@ some_matrix = {'A': (1, 2, 3, 4), 'B': (10, 20, 30, 40), 'C': (100, 200, 300, 40
 
 flex_cat = FlexCat(some_matrix)
 Output Analysis: flex_cat()
-Typical Timing: 747 ± 102 ns
+Typical Timing: 393 ± 5 ns
 Statistics of 1000 samples:
  Minimum: 1
  Median: 4
  Maximum: 400
- Mean: 36.944
- Std Deviation: 83.14877378880931
+ Mean: 40.777
+ Std Deviation: 89.5261649195653
 Distribution of 100000 samples:
- 1: 13.966%
- 2: 13.852%
- 3: 13.957%
- 4: 13.788%
- 10: 8.326%
- 20: 8.356%
- 30: 8.359%
- 40: 8.307%
- 100: 2.832%
- 200: 2.733%
- 300: 2.776%
- 400: 2.748%
+ 1: 13.776%
+ 2: 13.988%
+ 3: 13.872%
+ 4: 13.712%
+ 10: 8.328%
+ 20: 8.38%
+ 30: 8.29%
+ 40: 8.407%
+ 100: 2.791%
+ 200: 2.834%
+ 300: 2.819%
+ 400: 2.803%
 
 Output Analysis: flex_cat("C")
-Typical Timing: 502 ± 56 ns
+Typical Timing: 278 ± 6 ns
 Statistics of 1000 samples:
  Minimum: 100
- Median: (200, 300)
+ Median: 200
  Maximum: 400
- Mean: 250
- Std Deviation: 112.21672153735642
+ Mean: 249.3
+ Std Deviation: 112.03598556741518
 Distribution of 100000 samples:
- 100: 24.959%
- 200: 24.992%
- 300: 25.027%
- 400: 25.022%
+ 100: 24.976%
+ 200: 24.966%
+ 300: 25.076%
+ 400: 24.982%
 
 
 Random Integers:
 
 Base Case
 Output Analysis: Random.randrange(10)
-Typical Timing: 404 ± 70 ns
+Typical Timing: 159 ± 5 ns
 Statistics of 1000 samples:
  Minimum: 0
- Median: 5
+ Median: 4
  Maximum: 9
- Mean: 4.562
- Std Deviation: 2.868167077138705
+ Mean: 4.36
+ Std Deviation: 2.8203464954424224
 Distribution of 100000 samples:
- 0: 10.189%
- 1: 10.047%
- 2: 10.018%
- 3: 10.058%
- 4: 9.851%
- 5: 9.898%
- 6: 9.979%
- 7: 10.007%
- 8: 9.942%
- 9: 10.011%
+ 0: 9.972%
+ 1: 10.044%
+ 2: 10.104%
+ 3: 9.889%
+ 4: 9.935%
+ 5: 10.141%
+ 6: 10.088%
+ 7: 9.837%
+ 8: 10.063%
+ 9: 9.927%
 
 Output Analysis: random_below(10)
-Typical Timing: 69 ± 9 ns
+Typical Timing: 39 ± 1 ns
 Statistics of 1000 samples:
  Minimum: 0
  Median: 4
  Maximum: 9
- Mean: 4.543
- Std Deviation: 2.8362290449107235
+ Mean: 4.386
+ Std Deviation: 2.8836295391952342
 Distribution of 100000 samples:
- 0: 10.012%
- 1: 9.905%
- 2: 10.086%
- 3: 10.014%
- 4: 10.127%
- 5: 9.854%
- 6: 9.905%
- 7: 10.123%
- 8: 10.079%
- 9: 9.895%
+ 0: 9.912%
+ 1: 9.992%
+ 2: 9.971%
+ 3: 10.226%
+ 4: 9.925%
+ 5: 9.906%
+ 6: 10.042%
+ 7: 9.996%
+ 8: 9.941%
+ 9: 10.089%
 
 Output Analysis: random_index(10)
-Typical Timing: 72 ± 12 ns
+Typical Timing: 44 ± 7 ns
 Statistics of 1000 samples:
  Minimum: 0
  Median: 4
  Maximum: 9
- Mean: 4.453
- Std Deviation: 2.8951982960020497
+ Mean: 4.482
+ Std Deviation: 2.8712227221028885
 Distribution of 100000 samples:
- 0: 9.948%
- 1: 9.972%
- 2: 10.011%
- 3: 10.065%
- 4: 10.026%
- 5: 9.945%
- 6: 9.964%
- 7: 10.013%
- 8: 10.011%
- 9: 10.045%
+ 0: 9.947%
+ 1: 10.078%
+ 2: 10.159%
+ 3: 9.888%
+ 4: 9.936%
+ 5: 10.082%
+ 6: 10.058%
+ 7: 9.901%
+ 8: 9.872%
+ 9: 10.079%
 
 Output Analysis: random_range(10)
-Typical Timing: 73 ± 3 ns
+Typical Timing: 46 ± 3 ns
 Statistics of 1000 samples:
  Minimum: 0
  Median: 5
  Maximum: 9
- Mean: 4.576
- Std Deviation: 2.9056267252809103
+ Mean: 4.685
+ Std Deviation: 2.85375523108043
 Distribution of 100000 samples:
  0: 9.964%
- 1: 9.965%
- 2: 10.037%
- 3: 9.988%
- 4: 10.207%
- 5: 9.833%
- 6: 9.901%
- 7: 9.996%
- 8: 10.141%
- 9: 9.968%
+ 1: 10.003%
+ 2: 10.085%
+ 3: 10.061%
+ 4: 9.837%
+ 5: 9.964%
+ 6: 10.077%
+ 7: 9.99%
+ 8: 9.904%
+ 9: 10.115%
 
 Output Analysis: random_below(-10)
-Typical Timing: 92 ± 29 ns
+Typical Timing: 47 ± 3 ns
 Statistics of 1000 samples:
  Minimum: -9
- Median: -4
+ Median: -5
  Maximum: 0
- Mean: -4.571
- Std Deviation: 2.898855353818531
+ Mean: -4.481
+ Std Deviation: 2.8098993815676985
 Distribution of 100000 samples:
- -9: 10.096%
- -8: 10.007%
- -7: 10.088%
- -6: 9.734%
- -5: 9.995%
- -4: 10.105%
- -3: 10.006%
- -2: 9.964%
- -1: 10.061%
- 0: 9.944%
+ -9: 10.064%
+ -8: 9.972%
+ -7: 10.058%
+ -6: 9.924%
+ -5: 10.017%
+ -4: 9.993%
+ -3: 10.027%
+ -2: 9.934%
+ -1: 9.967%
+ 0: 10.044%
 
 Output Analysis: random_index(-10)
-Typical Timing: 89 ± 24 ns
+Typical Timing: 47 ± 1 ns
 Statistics of 1000 samples:
  Minimum: -10
- Median: -5
+ Median: -6
  Maximum: -1
- Mean: -5.29
- Std Deviation: 2.845346375398959
+ Mean: -5.616
+ Std Deviation: 2.898092983833152
 Distribution of 100000 samples:
- -10: 9.952%
- -9: 10.188%
- -8: 9.866%
- -7: 9.939%
- -6: 9.938%
- -5: 10.137%
- -4: 10.054%
- -3: 9.971%
- -2: 10.089%
- -1: 9.866%
+ -10: 9.987%
+ -9: 9.971%
+ -8: 10.066%
+ -7: 9.941%
+ -6: 9.988%
+ -5: 10.067%
+ -4: 9.909%
+ -3: 9.973%
+ -2: 10.098%
+ -1: 10.0%
 
 Output Analysis: random_range(-10)
-Typical Timing: 103 ± 27 ns
+Typical Timing: 65 ± 12 ns
 Statistics of 1000 samples:
  Minimum: -10
  Median: -5
  Maximum: -1
- Mean: -5.445
- Std Deviation: 2.8860534132798557
+ Mean: -5.414
+ Std Deviation: 2.8884159927107014
 Distribution of 100000 samples:
- -10: 10.114%
- -9: 9.971%
- -8: 10.015%
- -7: 10.022%
- -6: 9.817%
- -5: 9.999%
- -4: 9.98%
- -3: 9.916%
- -2: 10.144%
- -1: 10.022%
+ -10: 10.125%
+ -9: 9.982%
+ -8: 10.017%
+ -7: 10.087%
+ -6: 9.887%
+ -5: 9.936%
+ -4: 9.908%
+ -3: 10.145%
+ -2: 9.766%
+ -1: 10.147%
 
 Base Case
 Output Analysis: Random.randrange(1, 10)
-Typical Timing: 473 ± 33 ns
+Typical Timing: 203 ± 9 ns
 Statistics of 1000 samples:
  Minimum: 1
  Median: 5
  Maximum: 9
- Mean: 4.982
- Std Deviation: 2.6012386361966953
+ Mean: 5.18
+ Std Deviation: 2.540088985065691
 Distribution of 100000 samples:
- 1: 11.174%
- 2: 11.195%
- 3: 11.129%
- 4: 11.025%
- 5: 11.14%
- 6: 11.061%
- 7: 11.174%
- 8: 11.045%
- 9: 11.057%
+ 1: 11.125%
+ 2: 11.089%
+ 3: 11.142%
+ 4: 10.882%
+ 5: 11.286%
+ 6: 11.115%
+ 7: 11.092%
+ 8: 11.051%
+ 9: 11.218%
 
 Output Analysis: random_range(1, 10)
-Typical Timing: 98 ± 28 ns
+Typical Timing: 49 ± 3 ns
 Statistics of 1000 samples:
  Minimum: 1
  Median: 5
  Maximum: 9
- Mean: 4.939
- Std Deviation: 2.5701916047028255
+ Mean: 5.039
+ Std Deviation: 2.535726505147767
 Distribution of 100000 samples:
- 1: 11.119%
- 2: 11.029%
- 3: 11.227%
- 4: 11.106%
- 5: 11.177%
- 6: 11.196%
- 7: 11.08%
- 8: 11.127%
- 9: 10.939%
+ 1: 11.199%
+ 2: 11.107%
+ 3: 10.951%
+ 4: 11.209%
+ 5: 11.148%
+ 6: 11.083%
+ 7: 10.951%
+ 8: 11.18%
+ 9: 11.172%
 
 Output Analysis: random_range(10, 1)
-Typical Timing: 102 ± 31 ns
+Typical Timing: 48 ± 3 ns
 Statistics of 1000 samples:
  Minimum: 1
  Median: 5
  Maximum: 9
- Mean: 4.865
- Std Deviation: 2.512585936458311
+ Mean: 5.031
+ Std Deviation: 2.623150761950201
 Distribution of 100000 samples:
- 1: 11.213%
- 2: 10.967%
- 3: 11.181%
- 4: 11.28%
- 5: 11.007%
- 6: 11.105%
- 7: 11.159%
- 8: 10.912%
- 9: 11.176%
+ 1: 11.023%
+ 2: 11.219%
+ 3: 11.086%
+ 4: 11.152%
+ 5: 11.079%
+ 6: 11.107%
+ 7: 11.177%
+ 8: 11.05%
+ 9: 11.107%
 
 Base Case
 Output Analysis: Random.randint(-5, 5)
-Typical Timing: 550 ± 70 ns
+Typical Timing: 220 ± 6 ns
 Statistics of 1000 samples:
  Minimum: -5
  Median: 0
  Maximum: 5
- Mean: -0.167
- Std Deviation: 3.1335171820064955
+ Mean: 0.02
+ Std Deviation: 3.1886937400396054
 Distribution of 100000 samples:
- -5: 8.96%
- -4: 9.103%
- -3: 9.089%
- -2: 9.096%
- -1: 9.076%
- 0: 9.008%
- 1: 9.09%
- 2: 9.179%
- 3: 9.076%
- 4: 9.353%
- 5: 8.97%
+ -5: 9.15%
+ -4: 9.054%
+ -3: 9.037%
+ -2: 9.029%
+ -1: 9.223%
+ 0: 9.066%
+ 1: 9.073%
+ 2: 9.035%
+ 3: 9.233%
+ 4: 9.058%
+ 5: 9.042%
 
 Output Analysis: random_int(-5, 5)
-Typical Timing: 62 ± 3 ns
+Typical Timing: 35 ± 1 ns
 Statistics of 1000 samples:
  Minimum: -5
  Median: 0
  Maximum: 5
- Mean: 0.011
- Std Deviation: 3.1687410623021757
+ Mean: 0.012
+ Std Deviation: 3.1134465708519152
 Distribution of 100000 samples:
- -5: 9.096%
- -4: 9.165%
- -3: 9.172%
- -2: 9.319%
- -1: 8.995%
- 0: 9.146%
- 1: 8.985%
- 2: 8.957%
- 3: 9.07%
- 4: 9.143%
- 5: 8.952%
+ -5: 8.942%
+ -4: 9.134%
+ -3: 9.192%
+ -2: 9.179%
+ -1: 9.084%
+ 0: 9.173%
+ 1: 9.006%
+ 2: 9.034%
+ 3: 9.112%
+ 4: 9.055%
+ 5: 9.089%
 
 Base Case
 Output Analysis: Random.randrange(1, 20, 2)
-Typical Timing: 589 ± 108 ns
+Typical Timing: 220 ± 4 ns
 Statistics of 1000 samples:
  Minimum: 1
  Median: 11
  Maximum: 19
- Mean: 10.272
- Std Deviation: 5.8685991903056784
+ Mean: 10.186
+ Std Deviation: 5.871275489693519
 Distribution of 100000 samples:
- 1: 9.977%
- 3: 9.967%
- 5: 10.019%
- 7: 10.099%
- 9: 9.911%
- 11: 9.972%
- 13: 10.138%
- 15: 9.974%
- 17: 10.0%
- 19: 9.943%
+ 1: 10.09%
+ 3: 10.048%
+ 5: 9.948%
+ 7: 9.913%
+ 9: 9.944%
+ 11: 10.047%
+ 13: 10.0%
+ 15: 9.984%
+ 17: 10.134%
+ 19: 9.892%
 
 Output Analysis: random_range(1, 20, 2)
-Typical Timing: 79 ± 7 ns
+Typical Timing: 44 ± 2 ns
 Statistics of 1000 samples:
  Minimum: 1
  Median: 9
  Maximum: 19
- Mean: 9.896
- Std Deviation: 5.7003225941763755
+ Mean: 10.054
+ Std Deviation: 5.71574612397662
 Distribution of 100000 samples:
- 1: 10.045%
- 3: 10.146%
- 5: 9.84%
- 7: 10.036%
- 9: 9.973%
- 11: 10.015%
- 13: 9.876%
- 15: 10.156%
- 17: 9.892%
- 19: 10.021%
+ 1: 9.97%
+ 3: 10.002%
+ 5: 9.982%
+ 7: 10.005%
+ 9: 10.212%
+ 11: 9.845%
+ 13: 9.951%
+ 15: 9.95%
+ 17: 9.99%
+ 19: 10.093%
 
 Output Analysis: random_range(1, 20, -2)
-Typical Timing: 81 ± 5 ns
+Typical Timing: 47 ± 3 ns
 Statistics of 1000 samples:
  Minimum: 2
- Median: 12
+ Median: 10
  Maximum: 20
- Mean: 11.252
- Std Deviation: 5.7446929854864734
+ Mean: 10.882
+ Std Deviation: 5.576483943595029
 Distribution of 100000 samples:
- 2: 9.961%
- 4: 10.131%
- 6: 9.953%
- 8: 9.988%
- 10: 9.98%
- 12: 9.876%
- 14: 10.146%
- 16: 10.041%
- 18: 10.051%
- 20: 9.873%
+ 2: 9.869%
+ 4: 9.982%
+ 6: 10.228%
+ 8: 9.958%
+ 10: 10.173%
+ 12: 9.988%
+ 14: 10.092%
+ 16: 9.93%
+ 18: 9.786%
+ 20: 9.994%
 
 Output Analysis: random_range(20, 1, -2)
-Typical Timing: 77 ± 5 ns
+Typical Timing: 44 ± 1 ns
 Statistics of 1000 samples:
  Minimum: 2
- Median: 12
+ Median: 10
  Maximum: 20
- Mean: 11.052
- Std Deviation: 5.703843426132052
+ Mean: 10.862
+ Std Deviation: 5.692570716412872
 Distribution of 100000 samples:
- 2: 10.017%
- 4: 10.073%
- 6: 9.886%
- 8: 10.044%
- 10: 9.936%
- 12: 10.012%
- 14: 9.933%
- 16: 10.23%
- 18: 9.929%
- 20: 9.94%
+ 2: 9.948%
+ 4: 10.082%
+ 6: 10.065%
+ 8: 9.915%
+ 10: 9.884%
+ 12: 10.139%
+ 14: 10.002%
+ 16: 10.068%
+ 18: 9.991%
+ 20: 9.906%
 
 Output Analysis: d(10)
-Typical Timing: 84 ± 29 ns
+Typical Timing: 34 ± 2 ns
 Statistics of 1000 samples:
  Minimum: 1
- Median: 6
+ Median: 5
  Maximum: 10
- Mean: 5.585
- Std Deviation: 2.896405386710252
+ Mean: 5.361
+ Std Deviation: 2.7871934714776168
 Distribution of 100000 samples:
- 1: 10.071%
- 2: 9.857%
- 3: 9.948%
- 4: 10.22%
- 5: 9.949%
- 6: 10.01%
- 7: 9.941%
- 8: 10.093%
- 9: 9.987%
- 10: 9.924%
+ 1: 10.05%
+ 2: 9.853%
+ 3: 9.925%
+ 4: 10.017%
+ 5: 9.803%
+ 6: 10.109%
+ 7: 10.25%
+ 8: 10.022%
+ 9: 10.006%
+ 10: 9.965%
 
 Output Analysis: dice(3, 6)
-Typical Timing: 131 ± 32 ns
+Typical Timing: 63 ± 2 ns
 Statistics of 1000 samples:
  Minimum: 3
  Median: 10
  Maximum: 18
- Mean: 10.439
- Std Deviation: 2.940565579259528
+ Mean: 10.492
+ Std Deviation: 2.95002349798076
 Distribution of 100000 samples:
- 3: 0.445%
- 4: 1.44%
- 5: 2.76%
- 6: 4.578%
- 7: 7.001%
- 8: 9.792%
- 9: 11.537%
- 10: 12.55%
- 11: 12.481%
- 12: 11.577%
- 13: 9.654%
- 14: 6.973%
- 15: 4.625%
- 16: 2.759%
- 17: 1.36%
- 18: 0.468%
+ 3: 0.439%
+ 4: 1.394%
+ 5: 2.738%
+ 6: 4.658%
+ 7: 6.774%
+ 8: 9.546%
+ 9: 11.656%
+ 10: 12.661%
+ 11: 12.433%
+ 12: 11.671%
+ 13: 9.687%
+ 14: 7.023%
+ 15: 4.691%
+ 16: 2.818%
+ 17: 1.325%
+ 18: 0.486%
 
 Output Analysis: ability_dice(4)
-Typical Timing: 222 ± 43 ns
+Typical Timing: 131 ± 4 ns
 Statistics of 1000 samples:
  Minimum: 3
  Median: 12
  Maximum: 18
- Mean: 12.311
- Std Deviation: 2.8028797932011167
+ Mean: 12.239
+ Std Deviation: 2.904878193198007
 Distribution of 100000 samples:
  3: 0.074%
- 4: 0.298%
- 5: 0.787%
- 6: 1.614%
- 7: 2.986%
- 8: 4.789%
- 9: 7.079%
- 10: 9.484%
- 11: 11.218%
- 12: 12.826%
- 13: 13.241%
- 14: 12.304%
- 15: 10.13%
- 16: 7.371%
- 17: 4.184%
- 18: 1.615%
+ 4: 0.341%
+ 5: 0.766%
+ 6: 1.633%
+ 7: 2.935%
+ 8: 4.72%
+ 9: 6.903%
+ 10: 9.367%
+ 11: 11.491%
+ 12: 13.004%
+ 13: 13.211%
+ 14: 12.332%
+ 15: 10.136%
+ 16: 7.258%
+ 17: 4.235%
+ 18: 1.594%
 
 Output Analysis: plus_or_minus(5)
-Typical Timing: 64 ± 8 ns
+Typical Timing: 32 ± 2 ns
 Statistics of 1000 samples:
  Minimum: -5
  Median: 0
  Maximum: 5
- Mean: -0.184
- Std Deviation: 3.14770583950471
+ Mean: 0.048
+ Std Deviation: 3.1729739620368402
 Distribution of 100000 samples:
- -5: 9.231%
- -4: 9.077%
- -3: 9.06%
- -2: 9.176%
- -1: 9.009%
- 0: 9.044%
- 1: 9.048%
- 2: 9.096%
- 3: 9.028%
- 4: 9.152%
- 5: 9.079%
+ -5: 9.161%
+ -4: 9.14%
+ -3: 9.012%
+ -2: 9.173%
+ -1: 8.87%
+ 0: 9.064%
+ 1: 9.161%
+ 2: 9.2%
+ 3: 9.151%
+ 4: 9.014%
+ 5: 9.054%
 
 Output Analysis: plus_or_minus_linear(5)
-Typical Timing: 78 ± 1 ns
+Typical Timing: 45 ± 2 ns
 Statistics of 1000 samples:
  Minimum: -5
  Median: 0
  Maximum: 5
- Mean: -0.108
- Std Deviation: 2.3357636421076067
+ Mean: -0.009
+ Std Deviation: 2.4873894158547243
 Distribution of 100000 samples:
- -5: 2.835%
- -4: 5.421%
- -3: 8.303%
- -2: 11.213%
- -1: 13.983%
- 0: 16.453%
- 1: 13.914%
- 2: 11.258%
- 3: 8.401%
- 4: 5.531%
- 5: 2.688%
+ -5: 2.781%
+ -4: 5.673%
+ -3: 8.405%
+ -2: 11.1%
+ -1: 13.847%
+ 0: 16.669%
+ 1: 13.865%
+ 2: 11.004%
+ 3: 8.224%
+ 4: 5.546%
+ 5: 2.886%
 
 Output Analysis: plus_or_minus_gauss(5)
-Typical Timing: 104 ± 8 ns
+Typical Timing: 54 ± 3 ns
 Statistics of 1000 samples:
  Minimum: -5
  Median: 0
  Maximum: 5
- Mean: -0.017
- Std Deviation: 1.6283004521163662
+ Mean: -0.043
+ Std Deviation: 1.6098890467180471
 Distribution of 100000 samples:
- -5: 0.218%
- -4: 1.142%
- -3: 4.388%
- -2: 11.528%
- -1: 20.499%
- 0: 24.575%
- 1: 20.346%
- 2: 11.433%
- 3: 4.542%
- 4: 1.122%
- 5: 0.207%
+ -5: 0.195%
+ -4: 1.15%
+ -3: 4.418%
+ -2: 11.541%
+ -1: 20.292%
+ 0: 24.659%
+ 1: 20.553%
+ 2: 11.374%
+ 3: 4.432%
+ 4: 1.193%
+ 5: 0.193%
 
 
 Random Floats:
 
 Base Case
 Output Analysis: Random.random()
-Typical Timing: 31 ± 1 ns
+Typical Timing: 20 ± 1 ns
 Statistics of 1000 samples:
- Minimum: 0.00013868304354447414
- Median: (0.4836236378148421, 0.48478860402223123)
- Maximum: 0.9984002454028206
- Mean: 0.49744132613984
- Std Deviation: 0.2897836478048023
+ Minimum: 0.000142782747727499
+ Median: (0.47611225355861486, 0.478104618492992)
+ Maximum: 0.9997673550591981
+ Mean: 0.4846712316389709
+ Std Deviation: 0.29445228449838595
 round distribution of 100000:
- 0: 50.112%
- 1: 49.888%
+ 0: 50.027%
+ 1: 49.973%
 
 Output Analysis: canonical()
-Typical Timing: 63 ± 23 ns
+Typical Timing: 24 ± 1 ns
 Statistics of 1000 samples:
- Minimum: 0.0005585714727855628
- Median: (0.5004794925651861, 0.5015944926237267)
- Maximum: 0.99938618257081
- Mean: 0.5078148520954535
- Std Deviation: 0.28376588392448343
+ Minimum: 0.00011940616671560987
+ Median: (0.5336037809343693, 0.5338013616706963)
+ Maximum: 0.9998526038434692
+ Mean: 0.5071817671541653
+ Std Deviation: 0.2881289353266108
 round distribution of 100000:
- 0: 49.752%
- 1: 50.248%
+ 0: 49.91%
+ 1: 50.09%
 
 Output Analysis: random_float(0.0, 10.0)
-Typical Timing: 50 ± 9 ns
+Typical Timing: 25 ± 1 ns
 Statistics of 1000 samples:
- Minimum: 0.006643658928233882
- Median: (4.949965798089725, 4.975251335213453)
- Maximum: 9.997048526986323
- Mean: 4.962501967166521
- Std Deviation: 2.8450023154572572
+ Minimum: 0.005097646931662764
+ Median: (5.134058844316928, 5.140958185286907)
+ Maximum: 9.998064260046263
+ Mean: 5.118819952257218
+ Std Deviation: 2.9183293613236745
 floor distribution of 100000:
- 0: 10.177%
- 1: 10.121%
- 2: 9.941%
- 3: 9.905%
- 4: 9.945%
- 5: 9.975%
- 6: 9.818%
- 7: 9.946%
- 8: 10.115%
- 9: 10.057%
+ 0: 10.133%
+ 1: 9.991%
+ 2: 9.801%
+ 3: 10.026%
+ 4: 10.087%
+ 5: 9.832%
+ 6: 10.049%
+ 7: 10.109%
+ 8: 9.924%
+ 9: 10.048%
 
 Base Case
 Output Analysis: Random.triangular(0.0, 10.0, 5.0)
-Typical Timing: 311 ± 46 ns
+Typical Timing: 138 ± 5 ns
 Statistics of 1000 samples:
- Minimum: 0.17286430536575964
- Median: (4.921378333495361, 4.923873144175872)
- Maximum: 9.915523160354695
- Mean: 4.974256514976916
- Std Deviation: 2.000500953450381
+ Minimum: 0.11029752947732814
+ Median: (4.855753095470426, 4.858159193216716)
+ Maximum: 9.826447264177135
+ Mean: 4.9134451464177245
+ Std Deviation: 2.0665159445730845
 round distribution of 100000:
- 0: 0.528%
- 1: 3.995%
- 2: 8.029%
- 3: 11.889%
- 4: 15.947%
- 5: 18.884%
- 6: 15.907%
- 7: 12.056%
- 8: 8.178%
- 9: 4.034%
- 10: 0.553%
+ 0: 0.46%
+ 1: 3.965%
+ 2: 7.838%
+ 3: 11.963%
+ 4: 16.094%
+ 5: 19.087%
+ 6: 16.09%
+ 7: 12.19%
+ 8: 7.823%
+ 9: 3.994%
+ 10: 0.496%
 
 Output Analysis: triangular(0.0, 10.0, 5.0)
-Typical Timing: 52 ± 1 ns
+Typical Timing: 33 ± 1 ns
 Statistics of 1000 samples:
- Minimum: 0.2771982710461727
- Median: (4.972980160736296, 4.978824928740703)
- Maximum: 9.80081873671364
- Mean: 5.02601790082794
- Std Deviation: 1.9740372798855634
+ Minimum: 0.39567829487457745
+ Median: (4.980009273126231, 4.989989589620912)
+ Maximum: 9.71813997918804
+ Mean: 4.996797187556883
+ Std Deviation: 2.0982307231113797
 round distribution of 100000:
- 0: 0.506%
- 1: 3.979%
- 2: 8.026%
- 3: 12.179%
- 4: 16.095%
- 5: 18.936%
- 6: 15.939%
- 7: 12.075%
- 8: 7.833%
- 9: 3.908%
- 10: 0.524%
+ 0: 0.491%
+ 1: 3.95%
+ 2: 8.077%
+ 3: 11.944%
+ 4: 16.187%
+ 5: 18.926%
+ 6: 15.953%
+ 7: 11.962%
+ 8: 8.012%
+ 9: 4.007%
+ 10: 0.491%
 
 
 Random Booleans:
 
 Output Analysis: percent_true(33.33)
-Typical Timing: 41 ± 1 ns
+Typical Timing: 25 ± 3 ns
 Statistics of 1000 samples:
  Minimum: False
  Median: False
  Maximum: True
- Mean: 0.335
- Std Deviation: 0.4722266383824593
+ Mean: 0.316
+ Std Deviation: 0.4651455260027343
 Distribution of 100000 samples:
  False: 66.55%
  True: 33.45%
@@ -2539,33 +2540,33 @@ some_large_list = [i for i in range(1000)]
 
 Base Case:
 Random.shuffle()  # fisher_yates in python
-Typical Timing: 4582 ± 1628 ns
-Typical Timing: 39477 ± 11180 ns
-Typical Timing: 352996 ± 32009 ns
+Typical Timing: 1388 ± 25 ns
+Typical Timing: 13793 ± 1472 ns
+Typical Timing: 135680 ± 1085 ns
 
 Fortuna.shuffle()  # knuth_b in cython
-Typical Timing: 397 ± 8 ns
-Typical Timing: 3744 ± 45 ns
-Typical Timing: 37670 ± 1859 ns
+Typical Timing: 266 ± 10 ns
+Typical Timing: 2363 ± 11 ns
+Typical Timing: 22837 ± 337 ns
 
 Fortuna.knuth_a()  # knuth_a in cython
-Typical Timing: 764 ± 19 ns
-Typical Timing: 7341 ± 973 ns
-Typical Timing: 82362 ± 5682 ns
+Typical Timing: 476 ± 11 ns
+Typical Timing: 4296 ± 52 ns
+Typical Timing: 49211 ± 973 ns
 
 Fortuna.fisher_yates()  # fisher_yates in cython
-Typical Timing: 822 ± 9 ns
-Typical Timing: 6522 ± 29 ns
-Typical Timing: 84338 ± 9103 ns
+Typical Timing: 550 ± 8 ns
+Typical Timing: 4695 ± 338 ns
+Typical Timing: 48856 ± 761 ns
 
 smart_clamp(3, 2, 1) # should be 2:  2
-Typical Timing: 67 ± 5 ns
+Typical Timing: 50 ± 8 ns
 float_clamp(3.0, 2.0, 1.0) # should be 2.0:  2.0
-Typical Timing: 64 ± 4 ns
+Typical Timing: 38 ± 3 ns
 
 
 -------------------------------------------------------------------------
-Total Test Time: 3.043 seconds
+Total Test Time: 1.599 seconds
 ```
 
 

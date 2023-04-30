@@ -16,7 +16,7 @@ import random
 
 
 def proc_pool(func):
-    jobs = 6
+    jobs = 8
     limit = 100
     with Pool(processes=jobs) as pool:
         result = pool.map(func, [limit] * jobs, chunksize=1)

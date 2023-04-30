@@ -11,7 +11,7 @@ namespace Storm {
     using Integer = long long;
     using Float = double;
 
-    auto version{"3.7.0"};
+    auto version{"3.7.1"};
     auto py_version() -> PyObject * {
         return PyUnicode_FromString(Storm::version);
     }
@@ -19,9 +19,8 @@ namespace Storm {
     namespace Engine {
         using Twister = std::discard_block_engine<std::mt19937_64, 12, 8>;
         using Typhoon = std::shuffle_order_engine<Engine::Twister, 256>;
-
-        thread_local Engine::Typhoon Hurricane{std::random_device()()};
-
+        thread_local static std::random_device hardware_seed;
+        thread_local static Engine::Typhoon Hurricane{hardware_seed()};
         auto seed(unsigned long long seed_value) -> void {
             thread_local Engine::Typhoon seeded{seed_value == 0 ? std::random_device()() : seed_value};
             Engine::Hurricane = seeded;
@@ -337,8 +336,8 @@ namespace Storm {
                 return Storm::Integer(Storm::GetFloat::triangular_variate(
                     0,
                     Storm::Float(number),
-                    Storm::Float(number) / 2.0)
-                );
+                    Storm::Float(number) / 2.0
+                ));
             }
             return GearBox::analytic_continuation(GetIndex::middle_linear, number, -1);
         }
