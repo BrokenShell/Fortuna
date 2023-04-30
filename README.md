@@ -827,7 +827,10 @@ Minimum float above zero. Should be 5e-324.
 Minimum float below zero. Should be -5e-324.
 
 ## Fortuna Development Log
-##### Fortuna 5.1.1
+##### Fortuna 5.1.2
+- Storm 3.7.1 update
+
+- ##### Fortuna 5.1.1
 - Storm 3.7.0 update
 
 ##### Fortuna 5.1.0
