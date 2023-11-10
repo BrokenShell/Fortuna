@@ -5,15 +5,14 @@
 #include <numeric>
 #include <vector>
 #include <limits>
-#include <Python.h>
 
 namespace Storm {
     using Integer = long long;
     using Float = double;
 
-    auto version{"3.7.1"};
-    auto py_version() -> PyObject * {
-        return PyUnicode_FromString(Storm::version);
+    const auto version{"3.8.0"};
+    auto get_version() {
+        return Storm::version;
     }
 
     namespace Engine {

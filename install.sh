@@ -1,3 +1,2 @@
-python3 -m pip install --upgrade pip setuptools wheel
-python3 -m pip install --upgrade -r requirements.txt
-python3 -m pip install .
+python -m pip install --upgrade pip setuptools wheel -r requirements.txt
+python -m pip install .

@@ -16,7 +16,7 @@ import random
 
 
 def proc_pool(func):
-    jobs = 8
+    jobs = 16
     limit = 100
     with Pool(processes=jobs) as pool:
         result = pool.map(func, [limit] * jobs, chunksize=1)
@@ -24,7 +24,7 @@ def proc_pool(func):
 
 
 if __name__ == '__main__':
-    num = 512000
+    num = 768_000
     print(f"Fortuna No Pool Baseline: {num} random numbers")
     start = time.perf_counter()
     test1 = tuple(Fortuna.random_range(100) for _ in range(num))
@@ -32,11 +32,11 @@ if __name__ == '__main__':
     print(f"Wall Time: {stop - start:.3f}s\n")
 
     start = time.perf_counter()
-    print(f"{proc_pool(random.randrange) = }")
+    print(f"{proc_pool(random.randrange) = } - FAIL")
     stop = time.perf_counter()
     print(f"Wall Time: {stop - start:.3f}s\n")
 
     start = time.perf_counter()
-    print(f"{proc_pool(Fortuna.random_range) = }")
+    print(f"{proc_pool(Fortuna.random_range) = } - PASS")
     stop = time.perf_counter()
     print(f"Wall Time: {stop - start:.3f}s\n")

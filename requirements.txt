@@ -1,5 +1,3 @@
-setuptools
-wheel
 twine
 Cython
 MonkeyScope

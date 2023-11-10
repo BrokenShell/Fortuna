@@ -20,6 +20,7 @@ and current availability of FortunaPro.
 - Fortuna is optimized for macOS & Linux.
 - New in version 5, Fortuna now supports Windows.
 - Installation requires a C++ Compiler and the C++ Standard Library.
+- Fortuna requires Python3 dev environment: `apt-get install python3-dev`
 
 ### Sister Projects:
 - [MonkeyScope](https://pypi.org/project/MonkeyScope): Framework for testing non-deterministic functions and methods.
@@ -827,6 +828,10 @@ Minimum float above zero. Should be 5e-324.
 Minimum float below zero. Should be -5e-324.
 
 ## Fortuna Development Log
+##### Fortuna 5.1.3
+- Storm 3.8.0 update
+- No longer requires Python.h
+
 ##### Fortuna 5.1.2
 - Storm 3.7.1 update
 

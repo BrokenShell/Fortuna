@@ -12,6 +12,7 @@ dev_status = {
     "Pro": "Development Status :: 5 - Production/Stable",
     "Mature": "Development Status :: 6 - Mature",
 }
+
 compiler_args = {
     "Darwin": ["-std=gnu++20", "-Ofast"],
     "Linux": ["-std=gnu++17", "-O3"],
@@ -35,7 +36,7 @@ setup(
     ),
     author="Robert Sharp",
     author_email="webmaster@sharpdesigndigital.com",
-    version="5.1.2",
+    version="5.1.3",
     description="High Performance Random Value Toolkit",
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -46,7 +47,7 @@ setup(
     },
     classifiers=[
         dev_status["Mature"],
-        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
         "Programming Language :: Cython",
         "Programming Language :: C++",
         "Operating System :: MacOS :: MacOS X",
