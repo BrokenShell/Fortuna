@@ -19,12 +19,28 @@ and current availability of FortunaPro.
 ### Installation Notes:
 - Fortuna is optimized for macOS & Linux.
 - New in version 5, Fortuna now supports Windows.
-- Installation requires a C++ Compiler and the C++ Standard Library.
-- Fortuna requires Python3 dev environment: `apt-get install python3-dev`
+- Installation requires C++ Compiler and C++ Standard Library.
+- On Linux, Fortuna requires Python3 developer environment.
+
+### Installation Examples:
+- macOS & Windows
+  - `pip install Fortuna`
+- Linux & WSL: Debian (you may need sudo)
+  - `apt update`
+  - `apt upgrade`
+  - `apt install build-essential`
+  - `apt install python3-dev python3-pip`
+  - Optionally Make a Virtual Environment
+    - `apt install python3.11-venv`
+    - `python3 -m venv venv`
+    - `source venv/bin/activate`
+  - `pip install --upgrade pip setuptools wheel`
+  - `pip install Fortuna`
+
 
 ### Sister Projects:
-- [MonkeyScope](https://pypi.org/project/MonkeyScope): Framework for testing non-deterministic functions and methods.
-- [Storm](https://github.com/BrokenShell/Storm): C++ Random Number Engine.
+- [MonkeyScope](https://pypi.org/project/MonkeyScope): Framework for testing non-deterministic components.
+- [Storm](https://github.com/BrokenShell/Storm): High Performance C++ Random Number Engine & Toolkit.
 
 
 ---
