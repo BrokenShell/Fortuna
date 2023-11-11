@@ -844,6 +844,12 @@ Minimum float above zero. Should be 5e-324.
 Minimum float below zero. Should be -5e-324.
 
 ## Fortuna Development Log
+##### Fortuna 5.1.4
+- Documentation Update
+- Updates Installation Script
+  - Darwin now uses "-std=c++20"
+  - Linux now uses "-std=c++17"
+
 ##### Fortuna 5.1.3
 - Storm 3.8.0 update
 - No longer requires Python.h
