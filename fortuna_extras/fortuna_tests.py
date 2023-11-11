@@ -9,7 +9,7 @@ from MonkeyScope import distribution_timer, timer
 
 def quick_test():
     print("\nMonkeyScope: Fortuna Quick Test")
-    print(f"Fortuna Version: 5.1.2")
+    print(f"Fortuna Version: 5.1.3")
     print(f"Storm Version: {storm_version()}")
     start_test = _time.time()
     i_clamps = [
@@ -20,8 +20,7 @@ def quick_test():
         smart_clamp(3, 1, 2),
         smart_clamp(3, 2, 1),
     ]
-    print(f"\nSmart Clamp: "
-          f"{'Pass' if all(val == 2 for val in i_clamps) else 'Fail'}")
+    print(f"\nSmart Clamp: {'Pass' if all(val == 2 for val in i_clamps) else 'Fail'}")
     f_clamps = [
         float_clamp(0.1, 0.2, 0.3),
         float_clamp(0.1, 0.3, 0.2),
@@ -30,8 +29,7 @@ def quick_test():
         float_clamp(0.3, 0.1, 0.2),
         float_clamp(0.3, 0.2, 0.1),
     ]
-    print(f"Float Clamp: "
-          f"{'Pass' if all(val == 0.2 for val in f_clamps) else 'Fail'}")
+    print(f"Float Clamp: {'Pass' if all(val == 0.2 for val in f_clamps) else 'Fail'}")
     some_list = [i for i in range(10)]
     print("\nData:")
     print(f"{some_list = }\n")
@@ -136,6 +134,8 @@ def quick_test():
     print("Base Case")
     distribution_timer(_random.random, post_processor=round)
     distribution_timer(canonical, post_processor=round)
+    print("Base Case")
+    distribution_timer(_random.uniform, 0.0, 10.0, post_processor=_math.floor)
     distribution_timer(random_float, 0.0, 10.0, post_processor=_math.floor)
     print("Base Case")
     distribution_timer(_random.triangular, 0.0, 10.0, 5.0, post_processor=round)
