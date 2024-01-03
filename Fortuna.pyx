@@ -697,7 +697,7 @@ class FlexCat:
 
     Please refer to https://pypi.org/project/Fortuna/ for full documentation.
     """
-    __slots__ = ("random_cat", "random_selection", "cat_keys")
+    __slots__ = ("random_cat", "random_selection", "cat_keys", "matrix_data")
 
     def __init__(self,
                  matrix_data: Dict[Any, Iterable[Any]],
@@ -714,6 +714,7 @@ class FlexCat:
             callable values with lazy evaluation.
         @return :: Callable Instance
         """
+        self.matrix_data = matrix_data
         self.cat_keys = matrix_data.keys()
         self.random_cat = QuantumMonty(
             tuple(self.cat_keys),
