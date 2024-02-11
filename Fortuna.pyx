@@ -1,6 +1,7 @@
 #!python3
 #distutils: language = c++
 from collections import deque
+from itertools import cycle
 from math import sqrt
 from typing import Any, List, Sequence, Tuple, Callable, Iterable, Dict
 
@@ -575,13 +576,14 @@ class QuantumMonty:
 
     Please refer to https://pypi.org/project/Fortuna/ for full documentation.
     """
-    __slots__ = ("flat", "size", "data", "truffle_shuffle")
+    __slots__ = ("flat", "size", "data", "truffle_shuffle", "cycles")
 
     def __init__(self, collection: Iterable[Any], flat: bool = True):
         self.flat = flat
         self.data = tuple(collection)
         self.size = len(self.data)
         assert self.size > 0, "Input Error, Empty Container"
+        self.cycles = cycle(self.data)
         self.truffle_shuffle = TruffleShuffle(self.data, flat)
 
     def __call__(self, *args, **kwargs) -> Any:
@@ -591,6 +593,7 @@ class QuantumMonty:
         """ For automation, prefer to use the methods directly when possible. """
         return {
             "flat_uniform": self.flat_uniform,
+            "cycle": self.cycle,
             "truffle_shuffle": self.truffle_shuffle,
             "front_linear": self.front_linear,
             "middle_linear": self.middle_linear,
@@ -611,6 +614,9 @@ class QuantumMonty:
         return flatten(
             self.data[_random_index(self.size)], *args, flat=self.flat, **kwargs
         )
+
+    def cycle(self, *args, **kwargs):
+        return flatten(next(self.cycles))
 
     def front_linear(self, *args, **kwargs) -> Any:
         return flatten(
