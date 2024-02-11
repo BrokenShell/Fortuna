@@ -20,6 +20,7 @@ def monty_tests():
     distribution_timer(monty.back_poisson)
     distribution_timer(monty.quantum_poisson)
     distribution_timer(monty.quantum_monty)
+    distribution_timer(monty.cycle)
 
 
 def lambda_monty_tests():
@@ -55,4 +56,4 @@ def lambda_monty_tests():
 
 if __name__ == "__main__":
     monty_tests()
-    lambda_monty_tests()
+    # lambda_monty_tests()
