@@ -1,5 +1,5 @@
 # Fortuna: Generative Modeling Toolkit for Python3
-© 2023 Robert Sharp, all rights reserved.
+© 2024 Robert Sharp, all rights reserved.
 
 Fortuna's main goal is to provide a quick and easy way to build custom random 
 functions for your data that are byte-code fast and thread aware. Fortuna also 
