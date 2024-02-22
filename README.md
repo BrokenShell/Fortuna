@@ -845,6 +845,9 @@ Minimum float below zero. Should be -5e-324.
 
 ## Fortuna Development Log
 
+##### Fortuna 5.2.1
+- Bug fix (TruffleShuffle)
+
 ##### Fortuna 5.2.0
 - Adds `QuantumMonty.cycle` method
   - Supports FlexCat

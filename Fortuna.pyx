@@ -555,7 +555,7 @@ class TruffleShuffle:
         self.flat = flat
         data = list(collection)
         shuffle(data)
-        self.data = deque(collection)
+        self.data = deque(data)
         self.rotate_size = int(sqrt(len(self.data)))
 
     def __call__(self, *args, **kwargs) -> Any:
