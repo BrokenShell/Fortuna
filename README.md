@@ -93,7 +93,7 @@ and current availability of FortunaPro.
     - `random_float(Float, Float) -> Float`
     - `triangular(Float, Float, Float) -> Float`
     - `normal_variate(Float, Float) -> Float`
-    - `lognormal_variate(Float, Float) -> Float`
+    - `log_normal_variate(Float, Float) -> Float`
     - `exponential_variate(Float) -> Float`
     - `gamma_variate(Float, Float) -> Float`
     - `weibull_variate(Float, Float) -> Float`
@@ -708,7 +708,7 @@ print(some_list[quantum_gauss(-10)])
 - @param mean :: Float, sets the average output of the function.
 - @param std_dev :: Float, standard deviation. Specifies spread of data from the mean.
 
-`Fortuna.lognormal_variate(log_mean: Float, log_deviation: Float) -> Float`
+`Fortuna.log_normal_variate(log_mean: Float, log_deviation: Float) -> Float`
 - @param log_mean :: Float, sets the log of the mean of the function.
 - @param log_deviation :: Float, log of the standard deviation. Specifies spread of data from the mean.
 
@@ -844,6 +844,13 @@ Minimum float above zero. Should be 5e-324.
 Minimum float below zero. Should be -5e-324.
 
 ## Fortuna Development Log
+
+##### Fortuna 5.3.1
+- Adds several float tests
+
+##### Fortuna 5.3.0
+- Storm Update v3.9.0
+- `lognormal_variate` -> `log_normal_variate`
 
 ##### Fortuna 5.2.1
 - Bug fix (TruffleShuffle)
@@ -1765,8 +1772,8 @@ Testbed:
 
 ```
 MonkeyScope: Fortuna Quick Test
-Fortuna Version: 5.1.2
-Storm Version: 3.7.1
+Fortuna Version: 5.3.1
+Storm Version: 3.9.0
 
 Smart Clamp: Pass
 Float Clamp: Pass
@@ -1776,89 +1783,89 @@ some_list = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
 
 Base Case
 Output Analysis: Random.choice(some_list)
-Typical Timing: 164 ± 6 ns
-Statistics of 1000 samples:
- Minimum: 0
- Median: 4
- Maximum: 9
- Mean: 4.491
- Std Deviation: 2.888643845001191
-Distribution of 100000 samples:
- 0: 9.889%
- 1: 9.852%
- 2: 10.226%
- 3: 9.986%
- 4: 10.261%
- 5: 9.781%
- 6: 10.07%
- 7: 10.042%
- 8: 9.913%
- 9: 9.98%
-
-Output Analysis: random_value(some_list)
-Typical Timing: 38 ± 2 ns
+Typical Timing: 199 ± 13 ns
 Statistics of 1000 samples:
  Minimum: 0
  Median: 5
  Maximum: 9
- Mean: 4.607
- Std Deviation: 2.9153130277982244
+ Mean: 4.617
+ Std Deviation: 2.8485830557358556
 Distribution of 100000 samples:
- 0: 10.033%
- 1: 10.002%
- 2: 9.978%
- 3: 9.867%
- 4: 9.777%
- 5: 10.086%
- 6: 9.917%
- 7: 10.013%
- 8: 10.172%
- 9: 10.155%
+ 0: 10.143%
+ 1: 9.881%
+ 2: 9.898%
+ 3: 10.0%
+ 4: 10.239%
+ 5: 9.821%
+ 6: 9.813%
+ 7: 10.017%
+ 8: 10.054%
+ 9: 10.134%
+
+Output Analysis: random_value(some_list)
+Typical Timing: 38 ± 5 ns
+Statistics of 1000 samples:
+ Minimum: 0
+ Median: 5
+ Maximum: 9
+ Mean: 4.526
+ Std Deviation: 2.908914881151696
+Distribution of 100000 samples:
+ 0: 10.071%
+ 1: 10.008%
+ 2: 9.977%
+ 3: 10.033%
+ 4: 10.028%
+ 5: 9.874%
+ 6: 10.098%
+ 7: 9.988%
+ 8: 10.013%
+ 9: 9.91%
 
 
 Wide Distribution
 
 Truffle = TruffleShuffle(some_list)
 Output Analysis: Truffle()
-Typical Timing: 218 ± 4 ns
+Typical Timing: 208 ± 11 ns
 Statistics of 1000 samples:
  Minimum: 0
  Median: 4
  Maximum: 9
- Mean: 4.423
- Std Deviation: 2.838684401114208
+ Mean: 4.444
+ Std Deviation: 2.8953837823762236
 Distribution of 100000 samples:
- 0: 10.022%
- 1: 10.017%
- 2: 9.979%
- 3: 10.049%
- 4: 9.842%
- 5: 10.077%
- 6: 9.932%
- 7: 9.98%
- 8: 10.049%
- 9: 10.053%
+ 0: 10.055%
+ 1: 9.95%
+ 2: 9.933%
+ 3: 10.02%
+ 4: 9.996%
+ 5: 9.964%
+ 6: 9.912%
+ 7: 9.933%
+ 8: 10.142%
+ 9: 10.095%
 
 truffle = truffle_shuffle(some_list)
 Output Analysis: truffle()
-Typical Timing: 95 ± 2 ns
+Typical Timing: 90 ± 8 ns
 Statistics of 1000 samples:
  Minimum: 0
- Median: 4
+ Median: 5
  Maximum: 9
- Mean: 4.404
- Std Deviation: 2.8458536299119257
+ Mean: 4.606
+ Std Deviation: 2.9115702363572207
 Distribution of 100000 samples:
- 0: 10.055%
- 1: 9.932%
- 2: 10.068%
- 3: 10.164%
- 4: 9.957%
- 5: 9.924%
- 6: 9.897%
- 7: 9.973%
- 8: 10.021%
- 9: 10.009%
+ 0: 9.977%
+ 1: 10.037%
+ 2: 9.974%
+ 3: 9.99%
+ 4: 10.031%
+ 5: 9.991%
+ 6: 9.997%
+ 7: 9.976%
+ 8: 9.951%
+ 9: 10.076%
 
 
 Single objects with many distribution possibilities
@@ -1867,45 +1874,45 @@ some_tuple = tuple(i for i in range(10))
 
 monty = QuantumMonty(some_tuple)
 Output Analysis: monty()
-Typical Timing: 244 ± 5 ns
+Typical Timing: 221 ± 7 ns
 Statistics of 1000 samples:
  Minimum: 0
  Median: 5
  Maximum: 9
- Mean: 4.621
- Std Deviation: 2.8473613164588834
+ Mean: 4.553
+ Std Deviation: 2.7966072323463678
 Distribution of 100000 samples:
- 0: 10.746%
- 1: 8.946%
- 2: 8.872%
- 3: 9.792%
- 4: 11.491%
- 5: 11.546%
- 6: 9.528%
- 7: 9.138%
- 8: 8.905%
- 9: 11.036%
+ 0: 10.716%
+ 1: 8.917%
+ 2: 9.091%
+ 3: 9.875%
+ 4: 11.518%
+ 5: 11.467%
+ 6: 9.579%
+ 7: 9.089%
+ 8: 8.96%
+ 9: 10.788%
 
-rand_value = <Fortuna.RandomValue object at 0x102259940>
+rand_value = <Fortuna.RandomValue object at 0x100ad87c0>
 Output Analysis: rand_value()
-Typical Timing: 170 ± 2 ns
+Typical Timing: 168 ± 5 ns
 Statistics of 1000 samples:
  Minimum: 0
  Median: 4
  Maximum: 9
- Mean: 4.453
- Std Deviation: 2.927517952355094
+ Mean: 4.449
+ Std Deviation: 2.850881710370763
 Distribution of 100000 samples:
- 0: 10.009%
- 1: 10.144%
- 2: 10.021%
- 3: 10.037%
- 4: 10.113%
- 5: 9.985%
- 6: 9.951%
- 7: 9.88%
- 8: 9.915%
- 9: 9.945%
+ 0: 9.895%
+ 1: 9.961%
+ 2: 10.129%
+ 3: 9.969%
+ 4: 9.953%
+ 5: 10.113%
+ 6: 9.925%
+ 7: 10.144%
+ 8: 9.954%
+ 9: 9.957%
 
 
 Weighted Tables:
@@ -1918,47 +1925,47 @@ rel_weighted_table = zip(rel_weights, population)
 
 Cumulative Base Case
 Output Analysis: Random.choices(population, cum_weights=cum_weights)
-Typical Timing: 550 ± 11 ns
+Typical Timing: 553 ± 16 ns
 Distribution of 100000 samples:
- A: 10.182%
- B: 19.882%
- C: 30.056%
- D: 39.88%
+ A: 10.059%
+ B: 19.972%
+ C: 30.134%
+ D: 39.835%
 
 cum_weighted_choice = CumulativeWeightedChoice(cum_weighted_table)
 Output Analysis: cum_weighted_choice()
-Typical Timing: 178 ± 3 ns
+Typical Timing: 168 ± 3 ns
 Distribution of 100000 samples:
- A: 9.897%
- B: 20.05%
- C: 29.86%
- D: 40.193%
+ A: 10.104%
+ B: 20.138%
+ C: 29.646%
+ D: 40.112%
 
 Output Analysis: cumulative_weighted_choice(tuple(zip(cum_weights, population)))
-Typical Timing: 75 ± 1 ns
+Typical Timing: 76 ± 3 ns
 Distribution of 100000 samples:
- A: 9.975%
- B: 19.875%
- C: 30.033%
- D: 40.117%
+ A: 9.961%
+ B: 20.049%
+ C: 30.001%
+ D: 39.989%
 
 Relative Base Case
 Output Analysis: Random.choices(population, weights=rel_weights)
-Typical Timing: 690 ± 14 ns
+Typical Timing: 697 ± 9 ns
 Distribution of 100000 samples:
- A: 9.932%
- B: 20.288%
- C: 30.191%
- D: 39.589%
+ A: 10.074%
+ B: 19.965%
+ C: 29.677%
+ D: 40.284%
 
 rel_weighted_choice = RelativeWeightedChoice(rel_weighted_table)
 Output Analysis: rel_weighted_choice()
-Typical Timing: 178 ± 4 ns
+Typical Timing: 169 ± 4 ns
 Distribution of 100000 samples:
- A: 9.89%
- B: 19.927%
- C: 30.302%
- D: 39.881%
+ A: 9.827%
+ B: 20.053%
+ C: 30.065%
+ D: 40.055%
 
 
 Random Matrix Values:
@@ -1967,501 +1974,501 @@ some_matrix = {'A': (1, 2, 3, 4), 'B': (10, 20, 30, 40), 'C': (100, 200, 300, 40
 
 flex_cat = FlexCat(some_matrix)
 Output Analysis: flex_cat()
-Typical Timing: 393 ± 5 ns
+Typical Timing: 371 ± 17 ns
 Statistics of 1000 samples:
  Minimum: 1
  Median: 4
  Maximum: 400
- Mean: 40.777
- Std Deviation: 89.5261649195653
+ Mean: 40.468
+ Std Deviation: 90.31593405343237
 Distribution of 100000 samples:
- 1: 13.776%
- 2: 13.988%
- 3: 13.872%
- 4: 13.712%
- 10: 8.328%
- 20: 8.38%
- 30: 8.29%
- 40: 8.407%
- 100: 2.791%
- 200: 2.834%
- 300: 2.819%
- 400: 2.803%
+ 1: 13.854%
+ 2: 13.867%
+ 3: 13.871%
+ 4: 13.877%
+ 10: 8.372%
+ 20: 8.331%
+ 30: 8.349%
+ 40: 8.366%
+ 100: 2.76%
+ 200: 2.791%
+ 300: 2.769%
+ 400: 2.793%
 
 Output Analysis: flex_cat("C")
-Typical Timing: 278 ± 6 ns
+Typical Timing: 238 ± 8 ns
 Statistics of 1000 samples:
  Minimum: 100
- Median: 200
+ Median: 300
  Maximum: 400
- Mean: 249.3
- Std Deviation: 112.03598556741518
+ Mean: 250.4
+ Std Deviation: 111.50009987561569
 Distribution of 100000 samples:
- 100: 24.976%
- 200: 24.966%
- 300: 25.076%
- 400: 24.982%
+ 100: 25.034%
+ 200: 24.883%
+ 300: 24.964%
+ 400: 25.119%
 
 
 Random Integers:
 
 Base Case
 Output Analysis: Random.randrange(10)
-Typical Timing: 159 ± 5 ns
+Typical Timing: 158 ± 4 ns
 Statistics of 1000 samples:
  Minimum: 0
  Median: 4
  Maximum: 9
- Mean: 4.36
- Std Deviation: 2.8203464954424224
+ Mean: 4.362
+ Std Deviation: 2.9071304421039326
 Distribution of 100000 samples:
- 0: 9.972%
- 1: 10.044%
- 2: 10.104%
- 3: 9.889%
- 4: 9.935%
- 5: 10.141%
- 6: 10.088%
- 7: 9.837%
- 8: 10.063%
- 9: 9.927%
+ 0: 9.878%
+ 1: 10.034%
+ 2: 10.163%
+ 3: 9.844%
+ 4: 10.051%
+ 5: 10.018%
+ 6: 9.956%
+ 7: 10.012%
+ 8: 10.021%
+ 9: 10.023%
 
 Output Analysis: random_below(10)
-Typical Timing: 39 ± 1 ns
-Statistics of 1000 samples:
- Minimum: 0
- Median: 4
- Maximum: 9
- Mean: 4.386
- Std Deviation: 2.8836295391952342
-Distribution of 100000 samples:
- 0: 9.912%
- 1: 9.992%
- 2: 9.971%
- 3: 10.226%
- 4: 9.925%
- 5: 9.906%
- 6: 10.042%
- 7: 9.996%
- 8: 9.941%
- 9: 10.089%
-
-Output Analysis: random_index(10)
-Typical Timing: 44 ± 7 ns
-Statistics of 1000 samples:
- Minimum: 0
- Median: 4
- Maximum: 9
- Mean: 4.482
- Std Deviation: 2.8712227221028885
-Distribution of 100000 samples:
- 0: 9.947%
- 1: 10.078%
- 2: 10.159%
- 3: 9.888%
- 4: 9.936%
- 5: 10.082%
- 6: 10.058%
- 7: 9.901%
- 8: 9.872%
- 9: 10.079%
-
-Output Analysis: random_range(10)
-Typical Timing: 46 ± 3 ns
+Typical Timing: 35 ± 2 ns
 Statistics of 1000 samples:
  Minimum: 0
  Median: 5
  Maximum: 9
- Mean: 4.685
- Std Deviation: 2.85375523108043
+ Mean: 4.575
+ Std Deviation: 2.904963651031423
 Distribution of 100000 samples:
- 0: 9.964%
- 1: 10.003%
- 2: 10.085%
- 3: 10.061%
- 4: 9.837%
- 5: 9.964%
- 6: 10.077%
- 7: 9.99%
- 8: 9.904%
- 9: 10.115%
+ 0: 10.002%
+ 1: 10.022%
+ 2: 9.853%
+ 3: 10.004%
+ 4: 9.978%
+ 5: 10.02%
+ 6: 9.997%
+ 7: 10.169%
+ 8: 9.922%
+ 9: 10.033%
+
+Output Analysis: random_index(10)
+Typical Timing: 35 ± 2 ns
+Statistics of 1000 samples:
+ Minimum: 0
+ Median: 5
+ Maximum: 9
+ Mean: 4.541
+ Std Deviation: 2.9378478432263897
+Distribution of 100000 samples:
+ 0: 10.109%
+ 1: 9.859%
+ 2: 10.279%
+ 3: 10.018%
+ 4: 10.009%
+ 5: 10.016%
+ 6: 9.882%
+ 7: 9.859%
+ 8: 9.913%
+ 9: 10.056%
+
+Output Analysis: random_range(10)
+Typical Timing: 40 ± 1 ns
+Statistics of 1000 samples:
+ Minimum: 0
+ Median: 5
+ Maximum: 9
+ Mean: 4.565
+ Std Deviation: 2.8687985298736134
+Distribution of 100000 samples:
+ 0: 10.233%
+ 1: 9.998%
+ 2: 9.998%
+ 3: 10.149%
+ 4: 9.957%
+ 5: 9.946%
+ 6: 10.007%
+ 7: 9.779%
+ 8: 9.96%
+ 9: 9.973%
 
 Output Analysis: random_below(-10)
-Typical Timing: 47 ± 3 ns
+Typical Timing: 41 ± 1 ns
 Statistics of 1000 samples:
  Minimum: -9
  Median: -5
  Maximum: 0
- Mean: -4.481
- Std Deviation: 2.8098993815676985
+ Mean: -4.626
+ Std Deviation: 2.9248382311982106
 Distribution of 100000 samples:
- -9: 10.064%
- -8: 9.972%
- -7: 10.058%
- -6: 9.924%
- -5: 10.017%
- -4: 9.993%
- -3: 10.027%
- -2: 9.934%
- -1: 9.967%
- 0: 10.044%
+ -9: 9.77%
+ -8: 9.985%
+ -7: 9.996%
+ -6: 9.935%
+ -5: 10.142%
+ -4: 9.968%
+ -3: 10.106%
+ -2: 10.163%
+ -1: 9.923%
+ 0: 10.012%
 
 Output Analysis: random_index(-10)
-Typical Timing: 47 ± 1 ns
-Statistics of 1000 samples:
- Minimum: -10
- Median: -6
- Maximum: -1
- Mean: -5.616
- Std Deviation: 2.898092983833152
-Distribution of 100000 samples:
- -10: 9.987%
- -9: 9.971%
- -8: 10.066%
- -7: 9.941%
- -6: 9.988%
- -5: 10.067%
- -4: 9.909%
- -3: 9.973%
- -2: 10.098%
- -1: 10.0%
-
-Output Analysis: random_range(-10)
-Typical Timing: 65 ± 12 ns
+Typical Timing: 43 ± 1 ns
 Statistics of 1000 samples:
  Minimum: -10
  Median: -5
  Maximum: -1
- Mean: -5.414
- Std Deviation: 2.8884159927107014
+ Mean: -5.418
+ Std Deviation: 2.85507047678817
 Distribution of 100000 samples:
- -10: 10.125%
- -9: 9.982%
- -8: 10.017%
- -7: 10.087%
- -6: 9.887%
- -5: 9.936%
- -4: 9.908%
- -3: 10.145%
- -2: 9.766%
- -1: 10.147%
+ -10: 9.915%
+ -9: 10.063%
+ -8: 9.953%
+ -7: 9.978%
+ -6: 9.916%
+ -5: 10.262%
+ -4: 9.979%
+ -3: 10.06%
+ -2: 10.029%
+ -1: 9.845%
+
+Output Analysis: random_range(-10)
+Typical Timing: 51 ± 1 ns
+Statistics of 1000 samples:
+ Minimum: -10
+ Median: (-6, -5)
+ Maximum: -1
+ Mean: -5.573
+ Std Deviation: 2.928693949228606
+Distribution of 100000 samples:
+ -10: 9.982%
+ -9: 9.965%
+ -8: 9.989%
+ -7: 10.071%
+ -6: 9.999%
+ -5: 9.923%
+ -4: 10.005%
+ -3: 10.188%
+ -2: 9.965%
+ -1: 9.913%
 
 Base Case
 Output Analysis: Random.randrange(1, 10)
-Typical Timing: 203 ± 9 ns
+Typical Timing: 191 ± 3 ns
 Statistics of 1000 samples:
  Minimum: 1
  Median: 5
  Maximum: 9
- Mean: 5.18
- Std Deviation: 2.540088985065691
+ Mean: 4.885
+ Std Deviation: 2.57534607526977
 Distribution of 100000 samples:
- 1: 11.125%
- 2: 11.089%
- 3: 11.142%
- 4: 10.882%
- 5: 11.286%
- 6: 11.115%
- 7: 11.092%
- 8: 11.051%
- 9: 11.218%
+ 1: 11.21%
+ 2: 11.19%
+ 3: 11.169%
+ 4: 10.872%
+ 5: 11.205%
+ 6: 10.984%
+ 7: 10.975%
+ 8: 11.098%
+ 9: 11.297%
 
 Output Analysis: random_range(1, 10)
-Typical Timing: 49 ± 3 ns
+Typical Timing: 44 ± 3 ns
 Statistics of 1000 samples:
  Minimum: 1
  Median: 5
  Maximum: 9
- Mean: 5.039
- Std Deviation: 2.535726505147767
+ Mean: 5.005
+ Std Deviation: 2.5949390568390442
 Distribution of 100000 samples:
- 1: 11.199%
- 2: 11.107%
- 3: 10.951%
- 4: 11.209%
- 5: 11.148%
- 6: 11.083%
- 7: 10.951%
- 8: 11.18%
- 9: 11.172%
+ 1: 11.163%
+ 2: 11.099%
+ 3: 10.91%
+ 4: 11.14%
+ 5: 11.133%
+ 6: 11.256%
+ 7: 11.071%
+ 8: 11.177%
+ 9: 11.051%
 
 Output Analysis: random_range(10, 1)
-Typical Timing: 48 ± 3 ns
+Typical Timing: 51 ± 9 ns
 Statistics of 1000 samples:
  Minimum: 1
  Median: 5
  Maximum: 9
- Mean: 5.031
- Std Deviation: 2.623150761950201
+ Mean: 4.883
+ Std Deviation: 2.6480791761809774
 Distribution of 100000 samples:
- 1: 11.023%
- 2: 11.219%
- 3: 11.086%
- 4: 11.152%
- 5: 11.079%
- 6: 11.107%
- 7: 11.177%
- 8: 11.05%
- 9: 11.107%
+ 1: 11.093%
+ 2: 11.252%
+ 3: 11.17%
+ 4: 11.007%
+ 5: 11.137%
+ 6: 11.303%
+ 7: 10.979%
+ 8: 10.891%
+ 9: 11.168%
 
 Base Case
 Output Analysis: Random.randint(-5, 5)
-Typical Timing: 220 ± 6 ns
-Statistics of 1000 samples:
- Minimum: -5
- Median: 0
- Maximum: 5
- Mean: 0.02
- Std Deviation: 3.1886937400396054
-Distribution of 100000 samples:
- -5: 9.15%
- -4: 9.054%
- -3: 9.037%
- -2: 9.029%
- -1: 9.223%
- 0: 9.066%
- 1: 9.073%
- 2: 9.035%
- 3: 9.233%
- 4: 9.058%
- 5: 9.042%
-
-Output Analysis: random_int(-5, 5)
-Typical Timing: 35 ± 1 ns
-Statistics of 1000 samples:
- Minimum: -5
- Median: 0
- Maximum: 5
- Mean: 0.012
- Std Deviation: 3.1134465708519152
-Distribution of 100000 samples:
- -5: 8.942%
- -4: 9.134%
- -3: 9.192%
- -2: 9.179%
- -1: 9.084%
- 0: 9.173%
- 1: 9.006%
- 2: 9.034%
- 3: 9.112%
- 4: 9.055%
- 5: 9.089%
-
-Base Case
-Output Analysis: Random.randrange(1, 20, 2)
-Typical Timing: 220 ± 4 ns
-Statistics of 1000 samples:
- Minimum: 1
- Median: 11
- Maximum: 19
- Mean: 10.186
- Std Deviation: 5.871275489693519
-Distribution of 100000 samples:
- 1: 10.09%
- 3: 10.048%
- 5: 9.948%
- 7: 9.913%
- 9: 9.944%
- 11: 10.047%
- 13: 10.0%
- 15: 9.984%
- 17: 10.134%
- 19: 9.892%
-
-Output Analysis: random_range(1, 20, 2)
-Typical Timing: 44 ± 2 ns
-Statistics of 1000 samples:
- Minimum: 1
- Median: 9
- Maximum: 19
- Mean: 10.054
- Std Deviation: 5.71574612397662
-Distribution of 100000 samples:
- 1: 9.97%
- 3: 10.002%
- 5: 9.982%
- 7: 10.005%
- 9: 10.212%
- 11: 9.845%
- 13: 9.951%
- 15: 9.95%
- 17: 9.99%
- 19: 10.093%
-
-Output Analysis: random_range(1, 20, -2)
-Typical Timing: 47 ± 3 ns
-Statistics of 1000 samples:
- Minimum: 2
- Median: 10
- Maximum: 20
- Mean: 10.882
- Std Deviation: 5.576483943595029
-Distribution of 100000 samples:
- 2: 9.869%
- 4: 9.982%
- 6: 10.228%
- 8: 9.958%
- 10: 10.173%
- 12: 9.988%
- 14: 10.092%
- 16: 9.93%
- 18: 9.786%
- 20: 9.994%
-
-Output Analysis: random_range(20, 1, -2)
-Typical Timing: 44 ± 1 ns
-Statistics of 1000 samples:
- Minimum: 2
- Median: 10
- Maximum: 20
- Mean: 10.862
- Std Deviation: 5.692570716412872
-Distribution of 100000 samples:
- 2: 9.948%
- 4: 10.082%
- 6: 10.065%
- 8: 9.915%
- 10: 9.884%
- 12: 10.139%
- 14: 10.002%
- 16: 10.068%
- 18: 9.991%
- 20: 9.906%
-
-Output Analysis: d(10)
-Typical Timing: 34 ± 2 ns
-Statistics of 1000 samples:
- Minimum: 1
- Median: 5
- Maximum: 10
- Mean: 5.361
- Std Deviation: 2.7871934714776168
-Distribution of 100000 samples:
- 1: 10.05%
- 2: 9.853%
- 3: 9.925%
- 4: 10.017%
- 5: 9.803%
- 6: 10.109%
- 7: 10.25%
- 8: 10.022%
- 9: 10.006%
- 10: 9.965%
-
-Output Analysis: dice(3, 6)
-Typical Timing: 63 ± 2 ns
-Statistics of 1000 samples:
- Minimum: 3
- Median: 10
- Maximum: 18
- Mean: 10.492
- Std Deviation: 2.95002349798076
-Distribution of 100000 samples:
- 3: 0.439%
- 4: 1.394%
- 5: 2.738%
- 6: 4.658%
- 7: 6.774%
- 8: 9.546%
- 9: 11.656%
- 10: 12.661%
- 11: 12.433%
- 12: 11.671%
- 13: 9.687%
- 14: 7.023%
- 15: 4.691%
- 16: 2.818%
- 17: 1.325%
- 18: 0.486%
-
-Output Analysis: ability_dice(4)
-Typical Timing: 131 ± 4 ns
-Statistics of 1000 samples:
- Minimum: 3
- Median: 12
- Maximum: 18
- Mean: 12.239
- Std Deviation: 2.904878193198007
-Distribution of 100000 samples:
- 3: 0.074%
- 4: 0.341%
- 5: 0.766%
- 6: 1.633%
- 7: 2.935%
- 8: 4.72%
- 9: 6.903%
- 10: 9.367%
- 11: 11.491%
- 12: 13.004%
- 13: 13.211%
- 14: 12.332%
- 15: 10.136%
- 16: 7.258%
- 17: 4.235%
- 18: 1.594%
-
-Output Analysis: plus_or_minus(5)
-Typical Timing: 32 ± 2 ns
+Typical Timing: 215 ± 7 ns
 Statistics of 1000 samples:
  Minimum: -5
  Median: 0
  Maximum: 5
  Mean: 0.048
- Std Deviation: 3.1729739620368402
+ Std Deviation: 3.222123225154196
 Distribution of 100000 samples:
- -5: 9.161%
- -4: 9.14%
- -3: 9.012%
- -2: 9.173%
- -1: 8.87%
- 0: 9.064%
- 1: 9.161%
- 2: 9.2%
- 3: 9.151%
- 4: 9.014%
- 5: 9.054%
+ -5: 9.018%
+ -4: 9.109%
+ -3: 9.109%
+ -2: 9.145%
+ -1: 8.996%
+ 0: 8.973%
+ 1: 9.015%
+ 2: 9.191%
+ 3: 9.1%
+ 4: 9.149%
+ 5: 9.195%
+
+Output Analysis: random_int(-5, 5)
+Typical Timing: 30 ± 2 ns
+Statistics of 1000 samples:
+ Minimum: -5
+ Median: 0
+ Maximum: 5
+ Mean: -0.061
+ Std Deviation: 3.155191631935251
+Distribution of 100000 samples:
+ -5: 9.254%
+ -4: 8.961%
+ -3: 9.162%
+ -2: 8.953%
+ -1: 9.116%
+ 0: 9.146%
+ 1: 9.172%
+ 2: 8.938%
+ 3: 9.105%
+ 4: 9.083%
+ 5: 9.11%
+
+Base Case
+Output Analysis: Random.randrange(1, 20, 2)
+Typical Timing: 224 ± 8 ns
+Statistics of 1000 samples:
+ Minimum: 1
+ Median: 9
+ Maximum: 19
+ Mean: 10.034
+ Std Deviation: 5.786910430647111
+Distribution of 100000 samples:
+ 1: 10.052%
+ 3: 9.963%
+ 5: 9.914%
+ 7: 9.995%
+ 9: 9.902%
+ 11: 9.934%
+ 13: 10.048%
+ 15: 10.092%
+ 17: 10.102%
+ 19: 9.998%
+
+Output Analysis: random_range(1, 20, 2)
+Typical Timing: 41 ± 1 ns
+Statistics of 1000 samples:
+ Minimum: 1
+ Median: 11
+ Maximum: 19
+ Mean: 10.1
+ Std Deviation: 5.679282899649766
+Distribution of 100000 samples:
+ 1: 9.907%
+ 3: 10.122%
+ 5: 9.922%
+ 7: 9.969%
+ 9: 10.234%
+ 11: 10.06%
+ 13: 9.977%
+ 15: 9.901%
+ 17: 9.849%
+ 19: 10.059%
+
+Output Analysis: random_range(1, 20, -2)
+Typical Timing: 41 ± 2 ns
+Statistics of 1000 samples:
+ Minimum: 2
+ Median: 10
+ Maximum: 20
+ Mean: 10.778
+ Std Deviation: 5.848839622089575
+Distribution of 100000 samples:
+ 2: 9.89%
+ 4: 10.07%
+ 6: 9.981%
+ 8: 9.993%
+ 10: 9.956%
+ 12: 10.028%
+ 14: 10.14%
+ 16: 10.045%
+ 18: 9.857%
+ 20: 10.04%
+
+Output Analysis: random_range(20, 1, -2)
+Typical Timing: 46 ± 7 ns
+Statistics of 1000 samples:
+ Minimum: 2
+ Median: (10, 12)
+ Maximum: 20
+ Mean: 10.986
+ Std Deviation: 5.748813169068278
+Distribution of 100000 samples:
+ 2: 9.981%
+ 4: 9.97%
+ 6: 9.926%
+ 8: 9.961%
+ 10: 10.024%
+ 12: 10.134%
+ 14: 9.927%
+ 16: 10.08%
+ 18: 10.073%
+ 20: 9.924%
+
+Output Analysis: d(10)
+Typical Timing: 29 ± 2 ns
+Statistics of 1000 samples:
+ Minimum: 1
+ Median: 5
+ Maximum: 10
+ Mean: 5.413
+ Std Deviation: 2.901870405764505
+Distribution of 100000 samples:
+ 1: 9.907%
+ 2: 10.095%
+ 3: 9.944%
+ 4: 10.017%
+ 5: 10.0%
+ 6: 9.842%
+ 7: 10.197%
+ 8: 10.035%
+ 9: 9.994%
+ 10: 9.969%
+
+Output Analysis: dice(3, 6)
+Typical Timing: 48 ± 1 ns
+Statistics of 1000 samples:
+ Minimum: 3
+ Median: 10
+ Maximum: 18
+ Mean: 10.426
+ Std Deviation: 3.007918145756558
+Distribution of 100000 samples:
+ 3: 0.445%
+ 4: 1.442%
+ 5: 2.735%
+ 6: 4.803%
+ 7: 6.915%
+ 8: 9.635%
+ 9: 11.403%
+ 10: 12.675%
+ 11: 12.629%
+ 12: 11.498%
+ 13: 9.709%
+ 14: 6.901%
+ 15: 4.563%
+ 16: 2.8%
+ 17: 1.392%
+ 18: 0.455%
+
+Output Analysis: ability_dice(4)
+Typical Timing: 106 ± 4 ns
+Statistics of 1000 samples:
+ Minimum: 3
+ Median: 12
+ Maximum: 18
+ Mean: 12.21
+ Std Deviation: 2.9014338383492944
+Distribution of 100000 samples:
+ 3: 0.08%
+ 4: 0.319%
+ 5: 0.827%
+ 6: 1.665%
+ 7: 2.877%
+ 8: 4.827%
+ 9: 6.994%
+ 10: 9.313%
+ 11: 11.413%
+ 12: 12.887%
+ 13: 13.245%
+ 14: 12.342%
+ 15: 10.094%
+ 16: 7.399%
+ 17: 4.153%
+ 18: 1.565%
+
+Output Analysis: plus_or_minus(5)
+Typical Timing: 28 ± 1 ns
+Statistics of 1000 samples:
+ Minimum: -5
+ Median: 0
+ Maximum: 5
+ Mean: -0.001
+ Std Deviation: 3.1810561325003555
+Distribution of 100000 samples:
+ -5: 8.976%
+ -4: 8.973%
+ -3: 9.133%
+ -2: 9.075%
+ -1: 9.034%
+ 0: 9.161%
+ 1: 9.139%
+ 2: 9.112%
+ 3: 9.04%
+ 4: 9.172%
+ 5: 9.185%
 
 Output Analysis: plus_or_minus_linear(5)
-Typical Timing: 45 ± 2 ns
+Typical Timing: 36 ± 1 ns
 Statistics of 1000 samples:
  Minimum: -5
  Median: 0
  Maximum: 5
- Mean: -0.009
- Std Deviation: 2.4873894158547243
+ Mean: 0.016
+ Std Deviation: 2.4367358662115355
 Distribution of 100000 samples:
- -5: 2.781%
- -4: 5.673%
- -3: 8.405%
- -2: 11.1%
- -1: 13.847%
+ -5: 2.851%
+ -4: 5.654%
+ -3: 8.284%
+ -2: 11.117%
+ -1: 13.908%
  0: 16.669%
- 1: 13.865%
- 2: 11.004%
- 3: 8.224%
- 4: 5.546%
- 5: 2.886%
+ 1: 13.744%
+ 2: 11.298%
+ 3: 8.334%
+ 4: 5.367%
+ 5: 2.774%
 
 Output Analysis: plus_or_minus_gauss(5)
-Typical Timing: 54 ± 3 ns
+Typical Timing: 46 ± 1 ns
 Statistics of 1000 samples:
- Minimum: -5
+ Minimum: -4
  Median: 0
  Maximum: 5
- Mean: -0.043
- Std Deviation: 1.6098890467180471
+ Mean: -0.031
+ Std Deviation: 1.6138908400643595
 Distribution of 100000 samples:
- -5: 0.195%
- -4: 1.15%
- -3: 4.418%
- -2: 11.541%
- -1: 20.292%
- 0: 24.659%
- 1: 20.553%
- 2: 11.374%
- 3: 4.432%
- 4: 1.193%
- 5: 0.193%
+ -5: 0.197%
+ -4: 1.181%
+ -3: 4.466%
+ -2: 11.411%
+ -1: 20.302%
+ 0: 24.685%
+ 1: 20.453%
+ 2: 11.494%
+ 3: 4.388%
+ 4: 1.206%
+ 5: 0.217%
 
 
 Random Floats:
@@ -2470,104 +2477,2367 @@ Base Case
 Output Analysis: Random.random()
 Typical Timing: 20 ± 1 ns
 Statistics of 1000 samples:
- Minimum: 0.000142782747727499
- Median: (0.47611225355861486, 0.478104618492992)
- Maximum: 0.9997673550591981
- Mean: 0.4846712316389709
- Std Deviation: 0.29445228449838595
+ Minimum: 0.0024967235946034005
+ Median: (0.5022009271968713, 0.5023940805169211)
+ Maximum: 0.9992728319511441
+ Mean: 0.5054544074117795
+ Std Deviation: 0.292310987289518
 round distribution of 100000:
- 0: 50.027%
- 1: 49.973%
+ 0: 49.831%
+ 1: 50.169%
 
 Output Analysis: canonical()
-Typical Timing: 24 ± 1 ns
+Typical Timing: 21 ± 1 ns
 Statistics of 1000 samples:
- Minimum: 0.00011940616671560987
- Median: (0.5336037809343693, 0.5338013616706963)
- Maximum: 0.9998526038434692
- Mean: 0.5071817671541653
- Std Deviation: 0.2881289353266108
+ Minimum: 0.00023518635736289353
+ Median: (0.4810660341754359, 0.4824691452966555)
+ Maximum: 0.99976358610798
+ Mean: 0.4949628458738559
+ Std Deviation: 0.29007541697181755
 round distribution of 100000:
- 0: 49.91%
- 1: 50.09%
+ 0: 50.003%
+ 1: 49.997%
+
+Base Case
+Output Analysis: Random.uniform(0.0, 10.0)
+Typical Timing: 67 ± 1 ns
+Statistics of 1000 samples:
+ Minimum: 0.03124349629037293
+ Median: (4.869843991605648, 4.879452953993772)
+ Maximum: 9.991204910138983
+ Mean: 4.922665195894069
+ Std Deviation: 2.792393604661177
+floor distribution of 100000:
+ 0: 10.099%
+ 1: 9.948%
+ 2: 10.19%
+ 3: 10.043%
+ 4: 9.862%
+ 5: 10.032%
+ 6: 9.894%
+ 7: 10.089%
+ 8: 10.005%
+ 9: 9.838%
 
 Output Analysis: random_float(0.0, 10.0)
-Typical Timing: 25 ± 1 ns
+Typical Timing: 23 ± 1 ns
 Statistics of 1000 samples:
- Minimum: 0.005097646931662764
- Median: (5.134058844316928, 5.140958185286907)
- Maximum: 9.998064260046263
- Mean: 5.118819952257218
- Std Deviation: 2.9183293613236745
+ Minimum: 0.0021607846477844617
+ Median: (5.165998805251534, 5.166234250243706)
+ Maximum: 9.980361774247179
+ Mean: 5.053615660809863
+ Std Deviation: 2.857464526866407
 floor distribution of 100000:
- 0: 10.133%
- 1: 9.991%
- 2: 9.801%
- 3: 10.026%
- 4: 10.087%
- 5: 9.832%
- 6: 10.049%
- 7: 10.109%
- 8: 9.924%
- 9: 10.048%
+ 0: 9.965%
+ 1: 10.074%
+ 2: 10.031%
+ 3: 9.961%
+ 4: 9.836%
+ 5: 10.013%
+ 6: 10.071%
+ 7: 10.04%
+ 8: 10.033%
+ 9: 9.976%
 
 Base Case
 Output Analysis: Random.triangular(0.0, 10.0, 5.0)
-Typical Timing: 138 ± 5 ns
+Typical Timing: 135 ± 3 ns
 Statistics of 1000 samples:
- Minimum: 0.11029752947732814
- Median: (4.855753095470426, 4.858159193216716)
- Maximum: 9.826447264177135
- Mean: 4.9134451464177245
- Std Deviation: 2.0665159445730845
+ Minimum: 0.34667286360505006
+ Median: (5.005118651988952, 5.012553151817545)
+ Maximum: 9.795369886997287
+ Mean: 4.966539645151894
+ Std Deviation: 2.080261213261674
 round distribution of 100000:
- 0: 0.46%
- 1: 3.965%
- 2: 7.838%
- 3: 11.963%
- 4: 16.094%
- 5: 19.087%
- 6: 16.09%
- 7: 12.19%
- 8: 7.823%
- 9: 3.994%
- 10: 0.496%
+ 0: 0.524%
+ 1: 4.007%
+ 2: 8.199%
+ 3: 12.105%
+ 4: 15.977%
+ 5: 18.989%
+ 6: 15.827%
+ 7: 11.999%
+ 8: 7.986%
+ 9: 3.901%
+ 10: 0.486%
 
 Output Analysis: triangular(0.0, 10.0, 5.0)
-Typical Timing: 33 ± 1 ns
+Typical Timing: 32 ± 2 ns
 Statistics of 1000 samples:
- Minimum: 0.39567829487457745
- Median: (4.980009273126231, 4.989989589620912)
- Maximum: 9.71813997918804
- Mean: 4.996797187556883
- Std Deviation: 2.0982307231113797
+ Minimum: 0.1737509575769492
+ Median: (4.967785057458952, 4.971211592684284)
+ Maximum: 9.66343916069151
+ Mean: 4.971482884722586
+ Std Deviation: 2.0299847497955428
 round distribution of 100000:
- 0: 0.491%
- 1: 3.95%
- 2: 8.077%
- 3: 11.944%
- 4: 16.187%
- 5: 18.926%
- 6: 15.953%
- 7: 11.962%
- 8: 8.012%
- 9: 4.007%
- 10: 0.491%
+ 0: 0.5%
+ 1: 3.979%
+ 2: 7.934%
+ 3: 11.932%
+ 4: 16.024%
+ 5: 19.104%
+ 6: 16.048%
+ 7: 12.008%
+ 8: 7.973%
+ 9: 4.023%
+ 10: 0.475%
+
+Output Analysis: beta_variate(1.0, 1.0)
+Typical Timing: 44 ± 2 ns
+Statistics of 1000 samples:
+ Minimum: 6.110198629053744e-05
+ Median: (0.5028008682894913, 0.5035969740559323)
+ Maximum: 0.9994713791804665
+ Mean: 0.49738555982750493
+ Std Deviation: 0.290511581884979
+round distribution of 100000:
+ 0: 49.764%
+ 1: 50.236%
+
+Output Analysis: pareto_variate(1.0)
+Typical Timing: 35 ± 2 ns
+Statistics of 1000 samples:
+ Minimum: 1.0000886844802732
+ Median: (1.9802436146432247, 1.9844650863313313)
+ Maximum: 2241.614223328484
+ Mean: 9.215397444614728
+ Std Deviation: 81.03992447018125
+round distribution of 100000:
+ 1: 33.401%
+ 2: 26.824%
+ 3: 11.35%
+ 4: 6.45%
+ 5: 3.896%
+ 6: 2.77%
+ 7: 2.058%
+ 8: 1.457%
+ 9: 1.21%
+ 10: 1.025%
+ 11: 0.84%
+ 12: 0.709%
+ 13: 0.604%
+ 14: 0.496%
+ 15: 0.475%
+ 16: 0.404%
+ 17: 0.358%
+ 18: 0.322%
+ 19: 0.294%
+ 20: 0.266%
+ 21: 0.205%
+ 22: 0.214%
+ 23: 0.189%
+ 24: 0.151%
+ 25: 0.167%
+ 26: 0.159%
+ 27: 0.128%
+ 28: 0.136%
+ 29: 0.116%
+ 30: 0.12%
+ 31: 0.119%
+ 32: 0.089%
+ 33: 0.077%
+ 34: 0.075%
+ 35: 0.077%
+ 36: 0.068%
+ 37: 0.073%
+ 38: 0.058%
+ 39: 0.049%
+ 40: 0.054%
+ 41: 0.057%
+ 42: 0.062%
+ 43: 0.062%
+ 44: 0.051%
+ 45: 0.045%
+ 46: 0.054%
+ 47: 0.046%
+ 48: 0.051%
+ 49: 0.048%
+ 50: 0.041%
+ 51: 0.04%
+ 52: 0.033%
+ 53: 0.032%
+ 54: 0.033%
+ 55: 0.026%
+ 56: 0.035%
+ 57: 0.029%
+ 58: 0.024%
+ 59: 0.03%
+ 60: 0.027%
+ 61: 0.034%
+ 62: 0.033%
+ 63: 0.028%
+ 64: 0.021%
+ 65: 0.016%
+ 66: 0.019%
+ 67: 0.029%
+ 68: 0.019%
+ 69: 0.026%
+ 70: 0.023%
+ 71: 0.017%
+ 72: 0.018%
+ 73: 0.023%
+ 74: 0.01%
+ 75: 0.02%
+ 76: 0.017%
+ 77: 0.016%
+ 78: 0.014%
+ 79: 0.013%
+ 80: 0.01%
+ 81: 0.013%
+ 82: 0.012%
+ 83: 0.016%
+ 84: 0.015%
+ 85: 0.019%
+ 86: 0.011%
+ 87: 0.013%
+ 88: 0.016%
+ 89: 0.014%
+ 90: 0.011%
+ 91: 0.01%
+ 92: 0.01%
+ 93: 0.015%
+ 94: 0.009%
+ 95: 0.011%
+ 96: 0.013%
+ 97: 0.009%
+ 98: 0.01%
+ 99: 0.01%
+ 100: 0.008%
+ 101: 0.012%
+ 102: 0.006%
+ 103: 0.005%
+ 104: 0.012%
+ 105: 0.006%
+ 106: 0.01%
+ 107: 0.006%
+ 108: 0.006%
+ 109: 0.007%
+ 110: 0.005%
+ 111: 0.012%
+ 112: 0.009%
+ 113: 0.006%
+ 114: 0.005%
+ 115: 0.009%
+ 116: 0.008%
+ 117: 0.007%
+ 118: 0.009%
+ 119: 0.006%
+ 120: 0.007%
+ 121: 0.007%
+ 122: 0.006%
+ 123: 0.008%
+ 124: 0.004%
+ 125: 0.009%
+ 126: 0.004%
+ 127: 0.012%
+ 128: 0.006%
+ 129: 0.007%
+ 130: 0.009%
+ 131: 0.003%
+ 132: 0.008%
+ 133: 0.008%
+ 134: 0.002%
+ 135: 0.002%
+ 136: 0.006%
+ 137: 0.005%
+ 138: 0.004%
+ 139: 0.003%
+ 140: 0.005%
+ 141: 0.005%
+ 142: 0.003%
+ 143: 0.012%
+ 144: 0.002%
+ 145: 0.007%
+ 146: 0.004%
+ 147: 0.007%
+ 148: 0.008%
+ 150: 0.004%
+ 151: 0.011%
+ 152: 0.004%
+ 153: 0.004%
+ 154: 0.005%
+ 155: 0.004%
+ 156: 0.005%
+ 157: 0.002%
+ 158: 0.002%
+ 159: 0.002%
+ 160: 0.004%
+ 161: 0.004%
+ 162: 0.002%
+ 163: 0.004%
+ 164: 0.003%
+ 165: 0.005%
+ 166: 0.004%
+ 167: 0.006%
+ 168: 0.003%
+ 169: 0.002%
+ 170: 0.004%
+ 171: 0.004%
+ 172: 0.005%
+ 173: 0.002%
+ 174: 0.005%
+ 175: 0.005%
+ 176: 0.001%
+ 177: 0.003%
+ 178: 0.004%
+ 179: 0.004%
+ 180: 0.002%
+ 181: 0.003%
+ 182: 0.003%
+ 183: 0.007%
+ 184: 0.004%
+ 185: 0.004%
+ 186: 0.001%
+ 187: 0.005%
+ 188: 0.003%
+ 189: 0.003%
+ 190: 0.004%
+ 191: 0.001%
+ 192: 0.001%
+ 193: 0.003%
+ 194: 0.001%
+ 196: 0.004%
+ 197: 0.004%
+ 198: 0.003%
+ 199: 0.001%
+ 200: 0.002%
+ 202: 0.003%
+ 203: 0.002%
+ 204: 0.003%
+ 205: 0.006%
+ 206: 0.002%
+ 207: 0.001%
+ 209: 0.002%
+ 210: 0.003%
+ 211: 0.003%
+ 212: 0.001%
+ 213: 0.002%
+ 214: 0.006%
+ 215: 0.002%
+ 216: 0.001%
+ 217: 0.003%
+ 218: 0.001%
+ 219: 0.004%
+ 220: 0.002%
+ 221: 0.001%
+ 222: 0.003%
+ 223: 0.001%
+ 224: 0.001%
+ 225: 0.003%
+ 226: 0.004%
+ 227: 0.002%
+ 228: 0.004%
+ 230: 0.001%
+ 231: 0.001%
+ 232: 0.001%
+ 233: 0.003%
+ 234: 0.006%
+ 235: 0.002%
+ 236: 0.004%
+ 237: 0.002%
+ 238: 0.001%
+ 239: 0.001%
+ 240: 0.002%
+ 241: 0.001%
+ 244: 0.004%
+ 245: 0.001%
+ 246: 0.001%
+ 248: 0.004%
+ 250: 0.002%
+ 251: 0.002%
+ 252: 0.004%
+ 253: 0.001%
+ 254: 0.002%
+ 255: 0.001%
+ 257: 0.005%
+ 258: 0.001%
+ 260: 0.003%
+ 261: 0.001%
+ 262: 0.002%
+ 263: 0.002%
+ 264: 0.001%
+ 265: 0.002%
+ 267: 0.001%
+ 268: 0.001%
+ 270: 0.001%
+ 271: 0.002%
+ 272: 0.002%
+ 273: 0.002%
+ 275: 0.002%
+ 276: 0.001%
+ 278: 0.001%
+ 279: 0.001%
+ 280: 0.003%
+ 281: 0.002%
+ 282: 0.001%
+ 283: 0.005%
+ 284: 0.002%
+ 289: 0.003%
+ 291: 0.002%
+ 292: 0.001%
+ 296: 0.002%
+ 297: 0.002%
+ 298: 0.002%
+ 300: 0.001%
+ 302: 0.002%
+ 303: 0.001%
+ 304: 0.001%
+ 305: 0.003%
+ 306: 0.002%
+ 307: 0.001%
+ 308: 0.001%
+ 309: 0.001%
+ 312: 0.001%
+ 313: 0.003%
+ 314: 0.001%
+ 317: 0.001%
+ 318: 0.002%
+ 319: 0.002%
+ 323: 0.002%
+ 324: 0.003%
+ 330: 0.001%
+ 331: 0.001%
+ 333: 0.001%
+ 334: 0.001%
+ 335: 0.002%
+ 337: 0.001%
+ 338: 0.001%
+ 339: 0.001%
+ 340: 0.003%
+ 341: 0.001%
+ 342: 0.002%
+ 343: 0.001%
+ 345: 0.001%
+ 347: 0.001%
+ 350: 0.001%
+ 352: 0.001%
+ 353: 0.001%
+ 355: 0.001%
+ 357: 0.004%
+ 361: 0.002%
+ 362: 0.002%
+ 364: 0.001%
+ 366: 0.002%
+ 367: 0.001%
+ 368: 0.001%
+ 369: 0.001%
+ 372: 0.001%
+ 374: 0.001%
+ 376: 0.001%
+ 378: 0.001%
+ 379: 0.001%
+ 382: 0.001%
+ 383: 0.001%
+ 384: 0.002%
+ 385: 0.001%
+ 389: 0.001%
+ 390: 0.001%
+ 391: 0.001%
+ 392: 0.001%
+ 394: 0.001%
+ 396: 0.001%
+ 402: 0.002%
+ 403: 0.001%
+ 407: 0.001%
+ 409: 0.002%
+ 412: 0.001%
+ 413: 0.001%
+ 414: 0.001%
+ 417: 0.001%
+ 423: 0.001%
+ 424: 0.001%
+ 426: 0.002%
+ 429: 0.001%
+ 430: 0.002%
+ 432: 0.002%
+ 434: 0.001%
+ 436: 0.001%
+ 437: 0.001%
+ 438: 0.001%
+ 443: 0.002%
+ 444: 0.001%
+ 448: 0.001%
+ 449: 0.001%
+ 452: 0.001%
+ 461: 0.001%
+ 463: 0.002%
+ 466: 0.001%
+ 468: 0.001%
+ 470: 0.001%
+ 472: 0.001%
+ 478: 0.002%
+ 481: 0.001%
+ 485: 0.001%
+ 486: 0.001%
+ 488: 0.001%
+ 492: 0.002%
+ 493: 0.001%
+ 494: 0.001%
+ 505: 0.001%
+ 506: 0.002%
+ 507: 0.001%
+ 510: 0.001%
+ 512: 0.001%
+ 514: 0.001%
+ 517: 0.001%
+ 522: 0.002%
+ 524: 0.001%
+ 525: 0.001%
+ 531: 0.001%
+ 532: 0.001%
+ 535: 0.001%
+ 538: 0.001%
+ 552: 0.001%
+ 553: 0.001%
+ 557: 0.001%
+ 558: 0.001%
+ 561: 0.001%
+ 564: 0.001%
+ 565: 0.001%
+ 574: 0.001%
+ 579: 0.001%
+ 584: 0.001%
+ 587: 0.001%
+ 590: 0.001%
+ 605: 0.001%
+ 609: 0.001%
+ 617: 0.001%
+ 619: 0.002%
+ 620: 0.001%
+ 625: 0.001%
+ 631: 0.001%
+ 632: 0.001%
+ 634: 0.001%
+ 635: 0.001%
+ 639: 0.001%
+ 640: 0.002%
+ 643: 0.001%
+ 651: 0.001%
+ 663: 0.001%
+ 664: 0.001%
+ 666: 0.003%
+ 678: 0.001%
+ 681: 0.001%
+ 683: 0.001%
+ 696: 0.001%
+ 703: 0.001%
+ 705: 0.001%
+ 706: 0.001%
+ 713: 0.001%
+ 714: 0.001%
+ 715: 0.001%
+ 716: 0.002%
+ 720: 0.001%
+ 722: 0.001%
+ 723: 0.002%
+ 724: 0.001%
+ 732: 0.001%
+ 737: 0.002%
+ 739: 0.001%
+ 742: 0.001%
+ 744: 0.001%
+ 746: 0.001%
+ 755: 0.001%
+ 765: 0.001%
+ 769: 0.001%
+ 781: 0.001%
+ 790: 0.001%
+ 793: 0.001%
+ 803: 0.001%
+ 817: 0.001%
+ 823: 0.001%
+ 827: 0.001%
+ 828: 0.001%
+ 835: 0.001%
+ 837: 0.001%
+ 845: 0.001%
+ 846: 0.001%
+ 849: 0.001%
+ 856: 0.001%
+ 857: 0.001%
+ 871: 0.001%
+ 883: 0.001%
+ 897: 0.001%
+ 899: 0.001%
+ 916: 0.001%
+ 929: 0.001%
+ 940: 0.001%
+ 955: 0.001%
+ 962: 0.001%
+ 971: 0.001%
+ 983: 0.001%
+ 987: 0.002%
+ 995: 0.001%
+ 1008: 0.001%
+ 1029: 0.001%
+ 1035: 0.001%
+ 1051: 0.001%
+ 1069: 0.001%
+ 1080: 0.001%
+ 1083: 0.001%
+ 1121: 0.002%
+ 1142: 0.001%
+ 1150: 0.001%
+ 1158: 0.001%
+ 1170: 0.001%
+ 1193: 0.001%
+ 1199: 0.001%
+ 1217: 0.002%
+ 1218: 0.001%
+ 1227: 0.001%
+ 1232: 0.001%
+ 1234: 0.001%
+ 1246: 0.001%
+ 1247: 0.001%
+ 1272: 0.001%
+ 1281: 0.001%
+ 1302: 0.001%
+ 1307: 0.001%
+ 1342: 0.001%
+ 1373: 0.001%
+ 1381: 0.001%
+ 1400: 0.001%
+ 1410: 0.001%
+ 1413: 0.002%
+ 1497: 0.001%
+ 1501: 0.001%
+ 1608: 0.001%
+ 1611: 0.002%
+ 1667: 0.001%
+ 1692: 0.001%
+ 1724: 0.001%
+ 1725: 0.001%
+ 1742: 0.001%
+ 1769: 0.001%
+ 1805: 0.001%
+ 1809: 0.001%
+ 1848: 0.001%
+ 1867: 0.001%
+ 1877: 0.001%
+ 1881: 0.001%
+ 1899: 0.001%
+ 1920: 0.001%
+ 2031: 0.001%
+ 2166: 0.001%
+ 2213: 0.001%
+ 2242: 0.001%
+ 2255: 0.001%
+ 2327: 0.001%
+ 2381: 0.001%
+ 2457: 0.001%
+ 2486: 0.001%
+ 2505: 0.001%
+ 2690: 0.001%
+ 2905: 0.001%
+ 2996: 0.001%
+ 3675: 0.001%
+ 4115: 0.001%
+ 4212: 0.001%
+ 4301: 0.001%
+ 4652: 0.001%
+ 4917: 0.001%
+ 5272: 0.001%
+ 5558: 0.001%
+ 6173: 0.001%
+ 6254: 0.001%
+ 6584: 0.001%
+ 7976: 0.001%
+ 8932: 0.001%
+ 10088: 0.001%
+ 10308: 0.001%
+ 11868: 0.001%
+ 12683: 0.001%
+ 17052: 0.001%
+ 20835: 0.001%
+ 22528: 0.001%
+ 24069: 0.001%
+ 24847: 0.001%
+ 27187: 0.001%
+ 32199: 0.001%
+ 34953: 0.001%
+ 59885: 0.001%
+ 104101: 0.001%
+ 146598: 0.001%
+ 495853: 0.001%
+
+Base Case
+Output Analysis: Random.vonmisesvariate(0.0, 1.0)
+Typical Timing: 344 ± 6 ns
+Statistics of 1000 samples:
+ Minimum: 0.0006999430758640235
+ Median: (2.842504937793423, 2.863654486197534)
+ Maximum: 6.278910536115165
+ Mean: 3.1020146681552703
+ Std Deviation: 2.2619871112052694
+round distribution of 100000:
+ 0: 16.513%
+ 1: 21.666%
+ 2: 8.775%
+ 3: 4.81%
+ 4: 6.933%
+ 5: 17.176%
+ 6: 24.127%
+
+Output Analysis: vonmises_variate(0.0, 1.0)
+Typical Timing: 80 ± 2 ns
+Statistics of 1000 samples:
+ Minimum: -3.1388232377408953
+ Median: (-0.02716647373829684, -0.021459933485825904)
+ Maximum: 3.1103670754825625
+ Mean: 0.028990601827155286
+ Std Deviation: 1.252632267847967
+round distribution of 100000:
+ -3: 3.164%
+ -2: 8.647%
+ -1: 21.896%
+ 0: 32.608%
+ 1: 21.835%
+ 2: 8.696%
+ 3: 3.154%
+
+Output Analysis: bernoulli_variate(0.5)
+Typical Timing: 23 ± 3 ns
+Statistics of 1000 samples:
+ Minimum: False
+ Median: True
+ Maximum: True
+ Mean: 0.512
+ Std Deviation: 0.5001060948499889
+round distribution of 100000:
+ 0: 49.944%
+ 1: 50.056%
+
+Output Analysis: binomial_variate(3, 0.5)
+Typical Timing: 84 ± 2 ns
+Statistics of 1000 samples:
+ Minimum: 0
+ Median: 1
+ Maximum: 3
+ Mean: 1.513
+ Std Deviation: 0.854728940402489
+round distribution of 100000:
+ 0: 12.599%
+ 1: 37.456%
+ 2: 37.334%
+ 3: 12.611%
+
+Output Analysis: negative_binomial_variate(3, 0.5)
+Typical Timing: 55 ± 1 ns
+Statistics of 1000 samples:
+ Minimum: 0
+ Median: 3
+ Maximum: 16
+ Mean: 3.058
+ Std Deviation: 2.583662383383578
+round distribution of 100000:
+ 0: 12.434%
+ 1: 18.619%
+ 2: 19.013%
+ 3: 15.616%
+ 4: 11.782%
+ 5: 8.061%
+ 6: 5.496%
+ 7: 3.448%
+ 8: 2.207%
+ 9: 1.305%
+ 10: 0.841%
+ 11: 0.465%
+ 12: 0.302%
+ 13: 0.168%
+ 14: 0.104%
+ 15: 0.061%
+ 16: 0.037%
+ 17: 0.013%
+ 18: 0.012%
+ 19: 0.008%
+ 20: 0.005%
+ 22: 0.001%
+ 23: 0.001%
+ 24: 0.001%
+
+Output Analysis: geometric_variate(0.5)
+Typical Timing: 36 ± 1 ns
+Statistics of 1000 samples:
+ Minimum: 0
+ Median: 1
+ Maximum: 9
+ Mean: 0.982
+ Std Deviation: 1.3746146971299142
+round distribution of 100000:
+ 0: 49.959%
+ 1: 25.065%
+ 2: 12.46%
+ 3: 6.31%
+ 4: 3.018%
+ 5: 1.638%
+ 6: 0.797%
+ 7: 0.372%
+ 8: 0.195%
+ 9: 0.094%
+ 10: 0.05%
+ 11: 0.023%
+ 12: 0.007%
+ 13: 0.008%
+ 14: 0.004%
+
+Output Analysis: poisson_variate(0.5)
+Typical Timing: 39 ± 2 ns
+Statistics of 1000 samples:
+ Minimum: 0
+ Median: 0
+ Maximum: 4
+ Mean: 0.503
+ Std Deviation: 0.7017716747514704
+round distribution of 100000:
+ 0: 60.669%
+ 1: 30.399%
+ 2: 7.538%
+ 3: 1.232%
+ 4: 0.149%
+ 5: 0.012%
+ 6: 0.001%
+
+Base Case
+Output Analysis: Random.expovariate(2.0)
+Typical Timing: 107 ± 2 ns
+Statistics of 1000 samples:
+ Minimum: 0.0002645269141955085
+ Median: (0.33197586503519494, 0.3331882113766054)
+ Maximum: 2.9108880336721787
+ Mean: 0.47512778066740935
+ Std Deviation: 0.4745089693871472
+round distribution of 100000:
+ 0: 62.969%
+ 1: 31.887%
+ 2: 4.418%
+ 3: 0.633%
+ 4: 0.078%
+ 5: 0.014%
+ 6: 0.001%
+
+Output Analysis: exponential_variate(2.0)
+Typical Timing: 28 ± 1 ns
+Statistics of 1000 samples:
+ Minimum: 0.00022502870880941313
+ Median: (0.3656490870024802, 0.36626470846646686)
+ Maximum: 3.7418919899069825
+ Mean: 0.5003498447170944
+ Std Deviation: 0.48352038756063526
+round distribution of 100000:
+ 0: 63.263%
+ 1: 31.815%
+ 2: 4.245%
+ 3: 0.584%
+ 4: 0.076%
+ 5: 0.014%
+ 6: 0.003%
+
+Base Case
+Output Analysis: Random.gammavariate(1.0, 1.0)
+Typical Timing: 157 ± 3 ns
+Statistics of 1000 samples:
+ Minimum: 0.0006477763097548772
+ Median: (0.6235487488411592, 0.6253194169274288)
+ Maximum: 7.88466060763495
+ Mean: 0.972151161286103
+ Std Deviation: 0.9713694023470834
+round distribution of 100000:
+ 0: 39.389%
+ 1: 38.179%
+ 2: 14.158%
+ 3: 5.222%
+ 4: 1.93%
+ 5: 0.709%
+ 6: 0.263%
+ 7: 0.099%
+ 8: 0.032%
+ 9: 0.011%
+ 10: 0.006%
+ 12: 0.002%
+
+Output Analysis: gamma_variate(1.0, 1.0)
+Typical Timing: 31 ± 2 ns
+Statistics of 1000 samples:
+ Minimum: 0.0003966154520776516
+ Median: (0.6669213158522161, 0.6681547951505862)
+ Maximum: 7.385331510142255
+ Mean: 0.9563253323134594
+ Std Deviation: 0.9515550138441319
+round distribution of 100000:
+ 0: 39.573%
+ 1: 38.215%
+ 2: 14.051%
+ 3: 5.137%
+ 4: 1.882%
+ 5: 0.74%
+ 6: 0.251%
+ 7: 0.094%
+ 8: 0.039%
+ 9: 0.013%
+ 10: 0.003%
+ 11: 0.001%
+ 12: 0.001%
+
+Base Case
+Output Analysis: Random.weibullvariate(1.0, 1.0)
+Typical Timing: 143 ± 3 ns
+Statistics of 1000 samples:
+ Minimum: 0.0007270605581450485
+ Median: (0.6855213781270427, 0.6867364925924392)
+ Maximum: 7.795115564942976
+ Mean: 1.0204145439020273
+ Std Deviation: 1.0348219512469918
+round distribution of 100000:
+ 0: 39.454%
+ 1: 38.398%
+ 2: 14.006%
+ 3: 5.289%
+ 4: 1.811%
+ 5: 0.672%
+ 6: 0.211%
+ 7: 0.105%
+ 8: 0.037%
+ 9: 0.009%
+ 10: 0.006%
+ 11: 0.002%
+
+Output Analysis: weibull_variate(1.0, 1.0)
+Typical Timing: 49 ± 2 ns
+Statistics of 1000 samples:
+ Minimum: 0.0011563316455022133
+ Median: (0.7109925277405156, 0.7118443829297991)
+ Maximum: 6.978473950093454
+ Mean: 0.9939410136582606
+ Std Deviation: 1.0036749307038422
+round distribution of 100000:
+ 0: 39.458%
+ 1: 38.279%
+ 2: 14.079%
+ 3: 5.226%
+ 4: 1.916%
+ 5: 0.663%
+ 6: 0.238%
+ 7: 0.093%
+ 8: 0.025%
+ 9: 0.013%
+ 10: 0.003%
+ 11: 0.006%
+ 12: 0.001%
+
+Base Case
+Output Analysis: Random.normalvariate(0.0, 1.0)
+Typical Timing: 243 ± 6 ns
+Statistics of 1000 samples:
+ Minimum: -3.6644902110441593
+ Median: (-0.021447664348523132, -0.02144185125449127)
+ Maximum: 2.9583240621954463
+ Mean: -0.0001013066563716923
+ Std Deviation: 0.9782049414205509
+round distribution of 100000:
+ -5: 0.001%
+ -4: 0.024%
+ -3: 0.575%
+ -2: 5.984%
+ -1: 24.127%
+ 0: 38.24%
+ 1: 24.322%
+ 2: 6.125%
+ 3: 0.577%
+ 4: 0.025%
+
+Output Analysis: normal_variate(0.0, 1.0)
+Typical Timing: 42 ± 2 ns
+Statistics of 1000 samples:
+ Minimum: -3.617369498502793
+ Median: (0.008058319699125882, 0.010756245745365765)
+ Maximum: 3.513829560747222
+ Mean: 0.04184375076945356
+ Std Deviation: 0.9989496440127368
+round distribution of 100000:
+ -4: 0.027%
+ -3: 0.579%
+ -2: 6.116%
+ -1: 24.223%
+ 0: 38.254%
+ 1: 24.01%
+ 2: 6.148%
+ 3: 0.624%
+ 4: 0.019%
+
+Base Case
+Output Analysis: Random.lognormvariate(0.0, 1.0)
+Typical Timing: 300 ± 9 ns
+Statistics of 1000 samples:
+ Minimum: 0.056621816205159575
+ Median: (1.0381663676662773, 1.038545920727633)
+ Maximum: 25.382535809370342
+ Mean: 1.7867416357441026
+ Std Deviation: 2.332224081863103
+round distribution of 100000:
+ 0: 24.155%
+ 1: 41.357%
+ 2: 16.452%
+ 3: 7.531%
+ 4: 3.851%
+ 5: 2.226%
+ 6: 1.329%
+ 7: 0.881%
+ 8: 0.593%
+ 9: 0.416%
+ 10: 0.266%
+ 11: 0.203%
+ 12: 0.155%
+ 13: 0.107%
+ 14: 0.077%
+ 15: 0.065%
+ 16: 0.048%
+ 17: 0.051%
+ 18: 0.038%
+ 19: 0.025%
+ 20: 0.022%
+ 21: 0.021%
+ 22: 0.018%
+ 23: 0.016%
+ 24: 0.01%
+ 25: 0.011%
+ 26: 0.014%
+ 27: 0.011%
+ 28: 0.002%
+ 29: 0.003%
+ 30: 0.004%
+ 31: 0.003%
+ 32: 0.001%
+ 33: 0.006%
+ 34: 0.002%
+ 35: 0.001%
+ 36: 0.002%
+ 37: 0.002%
+ 38: 0.002%
+ 39: 0.001%
+ 40: 0.002%
+ 41: 0.001%
+ 42: 0.002%
+ 43: 0.001%
+ 45: 0.003%
+ 46: 0.001%
+ 47: 0.001%
+ 48: 0.003%
+ 50: 0.001%
+ 51: 0.001%
+ 53: 0.001%
+ 57: 0.001%
+ 60: 0.001%
+ 61: 0.001%
+ 70: 0.001%
+ 136: 0.001%
+
+Output Analysis: log_normal_variate(0.0, 1.0)
+Typical Timing: 65 ± 3 ns
+Statistics of 1000 samples:
+ Minimum: 0.04477606257096241
+ Median: (0.9876580917327729, 0.9891818846913288)
+ Maximum: 21.483788903119503
+ Mean: 1.5851044786197972
+ Std Deviation: 1.9505579181844885
+round distribution of 100000:
+ 0: 24.464%
+ 1: 41.351%
+ 2: 16.296%
+ 3: 7.376%
+ 4: 3.861%
+ 5: 2.262%
+ 6: 1.301%
+ 7: 0.862%
+ 8: 0.556%
+ 9: 0.424%
+ 10: 0.303%
+ 11: 0.214%
+ 12: 0.137%
+ 13: 0.12%
+ 14: 0.103%
+ 15: 0.075%
+ 16: 0.051%
+ 17: 0.05%
+ 18: 0.023%
+ 19: 0.032%
+ 20: 0.017%
+ 21: 0.017%
+ 22: 0.016%
+ 23: 0.009%
+ 24: 0.009%
+ 25: 0.008%
+ 26: 0.009%
+ 27: 0.007%
+ 28: 0.003%
+ 29: 0.006%
+ 30: 0.006%
+ 31: 0.003%
+ 32: 0.005%
+ 33: 0.001%
+ 34: 0.004%
+ 35: 0.004%
+ 36: 0.001%
+ 37: 0.001%
+ 38: 0.001%
+ 39: 0.001%
+ 40: 0.001%
+ 41: 0.002%
+ 43: 0.001%
+ 46: 0.003%
+ 55: 0.001%
+ 65: 0.001%
+ 73: 0.001%
+ 104: 0.001%
+
+Output Analysis: extreme_value_variate(0.0, 2.0)
+Typical Timing: 42 ± 3 ns
+Statistics of 1000 samples:
+ Minimum: -3.667030775371436
+ Median: (0.685895478863013, 0.7084904759077995)
+ Maximum: 11.866534382070324
+ Mean: 1.0388660670136125
+ Std Deviation: 2.428964940441852
+round distribution of 100000:
+ -5: 0.009%
+ -4: 0.335%
+ -3: 2.763%
+ -2: 9.037%
+ -1: 15.586%
+ 0: 18.268%
+ 1: 16.457%
+ 2: 12.682%
+ 3: 9.011%
+ 4: 5.922%
+ 5: 3.755%
+ 6: 2.388%
+ 7: 1.472%
+ 8: 0.943%
+ 9: 0.525%
+ 10: 0.338%
+ 11: 0.207%
+ 12: 0.126%
+ 13: 0.058%
+ 14: 0.048%
+ 15: 0.018%
+ 16: 0.022%
+ 17: 0.007%
+ 18: 0.008%
+ 19: 0.006%
+ 20: 0.001%
+ 21: 0.003%
+ 22: 0.001%
+ 23: 0.001%
+ 24: 0.002%
+ 26: 0.001%
+
+Output Analysis: chi_squared_variate(5.0)
+Typical Timing: 65 ± 3 ns
+Statistics of 1000 samples:
+ Minimum: 0.22780729205520434
+ Median: (4.207914823841418, 4.210056404247643)
+ Maximum: 22.74007531235598
+ Mean: 4.89562998552275
+ Std Deviation: 3.1738100027490326
+round distribution of 100000:
+ 0: 0.854%
+ 1: 7.964%
+ 2: 13.451%
+ 3: 15.438%
+ 4: 14.222%
+ 5: 12.196%
+ 6: 9.73%
+ 7: 7.427%
+ 8: 5.676%
+ 9: 4.069%
+ 10: 2.805%
+ 11: 1.949%
+ 12: 1.416%
+ 13: 0.931%
+ 14: 0.619%
+ 15: 0.418%
+ 16: 0.313%
+ 17: 0.176%
+ 18: 0.12%
+ 19: 0.064%
+ 20: 0.062%
+ 21: 0.038%
+ 22: 0.022%
+ 23: 0.017%
+ 24: 0.012%
+ 25: 0.005%
+ 26: 0.003%
+ 27: 0.002%
+ 28: 0.001%
+
+Output Analysis: cauchy_variate(0.0, 2.0)
+Typical Timing: 33 ± 3 ns
+Statistics of 1000 samples:
+ Minimum: -1958.377577487674
+ Median: (-0.1491365712219053, -0.14825496063331284)
+ Maximum: 11149.019893616087
+ Mean: 10.409352700604638
+ Std Deviation: 364.2031647352339
+round distribution of 100000:
+ -403377: 0.001%
+ -57979: 0.001%
+ -48950: 0.001%
+ -23182: 0.001%
+ -10561: 0.001%
+ -10119: 0.001%
+ -9572: 0.001%
+ -8789: 0.001%
+ -8319: 0.001%
+ -5457: 0.001%
+ -5212: 0.001%
+ -4799: 0.001%
+ -4432: 0.001%
+ -4218: 0.001%
+ -3869: 0.001%
+ -3860: 0.001%
+ -3757: 0.001%
+ -3455: 0.001%
+ -3277: 0.001%
+ -3084: 0.001%
+ -2779: 0.001%
+ -2722: 0.001%
+ -2224: 0.001%
+ -2211: 0.001%
+ -2095: 0.001%
+ -2088: 0.001%
+ -2063: 0.001%
+ -1958: 0.001%
+ -1914: 0.001%
+ -1866: 0.001%
+ -1816: 0.001%
+ -1800: 0.001%
+ -1766: 0.001%
+ -1662: 0.001%
+ -1656: 0.001%
+ -1630: 0.001%
+ -1541: 0.001%
+ -1520: 0.001%
+ -1479: 0.001%
+ -1473: 0.001%
+ -1469: 0.001%
+ -1445: 0.001%
+ -1440: 0.001%
+ -1436: 0.001%
+ -1398: 0.001%
+ -1367: 0.001%
+ -1316: 0.001%
+ -1250: 0.001%
+ -1236: 0.001%
+ -1208: 0.001%
+ -1189: 0.001%
+ -1184: 0.001%
+ -1169: 0.001%
+ -1147: 0.001%
+ -1124: 0.001%
+ -1122: 0.001%
+ -1088: 0.001%
+ -1060: 0.002%
+ -1059: 0.001%
+ -1041: 0.001%
+ -1006: 0.001%
+ -1001: 0.001%
+ -946: 0.001%
+ -938: 0.001%
+ -937: 0.001%
+ -900: 0.001%
+ -898: 0.001%
+ -892: 0.001%
+ -887: 0.001%
+ -883: 0.001%
+ -877: 0.001%
+ -858: 0.001%
+ -840: 0.001%
+ -834: 0.001%
+ -812: 0.001%
+ -811: 0.001%
+ -791: 0.001%
+ -779: 0.001%
+ -774: 0.001%
+ -756: 0.002%
+ -751: 0.001%
+ -747: 0.001%
+ -730: 0.001%
+ -700: 0.001%
+ -694: 0.001%
+ -686: 0.001%
+ -684: 0.001%
+ -680: 0.001%
+ -678: 0.001%
+ -675: 0.001%
+ -673: 0.001%
+ -672: 0.001%
+ -656: 0.001%
+ -649: 0.001%
+ -646: 0.001%
+ -628: 0.001%
+ -620: 0.001%
+ -618: 0.001%
+ -611: 0.001%
+ -605: 0.001%
+ -586: 0.001%
+ -585: 0.001%
+ -584: 0.002%
+ -581: 0.001%
+ -580: 0.001%
+ -561: 0.001%
+ -557: 0.001%
+ -552: 0.002%
+ -550: 0.001%
+ -543: 0.001%
+ -530: 0.001%
+ -528: 0.001%
+ -517: 0.001%
+ -514: 0.001%
+ -512: 0.001%
+ -508: 0.001%
+ -505: 0.001%
+ -504: 0.001%
+ -499: 0.001%
+ -492: 0.002%
+ -486: 0.001%
+ -484: 0.001%
+ -482: 0.001%
+ -476: 0.001%
+ -467: 0.001%
+ -466: 0.001%
+ -463: 0.001%
+ -461: 0.001%
+ -456: 0.001%
+ -454: 0.002%
+ -442: 0.002%
+ -440: 0.001%
+ -438: 0.001%
+ -435: 0.002%
+ -434: 0.001%
+ -427: 0.002%
+ -426: 0.001%
+ -425: 0.002%
+ -424: 0.001%
+ -423: 0.001%
+ -421: 0.001%
+ -412: 0.001%
+ -406: 0.001%
+ -402: 0.001%
+ -400: 0.001%
+ -387: 0.001%
+ -384: 0.001%
+ -381: 0.001%
+ -379: 0.001%
+ -375: 0.001%
+ -374: 0.002%
+ -372: 0.001%
+ -370: 0.002%
+ -368: 0.001%
+ -363: 0.002%
+ -360: 0.003%
+ -357: 0.001%
+ -354: 0.002%
+ -348: 0.001%
+ -344: 0.001%
+ -343: 0.001%
+ -339: 0.001%
+ -338: 0.001%
+ -337: 0.001%
+ -334: 0.001%
+ -333: 0.001%
+ -331: 0.001%
+ -326: 0.002%
+ -322: 0.001%
+ -320: 0.003%
+ -319: 0.001%
+ -317: 0.001%
+ -314: 0.001%
+ -313: 0.002%
+ -311: 0.001%
+ -309: 0.003%
+ -305: 0.001%
+ -302: 0.001%
+ -296: 0.001%
+ -295: 0.001%
+ -294: 0.001%
+ -293: 0.001%
+ -290: 0.001%
+ -288: 0.001%
+ -283: 0.001%
+ -281: 0.001%
+ -277: 0.001%
+ -276: 0.001%
+ -275: 0.001%
+ -273: 0.002%
+ -272: 0.001%
+ -270: 0.003%
+ -267: 0.001%
+ -266: 0.001%
+ -264: 0.001%
+ -262: 0.001%
+ -261: 0.003%
+ -257: 0.002%
+ -255: 0.003%
+ -254: 0.001%
+ -253: 0.001%
+ -251: 0.002%
+ -249: 0.001%
+ -247: 0.002%
+ -246: 0.002%
+ -244: 0.001%
+ -243: 0.004%
+ -242: 0.001%
+ -240: 0.001%
+ -239: 0.002%
+ -238: 0.001%
+ -237: 0.001%
+ -235: 0.002%
+ -234: 0.001%
+ -233: 0.001%
+ -232: 0.001%
+ -231: 0.001%
+ -230: 0.001%
+ -229: 0.002%
+ -228: 0.002%
+ -224: 0.002%
+ -223: 0.002%
+ -222: 0.002%
+ -221: 0.002%
+ -218: 0.002%
+ -217: 0.001%
+ -216: 0.003%
+ -215: 0.001%
+ -214: 0.001%
+ -213: 0.001%
+ -212: 0.001%
+ -211: 0.001%
+ -210: 0.001%
+ -209: 0.002%
+ -208: 0.003%
+ -207: 0.002%
+ -205: 0.004%
+ -203: 0.002%
+ -202: 0.001%
+ -201: 0.004%
+ -199: 0.001%
+ -198: 0.002%
+ -197: 0.003%
+ -196: 0.001%
+ -195: 0.001%
+ -194: 0.001%
+ -193: 0.001%
+ -192: 0.002%
+ -191: 0.002%
+ -190: 0.002%
+ -188: 0.002%
+ -186: 0.001%
+ -185: 0.004%
+ -184: 0.003%
+ -183: 0.001%
+ -182: 0.002%
+ -181: 0.002%
+ -180: 0.001%
+ -179: 0.003%
+ -177: 0.001%
+ -176: 0.005%
+ -175: 0.003%
+ -173: 0.003%
+ -172: 0.001%
+ -171: 0.002%
+ -170: 0.002%
+ -169: 0.004%
+ -168: 0.001%
+ -167: 0.003%
+ -166: 0.001%
+ -164: 0.003%
+ -163: 0.004%
+ -162: 0.003%
+ -161: 0.003%
+ -160: 0.003%
+ -159: 0.004%
+ -158: 0.005%
+ -157: 0.003%
+ -156: 0.006%
+ -155: 0.001%
+ -154: 0.002%
+ -153: 0.006%
+ -152: 0.003%
+ -151: 0.001%
+ -150: 0.003%
+ -149: 0.002%
+ -148: 0.003%
+ -147: 0.002%
+ -146: 0.001%
+ -145: 0.004%
+ -144: 0.001%
+ -143: 0.008%
+ -142: 0.006%
+ -141: 0.004%
+ -140: 0.002%
+ -139: 0.005%
+ -138: 0.002%
+ -137: 0.006%
+ -136: 0.001%
+ -135: 0.003%
+ -134: 0.001%
+ -133: 0.004%
+ -132: 0.005%
+ -131: 0.004%
+ -130: 0.002%
+ -129: 0.001%
+ -128: 0.006%
+ -127: 0.008%
+ -126: 0.006%
+ -125: 0.004%
+ -124: 0.003%
+ -123: 0.003%
+ -122: 0.002%
+ -121: 0.004%
+ -120: 0.004%
+ -119: 0.008%
+ -118: 0.004%
+ -117: 0.003%
+ -116: 0.009%
+ -115: 0.006%
+ -114: 0.008%
+ -113: 0.001%
+ -112: 0.003%
+ -111: 0.001%
+ -110: 0.003%
+ -109: 0.008%
+ -108: 0.007%
+ -107: 0.003%
+ -106: 0.006%
+ -105: 0.007%
+ -104: 0.006%
+ -103: 0.006%
+ -102: 0.009%
+ -101: 0.006%
+ -100: 0.005%
+ -99: 0.004%
+ -98: 0.005%
+ -97: 0.008%
+ -96: 0.007%
+ -95: 0.008%
+ -94: 0.008%
+ -93: 0.003%
+ -92: 0.006%
+ -91: 0.006%
+ -90: 0.004%
+ -89: 0.009%
+ -88: 0.011%
+ -87: 0.006%
+ -86: 0.009%
+ -85: 0.009%
+ -84: 0.009%
+ -83: 0.009%
+ -82: 0.006%
+ -81: 0.007%
+ -80: 0.009%
+ -79: 0.009%
+ -78: 0.012%
+ -77: 0.009%
+ -76: 0.013%
+ -75: 0.015%
+ -74: 0.008%
+ -73: 0.007%
+ -72: 0.01%
+ -71: 0.017%
+ -70: 0.017%
+ -69: 0.012%
+ -68: 0.012%
+ -67: 0.018%
+ -66: 0.014%
+ -65: 0.013%
+ -64: 0.017%
+ -63: 0.016%
+ -62: 0.018%
+ -61: 0.01%
+ -60: 0.02%
+ -59: 0.022%
+ -58: 0.021%
+ -57: 0.021%
+ -56: 0.023%
+ -55: 0.028%
+ -54: 0.023%
+ -53: 0.024%
+ -52: 0.02%
+ -51: 0.021%
+ -50: 0.027%
+ -49: 0.029%
+ -48: 0.023%
+ -47: 0.026%
+ -46: 0.033%
+ -45: 0.03%
+ -44: 0.032%
+ -43: 0.033%
+ -42: 0.039%
+ -41: 0.036%
+ -40: 0.044%
+ -39: 0.039%
+ -38: 0.039%
+ -37: 0.043%
+ -36: 0.054%
+ -35: 0.053%
+ -34: 0.054%
+ -33: 0.072%
+ -32: 0.072%
+ -31: 0.068%
+ -30: 0.069%
+ -29: 0.075%
+ -28: 0.078%
+ -27: 0.074%
+ -26: 0.087%
+ -25: 0.097%
+ -24: 0.129%
+ -23: 0.114%
+ -22: 0.128%
+ -21: 0.112%
+ -20: 0.146%
+ -19: 0.181%
+ -18: 0.209%
+ -17: 0.231%
+ -16: 0.268%
+ -15: 0.282%
+ -14: 0.326%
+ -13: 0.375%
+ -12: 0.44%
+ -11: 0.541%
+ -10: 0.594%
+ -9: 0.726%
+ -8: 0.871%
+ -7: 1.254%
+ -6: 1.543%
+ -5: 2.185%
+ -4: 3.197%
+ -3: 4.992%
+ -2: 7.934%
+ -1: 12.676%
+ 0: 15.698%
+ 1: 12.771%
+ 2: 8.099%
+ 3: 4.973%
+ 4: 3.133%
+ 5: 2.16%
+ 6: 1.588%
+ 7: 1.24%
+ 8: 0.977%
+ 9: 0.792%
+ 10: 0.602%
+ 11: 0.528%
+ 12: 0.447%
+ 13: 0.37%
+ 14: 0.283%
+ 15: 0.276%
+ 16: 0.243%
+ 17: 0.218%
+ 18: 0.198%
+ 19: 0.174%
+ 20: 0.169%
+ 21: 0.112%
+ 22: 0.115%
+ 23: 0.109%
+ 24: 0.116%
+ 25: 0.085%
+ 26: 0.093%
+ 27: 0.086%
+ 28: 0.086%
+ 29: 0.081%
+ 30: 0.082%
+ 31: 0.075%
+ 32: 0.057%
+ 33: 0.067%
+ 34: 0.049%
+ 35: 0.064%
+ 36: 0.05%
+ 37: 0.043%
+ 38: 0.027%
+ 39: 0.03%
+ 40: 0.035%
+ 41: 0.043%
+ 42: 0.047%
+ 43: 0.034%
+ 44: 0.038%
+ 45: 0.027%
+ 46: 0.03%
+ 47: 0.026%
+ 48: 0.034%
+ 49: 0.026%
+ 50: 0.027%
+ 51: 0.028%
+ 52: 0.026%
+ 53: 0.028%
+ 54: 0.03%
+ 55: 0.021%
+ 56: 0.028%
+ 57: 0.019%
+ 58: 0.009%
+ 59: 0.018%
+ 60: 0.014%
+ 61: 0.013%
+ 62: 0.013%
+ 63: 0.011%
+ 64: 0.019%
+ 65: 0.017%
+ 66: 0.018%
+ 67: 0.014%
+ 68: 0.015%
+ 69: 0.016%
+ 70: 0.012%
+ 71: 0.012%
+ 72: 0.016%
+ 73: 0.011%
+ 74: 0.017%
+ 75: 0.017%
+ 76: 0.014%
+ 77: 0.011%
+ 78: 0.007%
+ 79: 0.012%
+ 80: 0.008%
+ 81: 0.01%
+ 82: 0.005%
+ 83: 0.009%
+ 84: 0.007%
+ 85: 0.009%
+ 86: 0.014%
+ 87: 0.005%
+ 88: 0.006%
+ 89: 0.01%
+ 90: 0.01%
+ 91: 0.008%
+ 92: 0.008%
+ 93: 0.005%
+ 94: 0.008%
+ 95: 0.006%
+ 96: 0.006%
+ 97: 0.008%
+ 98: 0.006%
+ 99: 0.006%
+ 100: 0.007%
+ 101: 0.003%
+ 102: 0.002%
+ 103: 0.004%
+ 104: 0.006%
+ 105: 0.008%
+ 106: 0.01%
+ 107: 0.008%
+ 108: 0.01%
+ 109: 0.005%
+ 110: 0.006%
+ 111: 0.007%
+ 112: 0.003%
+ 113: 0.006%
+ 114: 0.001%
+ 115: 0.004%
+ 116: 0.004%
+ 117: 0.006%
+ 118: 0.002%
+ 119: 0.004%
+ 120: 0.002%
+ 121: 0.004%
+ 122: 0.003%
+ 123: 0.006%
+ 124: 0.002%
+ 125: 0.001%
+ 126: 0.002%
+ 127: 0.003%
+ 128: 0.003%
+ 129: 0.011%
+ 130: 0.002%
+ 131: 0.001%
+ 132: 0.002%
+ 133: 0.003%
+ 134: 0.005%
+ 135: 0.001%
+ 136: 0.002%
+ 137: 0.001%
+ 139: 0.003%
+ 140: 0.001%
+ 141: 0.004%
+ 142: 0.003%
+ 143: 0.002%
+ 144: 0.003%
+ 145: 0.001%
+ 146: 0.003%
+ 147: 0.002%
+ 148: 0.003%
+ 149: 0.005%
+ 150: 0.003%
+ 151: 0.002%
+ 152: 0.003%
+ 153: 0.004%
+ 154: 0.002%
+ 155: 0.001%
+ 156: 0.004%
+ 157: 0.003%
+ 158: 0.004%
+ 159: 0.003%
+ 160: 0.004%
+ 161: 0.003%
+ 162: 0.001%
+ 163: 0.001%
+ 164: 0.002%
+ 165: 0.005%
+ 166: 0.001%
+ 167: 0.003%
+ 168: 0.002%
+ 169: 0.003%
+ 170: 0.003%
+ 171: 0.002%
+ 173: 0.002%
+ 174: 0.003%
+ 175: 0.002%
+ 176: 0.002%
+ 177: 0.003%
+ 178: 0.003%
+ 179: 0.001%
+ 180: 0.002%
+ 181: 0.001%
+ 182: 0.003%
+ 183: 0.001%
+ 184: 0.001%
+ 185: 0.002%
+ 186: 0.003%
+ 187: 0.001%
+ 188: 0.002%
+ 189: 0.001%
+ 191: 0.004%
+ 192: 0.002%
+ 195: 0.001%
+ 197: 0.001%
+ 198: 0.002%
+ 199: 0.003%
+ 200: 0.001%
+ 201: 0.005%
+ 202: 0.002%
+ 204: 0.001%
+ 205: 0.002%
+ 206: 0.003%
+ 208: 0.002%
+ 209: 0.002%
+ 210: 0.001%
+ 211: 0.001%
+ 212: 0.004%
+ 214: 0.002%
+ 215: 0.003%
+ 216: 0.002%
+ 217: 0.002%
+ 219: 0.002%
+ 222: 0.001%
+ 223: 0.001%
+ 224: 0.003%
+ 225: 0.002%
+ 226: 0.002%
+ 227: 0.002%
+ 229: 0.002%
+ 231: 0.002%
+ 233: 0.001%
+ 234: 0.001%
+ 235: 0.001%
+ 236: 0.002%
+ 238: 0.002%
+ 239: 0.001%
+ 240: 0.001%
+ 241: 0.001%
+ 242: 0.002%
+ 243: 0.001%
+ 244: 0.003%
+ 247: 0.001%
+ 248: 0.003%
+ 250: 0.001%
+ 252: 0.002%
+ 254: 0.002%
+ 257: 0.002%
+ 258: 0.001%
+ 260: 0.001%
+ 266: 0.002%
+ 268: 0.001%
+ 269: 0.002%
+ 270: 0.001%
+ 271: 0.002%
+ 272: 0.002%
+ 273: 0.001%
+ 275: 0.001%
+ 276: 0.001%
+ 278: 0.001%
+ 279: 0.001%
+ 282: 0.003%
+ 284: 0.001%
+ 291: 0.001%
+ 293: 0.002%
+ 297: 0.001%
+ 298: 0.001%
+ 299: 0.001%
+ 300: 0.001%
+ 302: 0.003%
+ 306: 0.001%
+ 307: 0.001%
+ 312: 0.001%
+ 314: 0.003%
+ 316: 0.002%
+ 319: 0.001%
+ 320: 0.002%
+ 322: 0.001%
+ 323: 0.002%
+ 324: 0.001%
+ 326: 0.001%
+ 327: 0.001%
+ 328: 0.001%
+ 329: 0.001%
+ 331: 0.001%
+ 332: 0.001%
+ 335: 0.002%
+ 337: 0.001%
+ 338: 0.002%
+ 340: 0.001%
+ 341: 0.001%
+ 343: 0.001%
+ 349: 0.001%
+ 352: 0.001%
+ 354: 0.001%
+ 356: 0.001%
+ 357: 0.001%
+ 362: 0.001%
+ 364: 0.001%
+ 370: 0.001%
+ 371: 0.002%
+ 372: 0.002%
+ 373: 0.001%
+ 380: 0.001%
+ 383: 0.001%
+ 389: 0.001%
+ 390: 0.002%
+ 391: 0.001%
+ 393: 0.001%
+ 394: 0.001%
+ 397: 0.001%
+ 399: 0.001%
+ 400: 0.001%
+ 401: 0.001%
+ 404: 0.001%
+ 408: 0.001%
+ 410: 0.001%
+ 412: 0.001%
+ 413: 0.002%
+ 414: 0.001%
+ 417: 0.001%
+ 420: 0.001%
+ 422: 0.001%
+ 425: 0.002%
+ 431: 0.001%
+ 433: 0.001%
+ 436: 0.001%
+ 437: 0.001%
+ 438: 0.001%
+ 441: 0.001%
+ 446: 0.001%
+ 453: 0.001%
+ 456: 0.001%
+ 458: 0.002%
+ 462: 0.002%
+ 463: 0.001%
+ 471: 0.001%
+ 472: 0.001%
+ 475: 0.001%
+ 477: 0.001%
+ 483: 0.001%
+ 494: 0.001%
+ 498: 0.001%
+ 500: 0.001%
+ 509: 0.001%
+ 510: 0.001%
+ 513: 0.001%
+ 517: 0.001%
+ 521: 0.001%
+ 523: 0.001%
+ 526: 0.001%
+ 541: 0.001%
+ 542: 0.001%
+ 556: 0.001%
+ 569: 0.001%
+ 572: 0.001%
+ 584: 0.001%
+ 590: 0.001%
+ 612: 0.001%
+ 616: 0.001%
+ 618: 0.001%
+ 619: 0.002%
+ 625: 0.001%
+ 627: 0.001%
+ 628: 0.001%
+ 644: 0.001%
+ 655: 0.001%
+ 657: 0.001%
+ 659: 0.001%
+ 664: 0.001%
+ 672: 0.001%
+ 696: 0.001%
+ 721: 0.001%
+ 724: 0.001%
+ 743: 0.001%
+ 754: 0.001%
+ 762: 0.001%
+ 785: 0.001%
+ 795: 0.001%
+ 806: 0.001%
+ 853: 0.001%
+ 855: 0.001%
+ 867: 0.001%
+ 886: 0.001%
+ 889: 0.001%
+ 905: 0.001%
+ 923: 0.001%
+ 925: 0.001%
+ 927: 0.001%
+ 930: 0.001%
+ 939: 0.001%
+ 942: 0.001%
+ 944: 0.001%
+ 981: 0.001%
+ 998: 0.001%
+ 1001: 0.001%
+ 1045: 0.001%
+ 1056: 0.001%
+ 1095: 0.001%
+ 1104: 0.001%
+ 1184: 0.001%
+ 1218: 0.001%
+ 1230: 0.001%
+ 1237: 0.001%
+ 1262: 0.001%
+ 1297: 0.001%
+ 1303: 0.001%
+ 1314: 0.001%
+ 1356: 0.001%
+ 1360: 0.001%
+ 1367: 0.001%
+ 1390: 0.001%
+ 1444: 0.001%
+ 1446: 0.001%
+ 1472: 0.001%
+ 1480: 0.001%
+ 1601: 0.001%
+ 1605: 0.001%
+ 1637: 0.001%
+ 1747: 0.001%
+ 1823: 0.001%
+ 1842: 0.001%
+ 1883: 0.001%
+ 1898: 0.001%
+ 1919: 0.001%
+ 1943: 0.001%
+ 2183: 0.001%
+ 2307: 0.001%
+ 2395: 0.001%
+ 2507: 0.001%
+ 2672: 0.001%
+ 2678: 0.001%
+ 2697: 0.001%
+ 2718: 0.001%
+ 2723: 0.001%
+ 2793: 0.001%
+ 2794: 0.001%
+ 3029: 0.001%
+ 3063: 0.001%
+ 3249: 0.001%
+ 3278: 0.001%
+ 3404: 0.001%
+ 3411: 0.001%
+ 3438: 0.001%
+ 3979: 0.001%
+ 4083: 0.001%
+ 4561: 0.001%
+ 6017: 0.001%
+ 6192: 0.001%
+ 6373: 0.001%
+ 7274: 0.001%
+ 8173: 0.001%
+ 8295: 0.001%
+ 11149: 0.001%
+ 11867: 0.001%
+ 12133: 0.001%
+ 12625: 0.001%
+ 20884: 0.001%
+ 33440: 0.001%
+ 40854: 0.001%
+ 1133006: 0.001%
+
+Output Analysis: fisher_f_variate(2.0, 3.0)
+Typical Timing: 81 ± 2 ns
+Statistics of 1000 samples:
+ Minimum: 0.00014161197428414548
+ Median: (0.8329370671199432, 0.8342505030212336)
+ Maximum: 520.7257752008326
+ Mean: 2.9355295833473205
+ Std Deviation: 17.571303995557635
+round distribution of 100000:
+ 0: 34.985%
+ 1: 29.91%
+ 2: 12.237%
+ 3: 6.369%
+ 4: 3.949%
+ 5: 2.608%
+ 6: 1.788%
+ 7: 1.259%
+ 8: 1.001%
+ 9: 0.762%
+ 10: 0.653%
+ 11: 0.526%
+ 12: 0.446%
+ 13: 0.367%
+ 14: 0.284%
+ 15: 0.269%
+ 16: 0.228%
+ 17: 0.174%
+ 18: 0.149%
+ 19: 0.158%
+ 20: 0.11%
+ 21: 0.113%
+ 22: 0.092%
+ 23: 0.09%
+ 24: 0.089%
+ 25: 0.092%
+ 26: 0.081%
+ 27: 0.053%
+ 28: 0.065%
+ 29: 0.051%
+ 30: 0.046%
+ 31: 0.054%
+ 32: 0.042%
+ 33: 0.04%
+ 34: 0.039%
+ 35: 0.044%
+ 36: 0.028%
+ 37: 0.027%
+ 38: 0.03%
+ 39: 0.023%
+ 40: 0.018%
+ 41: 0.029%
+ 42: 0.021%
+ 43: 0.021%
+ 44: 0.026%
+ 45: 0.02%
+ 46: 0.018%
+ 47: 0.014%
+ 48: 0.015%
+ 49: 0.017%
+ 50: 0.017%
+ 51: 0.012%
+ 52: 0.012%
+ 53: 0.016%
+ 54: 0.007%
+ 55: 0.011%
+ 56: 0.008%
+ 57: 0.011%
+ 58: 0.013%
+ 59: 0.006%
+ 60: 0.006%
+ 61: 0.011%
+ 62: 0.005%
+ 63: 0.007%
+ 64: 0.007%
+ 65: 0.002%
+ 66: 0.004%
+ 67: 0.008%
+ 68: 0.009%
+ 69: 0.007%
+ 70: 0.002%
+ 71: 0.01%
+ 72: 0.003%
+ 73: 0.008%
+ 74: 0.004%
+ 75: 0.01%
+ 76: 0.002%
+ 77: 0.004%
+ 78: 0.005%
+ 79: 0.005%
+ 80: 0.005%
+ 81: 0.003%
+ 82: 0.008%
+ 83: 0.003%
+ 84: 0.002%
+ 85: 0.004%
+ 86: 0.003%
+ 87: 0.003%
+ 88: 0.004%
+ 89: 0.003%
+ 90: 0.005%
+ 91: 0.003%
+ 92: 0.002%
+ 93: 0.003%
+ 94: 0.001%
+ 95: 0.005%
+ 96: 0.002%
+ 97: 0.004%
+ 98: 0.003%
+ 99: 0.002%
+ 100: 0.004%
+ 101: 0.001%
+ 102: 0.003%
+ 103: 0.001%
+ 105: 0.004%
+ 106: 0.004%
+ 107: 0.002%
+ 108: 0.003%
+ 109: 0.001%
+ 110: 0.001%
+ 112: 0.005%
+ 113: 0.002%
+ 114: 0.003%
+ 115: 0.001%
+ 116: 0.005%
+ 118: 0.002%
+ 119: 0.002%
+ 120: 0.001%
+ 122: 0.002%
+ 123: 0.003%
+ 124: 0.001%
+ 125: 0.001%
+ 126: 0.002%
+ 127: 0.001%
+ 128: 0.003%
+ 129: 0.001%
+ 130: 0.001%
+ 131: 0.001%
+ 133: 0.002%
+ 134: 0.002%
+ 135: 0.001%
+ 136: 0.001%
+ 138: 0.002%
+ 140: 0.002%
+ 142: 0.004%
+ 144: 0.001%
+ 145: 0.002%
+ 147: 0.001%
+ 148: 0.001%
+ 149: 0.003%
+ 150: 0.002%
+ 153: 0.001%
+ 154: 0.001%
+ 157: 0.002%
+ 159: 0.001%
+ 160: 0.001%
+ 161: 0.002%
+ 162: 0.001%
+ 163: 0.001%
+ 164: 0.001%
+ 166: 0.002%
+ 168: 0.001%
+ 169: 0.001%
+ 172: 0.002%
+ 173: 0.001%
+ 175: 0.001%
+ 178: 0.002%
+ 182: 0.002%
+ 184: 0.002%
+ 186: 0.001%
+ 191: 0.001%
+ 193: 0.002%
+ 196: 0.001%
+ 197: 0.001%
+ 198: 0.001%
+ 199: 0.001%
+ 200: 0.001%
+ 202: 0.001%
+ 203: 0.001%
+ 206: 0.001%
+ 207: 0.001%
+ 214: 0.002%
+ 218: 0.001%
+ 221: 0.001%
+ 225: 0.001%
+ 228: 0.001%
+ 229: 0.001%
+ 233: 0.001%
+ 239: 0.002%
+ 240: 0.001%
+ 244: 0.001%
+ 248: 0.001%
+ 255: 0.001%
+ 258: 0.001%
+ 267: 0.001%
+ 268: 0.002%
+ 278: 0.001%
+ 281: 0.001%
+ 290: 0.001%
+ 291: 0.001%
+ 295: 0.001%
+ 308: 0.001%
+ 332: 0.001%
+ 340: 0.001%
+ 350: 0.001%
+ 364: 0.001%
+ 376: 0.001%
+ 383: 0.001%
+ 388: 0.001%
+ 397: 0.001%
+ 411: 0.001%
+ 466: 0.001%
+ 481: 0.001%
+ 484: 0.001%
+ 521: 0.001%
+ 600: 0.001%
+ 634: 0.001%
+ 736: 0.001%
+ 770: 0.001%
+ 788: 0.001%
+ 1134: 0.001%
+ 2014: 0.001%
+ 6696: 0.001%
+ 11991: 0.001%
+ 13090: 0.001%
+
+Output Analysis: student_t_variate(5.0)
+Typical Timing: 86 ± 3 ns
+Statistics of 1000 samples:
+ Minimum: -8.112937193099484
+ Median: (-0.015165576832629058, -0.011616800659494358)
+ Maximum: 5.144077418064832
+ Mean: -0.025794137380621935
+ Std Deviation: 1.2822587401813301
+round distribution of 100000:
+ -23: 0.001%
+ -17: 0.001%
+ -15: 0.001%
+ -11: 0.001%
+ -10: 0.001%
+ -9: 0.003%
+ -8: 0.019%
+ -7: 0.034%
+ -6: 0.057%
+ -5: 0.185%
+ -4: 0.543%
+ -3: 1.803%
+ -2: 6.922%
+ -1: 22.078%
+ 0: 36.146%
+ 1: 22.601%
+ 2: 6.919%
+ 3: 1.814%
+ 4: 0.56%
+ 5: 0.191%
+ 6: 0.064%
+ 7: 0.025%
+ 8: 0.013%
+ 9: 0.005%
+ 10: 0.008%
+ 11: 0.002%
+ 12: 0.002%
+ 13: 0.001%
 
 
 Random Booleans:
 
 Output Analysis: percent_true(33.33)
-Typical Timing: 25 ± 3 ns
+Typical Timing: 21 ± 1 ns
 Statistics of 1000 samples:
  Minimum: False
  Median: False
  Maximum: True
- Mean: 0.316
- Std Deviation: 0.4651455260027343
+ Mean: 0.332
+ Std Deviation: 0.4711666350644939
 Distribution of 100000 samples:
- False: 66.55%
- True: 33.45%
+ False: 66.582%
+ True: 33.418%
 
 
 Shuffle Performance:
@@ -2578,33 +4848,33 @@ some_large_list = [i for i in range(1000)]
 
 Base Case:
 Random.shuffle()  # fisher_yates in python
-Typical Timing: 1388 ± 25 ns
-Typical Timing: 13793 ± 1472 ns
-Typical Timing: 135680 ± 1085 ns
+Typical Timing: 1438 ± 28 ns
+Typical Timing: 12442 ± 73 ns
+Typical Timing: 136738 ± 1256 ns
 
 Fortuna.shuffle()  # knuth_b in cython
-Typical Timing: 266 ± 10 ns
-Typical Timing: 2363 ± 11 ns
-Typical Timing: 22837 ± 337 ns
+Typical Timing: 209 ± 7 ns
+Typical Timing: 1900 ± 19 ns
+Typical Timing: 17996 ± 127 ns
 
 Fortuna.knuth_a()  # knuth_a in cython
-Typical Timing: 476 ± 11 ns
-Typical Timing: 4296 ± 52 ns
-Typical Timing: 49211 ± 973 ns
+Typical Timing: 443 ± 8 ns
+Typical Timing: 3546 ± 46 ns
+Typical Timing: 40845 ± 184 ns
 
 Fortuna.fisher_yates()  # fisher_yates in cython
-Typical Timing: 550 ± 8 ns
-Typical Timing: 4695 ± 338 ns
-Typical Timing: 48856 ± 761 ns
+Typical Timing: 472 ± 8 ns
+Typical Timing: 3639 ± 50 ns
+Typical Timing: 41554 ± 429 ns
 
 smart_clamp(3, 2, 1) # should be 2:  2
-Typical Timing: 50 ± 8 ns
+Typical Timing: 44 ± 3 ns
 float_clamp(3.0, 2.0, 1.0) # should be 2.0:  2.0
-Typical Timing: 38 ± 3 ns
+Typical Timing: 39 ± 3 ns
 
 
 -------------------------------------------------------------------------
-Total Test Time: 1.599 seconds
+Total Test Time: 3.563 seconds
 ```
 
 

@@ -9,7 +9,7 @@ from MonkeyScope import distribution_timer, timer
 
 def quick_test():
     print("\nMonkeyScope: Fortuna Quick Test")
-    print(f"Fortuna Version: 5.1.3")
+    print(f"Fortuna Version: 5.3.1")
     print(f"Storm Version: {storm_version()}")
     start_test = _time.time()
     i_clamps = [
@@ -140,6 +140,54 @@ def quick_test():
     print("Base Case")
     distribution_timer(_random.triangular, 0.0, 10.0, 5.0, post_processor=round)
     distribution_timer(triangular, 0.0, 10.0, 5.0, post_processor=round)
+    # _beta
+    distribution_timer(beta_variate, 1.0, 1.0, post_processor=round)
+    # _pareto
+    distribution_timer(pareto_variate, 1.0, post_processor=round)
+    # _vonmises
+    print("Base Case")
+    distribution_timer(_random.vonmisesvariate, 0.0, 1.0, post_processor=round)
+    distribution_timer(vonmises_variate, 0.0, 1.0, post_processor=round)
+    # bernoulli_variate
+    distribution_timer(bernoulli_variate, 0.5, post_processor=round)
+    # binomial_variate
+    distribution_timer(binomial_variate, 3, 0.5, post_processor=round)
+    # negative_binomial_variate
+    distribution_timer(negative_binomial_variate, 3, 0.5, post_processor=round)
+    # geometric_variate
+    distribution_timer(geometric_variate, 0.5, post_processor=round)
+    # poisson_variate
+    distribution_timer(poisson_variate, 0.5, post_processor=round)
+    # _exponential
+    print("Base Case")
+    distribution_timer(_random.expovariate, 2.0, post_processor=round)
+    distribution_timer(exponential_variate, 2.0, post_processor=round)
+    # _gamma
+    print("Base Case")
+    distribution_timer(_random.gammavariate, 1.0, 1.0, post_processor=round)
+    distribution_timer(gamma_variate, 1.0, 1.0, post_processor=round)
+    # _weibull
+    print("Base Case")
+    distribution_timer(_random.weibullvariate, 1.0, 1.0, post_processor=round)
+    distribution_timer(weibull_variate, 1.0, 1.0, post_processor=round)
+    # _normal
+    print("Base Case")
+    distribution_timer(_random.normalvariate, 0.0, 1.0, post_processor=round)
+    distribution_timer(normal_variate, 0.0, 1.0, post_processor=round)
+    # _log_normal_variate
+    print("Base Case")
+    distribution_timer(_random.lognormvariate, 0.0, 1.0, post_processor=round)
+    distribution_timer(log_normal_variate, 0.0, 1.0, post_processor=round)
+    # _extreme_value
+    distribution_timer(extreme_value_variate, 0.0, 2.0, post_processor=round)
+    # _chi_squared
+    distribution_timer(chi_squared_variate, 5.0, post_processor=round)
+    # _cauchy
+    distribution_timer(cauchy_variate, 0.0, 2.0, post_processor=round)
+    # _fisher_f
+    distribution_timer(fisher_f_variate, 2.0, 3.0, post_processor=round)
+    # _student_t
+    distribution_timer(student_t_variate, 5.0, post_processor=round)
 
     print("\nRandom Booleans:\n")
     distribution_timer(percent_true, 33.33)

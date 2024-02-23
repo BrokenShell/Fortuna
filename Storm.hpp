@@ -10,16 +10,18 @@ namespace Storm {
     using Integer = long long;
     using Float = double;
 
-    const auto version{"3.8.0"};
+    const auto version{"3.9.0"};
     auto get_version() {
         return Storm::version;
     }
 
     namespace Engine {
-        using Twister = std::discard_block_engine<std::mt19937_64, 12, 8>;
-        using Typhoon = std::shuffle_order_engine<Engine::Twister, 256>;
+        using Twister = std::discard_block_engine<std::mt19937_64, 18, 16>;
+        using Typhoon = std::shuffle_order_engine<Engine::Twister, 128>;
+
         thread_local static std::random_device hardware_seed;
         thread_local static Engine::Typhoon Hurricane{hardware_seed()};
+
         auto seed(unsigned long long seed_value) -> void {
             thread_local Engine::Typhoon seeded{seed_value == 0 ? std::random_device()() : seed_value};
             Engine::Hurricane = seeded;
@@ -110,7 +112,7 @@ namespace Storm {
             return distribution(Engine::Hurricane);
         }
 
-        auto lognormal_variate(Storm::Float log_mean, Storm::Float log_deviation) -> Storm::Float {
+        auto log_normal_variate(Storm::Float log_mean, Storm::Float log_deviation) -> Storm::Float {
             std::lognormal_distribution<Storm::Float> distribution{log_mean, log_deviation};
             return distribution(Engine::Hurricane);
         }

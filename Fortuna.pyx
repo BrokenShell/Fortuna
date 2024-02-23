@@ -54,7 +54,7 @@ cdef extern from "Storm.hpp":
     double _gamma "Storm::GetFloat::gamma_variate"(double, double)
     double _weibull "Storm::GetFloat::weibull_variate"(double, double)
     double _normal "Storm::GetFloat::normal_variate"(double, double)
-    double _lognormal "Storm::GetFloat::lognormal_variate"(double, double)
+    double _log_normal "Storm::GetFloat::log_normal_variate"(double, double)
     double _extreme_value "Storm::GetFloat::extreme_value_variate"(double, double)
     double _chi_squared "Storm::GetFloat::chi_squared_variate"(double)
     double _cauchy "Storm::GetFloat::cauchy_variate"(double, double)
@@ -939,8 +939,8 @@ def normal_variate(mean: float, std_dev: float) -> float:
     return _normal(mean, std_dev)
 
 
-def lognormal_variate(log_mean: float, log_deviation: float) -> float:
-    return _lognormal(log_mean, log_deviation)
+def log_normal_variate(log_mean: float, log_deviation: float) -> float:
+    return _log_normal(log_mean, log_deviation)
 
 
 def extreme_value_variate(location: float, scale: float) -> float:
