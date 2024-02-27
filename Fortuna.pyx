@@ -703,7 +703,8 @@ class FlexCat:
 
     Please refer to https://pypi.org/project/Fortuna/ for full documentation.
     """
-    __slots__ = ("random_cat", "random_selection", "cat_keys", "matrix_data")
+    __slots__ = ("random_cat", "random_selection", "cat_keys", "matrix_data",
+                 "double_cycle", "cycle")
 
     def __init__(self,
                  matrix_data: Dict[Any, Iterable[Any]],
@@ -720,6 +721,7 @@ class FlexCat:
             callable values with lazy evaluation.
         @return :: Callable Instance
         """
+        self.double_cycle = key_bias == val_bias == "cycle"
         self.matrix_data = matrix_data
         self.cat_keys = matrix_data.keys()
         self.random_cat = QuantumMonty(
@@ -733,6 +735,10 @@ class FlexCat:
             ).dispatch(val_bias)
             for key, seq in matrix_data.items()
         }
+        cycle_source = []
+        for seq in matrix_data.values():
+            cycle_source += seq
+        self.cycle = cycle(cycle_source)
 
     def __call__(self, cat_key=None, *args, **kwargs) -> Any:
         """
@@ -743,6 +749,8 @@ class FlexCat:
         @return :: Value. Returns a random value generated with val_bias
             from a random sequence generated with key_bias.
         """
+        if self.double_cycle:
+            return next(self.cycle)
         monty = self.random_selection
         key = cat_key if cat_key is not None else self.random_cat()
         return monty[key](*args, **kwargs)

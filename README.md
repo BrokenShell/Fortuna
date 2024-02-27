@@ -845,6 +845,9 @@ Minimum float below zero. Should be -5e-324.
 
 ## Fortuna Development Log
 
+##### Fortuna 5.3.2
+- FlexCat now handles (cycle, cycle) more intuitively
+
 ##### Fortuna 5.3.1
 - Adds several float tests
 
