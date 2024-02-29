@@ -10,7 +10,7 @@ namespace Storm {
     using Integer = long long;
     using Float = double;
 
-    const auto version{"3.9.0"};
+    const auto version{"3.9.2"};
     auto get_version() {
         return Storm::version;
     }
@@ -161,32 +161,37 @@ namespace Storm {
         }
 
         auto vonmises_variate(Storm::Float mu, Storm::Float kappa) -> Storm::Float {
-            static const Storm::Float PI{4 * std::atan(1)};
-            static const Storm::Float TAU{8 * std::atan(1)};
-            if (kappa <= 0.000001) return TAU * GetFloat::canonical_variate();
-            const Storm::Float s{0.5 / kappa};
-            const Storm::Float t{1 + s * s};
-            const Storm::Float r{s + std::sqrt(t)};
-            Storm::Float u1;
-            Storm::Float z;
-            Storm::Float d;
-            Storm::Float u2;
-            while (true) {
-                u1 = GetFloat::canonical_variate();
-                u2 = GetFloat::canonical_variate();
-                z = std::cos(PI * u1);
-                d = z / (r + z);
-                if (u2 < 1.0 - d * d or u2 <= (1.0 - d) * std::exp(d)) break;
+            static const Float TAU = 2.0 * std::acos(-1.0);
+            if (kappa < 1e-6) {
+                return TAU * GetFloat::canonical_variate();
             }
-            const Storm::Float q{1.0 / r};
-            const Storm::Float f{(q + z) / (1.0 + q * z)};
-            const Storm::Float u3{GetFloat::canonical_variate()};
-            if (u3 > 0.5) return std::fmod(mu + std::acos(f), TAU);
-            return std::fmod(mu - std::acos(f), TAU);
+            Float a = 1.0 + std::sqrt(1.0 + 4.0 * kappa * kappa);
+            Float b = (a - std::sqrt(2.0 * a)) / (2.0 * kappa);
+            Float r = (1.0 + b * b) / (2.0 * b);
+
+            while (true) {
+                Float u1 = GetFloat::canonical_variate();
+                Float z = std::cos(std::acos(-1.0) * u1);
+                Float f = (1.0 + r * z) / (r + z);
+                Float c = kappa * (r - f);
+                Float u2 = GetFloat::canonical_variate();
+                if (u2 < c * (2.0 - c) || u2 <= c * std::exp(1.0 - c)) {
+                    Float u3 = GetFloat::canonical_variate();
+                    Float theta = (u3 < 0.5) ? std::acos(f) : -std::acos(f);
+                    theta = std::fmod(theta + mu, TAU);
+                    if (theta < 0) {
+                        theta += TAU;
+                    }
+                    return theta;
+                }
+            }
         }
 
         auto triangular_variate(Storm::Float low, Storm::Float high, Storm::Float mode) -> Storm::Float {
-            if (low == high) return low;
+            const Storm::Float epsilon = std::numeric_limits<Storm::Float>::epsilon() * 100;
+            if (std::fabs(high - low) < epsilon) {
+                return low;
+            }
             const Storm::Float rand{GetFloat::canonical_variate()};
             const Storm::Float mode_factor{(mode - low) / (high - low)};
             const Storm::Float rand_factor{(1.0 - rand) * (1.0 - mode_factor)};

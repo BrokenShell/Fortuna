@@ -2,7 +2,6 @@ from setuptools import setup, Extension
 from Cython.Build import cythonize
 from platform import system
 
-
 with open("README.md", "r") as file:
     long_description = file.read()
 
@@ -36,7 +35,7 @@ setup(
     ),
     author="Robert Sharp",
     author_email="webmaster@sharpdesigndigital.com",
-    version="5.3.2",
+    version="5.4.2",
     description="High Performance Random Value Toolkit",
     long_description=long_description,
     long_description_content_type="text/markdown",

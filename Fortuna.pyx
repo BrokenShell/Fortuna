@@ -5,6 +5,7 @@ from itertools import cycle
 from math import sqrt
 from typing import Any, List, Sequence, Tuple, Callable, Iterable, Dict
 
+version = "5.4.2"
 
 cdef extern from "Storm.hpp":
     const char* _storm_version "Storm::get_version"()
@@ -114,15 +115,32 @@ def min_above() -> float:
     return _min_above()
 
 
-def distribution_range(func: Callable, lo, hi) -> Callable:
-    """ Distribution Range: Function Factory
+def distribution_range(func: Callable, lower, upper):
+    """ Distribution Range
 
     @param func: ZeroCool random distribution, F(N) -> [0, N-1]
-    @param lo: minimum
-    @param hi: maximum
-    @return: lambda that returns random value in range [lo, hi]
+    @param lower: minimum
+    @param upper: maximum
+    @return: returns random value in range [lo, hi]
     """
-    return lambda: lo + func(1 + hi - lo)
+    return lower + func(1 + upper - lower)
+
+
+class DistributionRange:
+    """ DistributionRange
+
+    @param zero_cool: ZeroCool random distribution, F(N) -> [0, N-1]
+    @param lower: minimum
+    @param upper: maximum
+    """
+
+    def __init__(self, zero_cool: Callable, lower, upper):
+        self.zero_cool = zero_cool
+        self.lower = lower
+        self.upper = upper
+
+    def __call__(self):
+        return self.lower + self.zero_cool(1 + self.upper - self.lower)
 
 
 def random_below(limit: int) -> int:
