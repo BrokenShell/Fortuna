@@ -5,7 +5,7 @@ from itertools import cycle
 from math import sqrt
 from typing import Any, List, Sequence, Tuple, Callable, Iterable, Dict
 
-version = "5.4.3"
+version = "5.4.4"
 
 cdef extern from "Storm.hpp":
     const char* _storm_version "Storm::get_version"()
@@ -645,7 +645,9 @@ class QuantumMonty:
         )
 
     def cycle(self, *args, **kwargs):
-        return flatten(next(self.cycles))
+        return flatten(
+            next(self.cycles), *args, flat=self.flat, **kwargs
+        )
 
     def front_linear(self, *args, **kwargs) -> Any:
         return flatten(
