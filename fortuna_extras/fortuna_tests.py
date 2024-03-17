@@ -118,6 +118,7 @@ def quick_test():
     print("Base Case")
     distribution_timer(_random.randint, -5, 5)
     distribution_timer(random_int, -5, 5)
+    distribution_timer(random_uint, max_uint() - 10, max_uint())
     print("Base Case")
     distribution_timer(_random.randrange, 1, 20, 2)
     distribution_timer(random_range, 1, 20, 2)

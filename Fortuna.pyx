@@ -5,7 +5,7 @@ from itertools import cycle
 from math import sqrt
 from typing import Any, List, Sequence, Tuple, Callable, Iterable, Dict
 
-version = "5.4.2"
+version = "5.4.3"
 
 cdef extern from "Storm.hpp":
     const char* _storm_version "Storm::get_version"()
@@ -25,6 +25,7 @@ cdef extern from "Storm.hpp":
     long long _dice "Storm::GetInt::dice"(long long, long long)
     long long _ability_dice "Storm::GetInt::ability_dice"(long long)
     long long _random_int "Storm::GetInt::uniform_int_variate"(long long, long long)
+    unsigned long long _random_uint "Storm::GetInt::uniform_uint_variate"(unsigned long long, unsigned long long)
     long long _binomial "Storm::GetInt::binomial_variate"(long long, double)
     long long _neg_binomial "Storm::GetInt::negative_binomial_variate"(long long, double)
     long long _geometric "Storm::GetInt::geometric_variate"(double)
@@ -175,6 +176,16 @@ def random_int(left_limit: int, right_limit: int) -> int:
     @return: Integer. Random integer in the range [left_limit, right_limit].
     """
     return _random_int(left_limit, right_limit)
+
+
+def random_uint(left_limit: int, right_limit: int) -> int:
+    """ Random Unsigned Integer: Flat uniform distribution.
+
+    @param left_limit: Unsigned Integer. Typically, the lower of the two.
+    @param right_limit: Unsigned Integer. Typically, the higher of the two.
+    @return: Integer. Random unsigned integer in the range [left_limit, right_limit].
+    """
+    return _random_uint(left_limit, right_limit)
 
 
 def random_range(start: int, stop: int = 0, step: int = 1) -> int:

@@ -7,10 +7,11 @@
 #include <limits>
 
 namespace Storm {
-    using Integer = long long;
     using Float = double;
+    using Integer = long long;
+    using UnsignedInteger = unsigned long long;
 
-    const auto version{"3.9.2"};
+    const auto version{"3.9.4"};
     auto get_version() {
         return Storm::version;
     }
@@ -22,7 +23,7 @@ namespace Storm {
         thread_local static std::random_device hardware_seed;
         thread_local static Engine::Typhoon Hurricane{hardware_seed()};
 
-        auto seed(unsigned long long seed_value) -> void {
+        auto seed(Storm::UnsignedInteger seed_value) -> void {
             thread_local Engine::Typhoon seeded{seed_value == 0 ? std::random_device()() : seed_value};
             Engine::Hurricane = seeded;
         }
@@ -53,8 +54,8 @@ namespace Storm {
     }
 
     namespace Meters {
-        unsigned long long max_uint() {
-            return std::numeric_limits<unsigned long long>::max();
+        Storm::UnsignedInteger max_uint() {
+            return std::numeric_limits<Storm::UnsignedInteger>::max();
         }
 
         auto min_int() -> Storm::Integer {
@@ -215,6 +216,11 @@ namespace Storm {
     }
 
     namespace GetInt {
+        auto uniform_uint_variate(Storm::UnsignedInteger lo, Storm::UnsignedInteger hi) -> Storm::UnsignedInteger {
+            std::uniform_int_distribution<Storm::UnsignedInteger> distribution{std::min(lo, hi), std::max(hi, lo)};
+            return distribution(Engine::Hurricane);
+        }
+
         auto uniform_int_variate(Storm::Integer lo, Storm::Integer hi) -> Storm::Integer {
             std::uniform_int_distribution<Storm::Integer> distribution{std::min(lo, hi), std::max(hi, lo)};
             return distribution(Engine::Hurricane);
