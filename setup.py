@@ -25,7 +25,7 @@ setup(
         Extension(
             name="Fortuna",
             sources=["Fortuna.pyx"],
-            language=["c++"],
+            language="c++",
             extra_compile_args=compiler_args,
         ),
         compiler_directives={
@@ -35,7 +35,7 @@ setup(
     ),
     author="Robert Sharp",
     author_email="webmaster@sharpdesigndigital.com",
-    version="5.4.4",
+    version="5.5.1",
     description="High Performance Random Value Toolkit",
     long_description=long_description,
     long_description_content_type="text/markdown",

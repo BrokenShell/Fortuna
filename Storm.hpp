@@ -5,13 +5,15 @@
 #include <numeric>
 #include <vector>
 #include <limits>
+#include <iostream>
+#include <utility>
 
 namespace Storm {
     using Float = double;
     using Integer = long long;
     using UnsignedInteger = unsigned long long;
 
-    const auto version{"3.9.4"};
+    const auto version{"4.0.0"};
     auto get_version() {
         return Storm::version;
     }
@@ -19,10 +21,8 @@ namespace Storm {
     namespace Engine {
         using Twister = std::discard_block_engine<std::mt19937_64, 18, 16>;
         using Typhoon = std::shuffle_order_engine<Engine::Twister, 128>;
-
         thread_local static std::random_device hardware_seed;
         thread_local static Engine::Typhoon Hurricane{hardware_seed()};
-
         auto seed(Storm::UnsignedInteger seed_value) -> void {
             thread_local Engine::Typhoon seeded{seed_value == 0 ? std::random_device()() : seed_value};
             Engine::Hurricane = seeded;
@@ -426,6 +426,88 @@ namespace Storm {
             if (rand_num == 1) return GetIndex::quantum_linear(number);
             if (rand_num == 2) return GetIndex::quantum_gauss(number);
             return GetIndex::quantum_poisson(number);
+        }
+    }
+
+    namespace ArrayRefOps {
+        template<typename ArrayRef>
+        auto knuth_a(ArrayRef& array) -> void {
+            auto size = array.size();
+            for (int i = 0; i < size - 1; ++i) {
+                int j = i + Storm::GetIndex::random_index(size - i);
+                std::swap(array[i], array[j]);
+            }
+        }
+
+        template<typename ArrayRef>
+        auto knuth_b(ArrayRef& array) -> void {
+            auto size = array.size() - 1;
+            for (auto i = size; i > 0; --i) {
+                auto j = Storm::GetInt::uniform_int_variate(i, size);
+                std::swap(array[i], array[j]);
+            }
+        }
+
+        template<typename ArrayRef>
+        auto fisher_yates(ArrayRef& array) -> void {
+            for (auto i = array.size() - 1; i > 0; --i) {
+                auto j = Storm::GetIndex::random_index(i + 1);
+                std::swap(array[i], array[j]);
+            }
+        }
+    }
+
+    namespace ArrayOps {
+        template<typename Array>
+        auto knuth_a(Array array) -> Array {
+            auto size = array.size();
+            for (int i = 0; i < size - 1; ++i) {
+                int j = i + Storm::GetIndex::random_index(size - i);
+                std::swap(array[i], array[j]);
+            }
+            return array;
+        }
+
+        template<typename Array>
+        auto knuth_b(Array array) -> Array {
+            auto size = array.size() - 1;
+            for (auto i = size; i > 0; --i) {
+                auto j = Storm::GetInt::uniform_int_variate(i, size);
+                std::swap(array[i], array[j]);
+            }
+            return array;
+        }
+
+        template<typename Array>
+        auto fisher_yates(Array array) -> Array {
+            for (auto i = array.size() - 1; i > 0; --i) {
+                auto j = Storm::GetIndex::random_index(i + 1);
+                std::swap(array[i], array[j]);
+            }
+            return array;
+        }
+    }
+
+    namespace VectorGenOps {
+        template<typename Value>
+        auto knuth_a(const std::initializer_list<Value>& list) -> std::vector<Value> {
+            std::vector<Value> vec(list);
+            Storm::ArrayRefOps::knuth_a(vec);
+            return vec;
+        }
+
+        template<typename Value>
+        auto knuth_b(const std::initializer_list<Value>& list) -> std::vector<Value> {
+            std::vector<Value> vec(list);
+            Storm::ArrayRefOps::knuth_b(vec);
+            return vec;
+        }
+
+        template<typename Value>
+        auto fisher_yates(const std::initializer_list<Value>& list) -> std::vector<Value> {
+            std::vector<Value> vec(list);
+            Storm::ArrayRefOps::fisher_yates(vec);
+            return vec;
         }
     }
 }

@@ -3,9 +3,9 @@
 from collections import deque
 from itertools import cycle
 from math import sqrt
-from typing import Any, List, Sequence, Tuple, Callable, Iterable, Dict
+from typing import Callable, Iterable, Dict
 
-version = "5.4.4"
+version = "5.5.1"
 
 cdef extern from "Storm.hpp":
     const char* _storm_version "Storm::get_version"()
@@ -116,7 +116,7 @@ def min_above() -> float:
     return _min_above()
 
 
-def distribution_range(func: Callable, lower, upper):
+def distribution_range(func, lower, upper):
     """ Distribution Range
 
     @param func: ZeroCool random distribution, F(N) -> [0, N-1]
@@ -227,8 +227,8 @@ def dice(rolls: int = 1, sides: int = 20) -> int:
 
 def ability_dice(rolls: int = 4) -> int:
     """ Ability Dice: Geometric distribution.
-    @param rolls :: Number of d6 rolls. Default = 4. Clamped in range [3, 9]
-    @return int :: Returns the sum of the top 3 of N d(6), where N = rolls.
+    @param rolls : Number of d6 rolls. Default = 4. Clamped in range [3, 9]
+    @return int : Returns the sum of the top 3 of N d(6), where N = rolls.
     """
     return _ability_dice(rolls)
 
@@ -296,7 +296,7 @@ def triangular(low: float, high: float, mode: float) -> float:
 def float_clamp(target: float, lo: float, hi: float) -> float:
     """ Float Clamp
     Essentially the same as median but considerably faster.
-    @return :: Returns the middle value of three float arguments,
+    @return : Returns the middle value of three float arguments,
         input order does not matter.
     """
     return _float_clamp(target, lo, hi)
@@ -305,13 +305,13 @@ def float_clamp(target: float, lo: float, hi: float) -> float:
 def smart_clamp(target: int, lo: int, hi: int) -> int:
     """ Smart Clamp
     Essentially the same as median but considerably faster.
-    @return :: Returns the middle value of three integer arguments,
+    @return : Returns the middle value of three integer arguments,
         input order does not matter.
     """
     return _smart_clamp(target, lo, hi)
 
 
-def flatten(maybe_callable: Any, *args, flat: bool = True, **kwargs):
+def flatten(maybe_callable, *args, flat: bool = True, **kwargs):
     """ Flatten
     Internal only.
     Recursively calls the input object and returns the result.
@@ -320,13 +320,13 @@ def flatten(maybe_callable: Any, *args, flat: bool = True, **kwargs):
     Essentially this is the opposite of bind, and it's recursive.
     Conceptually this is somewhat like collapsing the wave function.
     Often flatten is used as the last step in lazy evaluation.
-    @param maybe_callable :: Any Object that might be callable.
-    @param flat :: Boolean, default is True. Optional, keyword only.
+    @param maybe_callable : Any Object that might be callable.
+    @param flat : Boolean, default is True. Optional, keyword only.
         Disables flattening if flat is set to False,
         conceptually this turns flatten() into the identity function.
     @param args: Optional arguments used to flatten the maybe_callable object.
     @param kwargs: Optional arguments used to flatten the maybe_callable object.
-    @return :: Recursively Flattened Object.
+    @return : Recursively Flattened Object.
     """
     if flat is False or not callable(maybe_callable):
         return maybe_callable
@@ -337,7 +337,7 @@ def flatten(maybe_callable: Any, *args, flat: bool = True, **kwargs):
             return maybe_callable
 
 
-def shuffle(array: List[Any]):
+def shuffle(array: list):
     """ Knuth B Shuffle Algorithm
     Destructive, in-place shuffle.
     Reverse Order Random Swap to Back
@@ -350,7 +350,7 @@ def shuffle(array: List[Any]):
         array[i], array[j] = array[j], array[i]
 
 
-def knuth_a(array: List[Any]):
+def knuth_a(array: list):
     """ Knuth A Shuffle Algorithm
     Destructive, in-place shuffle.
     In Order Random Swap to Front
@@ -362,7 +362,7 @@ def knuth_a(array: List[Any]):
         array[i], array[j] = array[j], array[i]
 
 
-def fisher_yates(array: List[Any]):
+def fisher_yates(array: list):
     """ Fisher Yates Shuffle Algorithm
     Destructive, in-place shuffle.
     Reverse Order Random Swap to Front
@@ -463,7 +463,7 @@ ZeroCool = {
 }
 
 
-def random_value(data: Sequence[Any]) -> Any:
+def random_value(data):
     """ Random Value Function
     Equivalent to Random.choice. Flat uniform distribution.
     Also see RandomValue class for additional options.
@@ -472,7 +472,7 @@ def random_value(data: Sequence[Any]) -> Any:
     return data[_random_index(len(data))]
 
 
-def cumulative_weighted_choice(weighted_table: Sequence[Tuple[int, Any]]) -> Any:
+def cumulative_weighted_choice(weighted_table):
     """ Cumulative Weighted Choice Function
     Similar to Random.choices.
     Also see CumulativeWeightedChoice and RelativeWeightedChoice.
@@ -485,7 +485,7 @@ def cumulative_weighted_choice(weighted_table: Sequence[Tuple[int, Any]]) -> Any
             return value
 
 
-def truffle_shuffle(data: Sequence[Any]) -> Callable:
+def truffle_shuffle(data) -> Callable:
     """ Truffle Shuffle Function: Function Factory
     Same as the class of the same name, implemented as a higher-order function.
     """
@@ -493,13 +493,13 @@ def truffle_shuffle(data: Sequence[Any]) -> Callable:
     shuffle(working_data)
     data = deque(working_data)
     rotate_size = int(sqrt(len(working_data)))
-    def worker() -> Any:
+    def worker():
         data.rotate(1 + _front_poisson(rotate_size))
         return data[-1]
     return worker
 
 
-def sample(population: Sequence[Any], k: int) -> List[Any]:
+def sample(population, k: int) -> list:
     n = len(population)
     assert 0 < k <= n, "Sample size k is larger than population or is negative"
     if k == 1:
@@ -523,13 +523,13 @@ def sample(population: Sequence[Any], k: int) -> List[Any]:
 class RandomValue:
     """ Random Value Class
     Random Value Generator Class that supports dependency injection.
-    @param collection :: Collection of Values. Tuple recommended.
-    @param zero_cool :: Optional ZeroCool Method, kwarg only.
+    @param collection : Collection of Values. Tuple recommended.
+    @param zero_cool : Optional ZeroCool Method, kwarg only.
         Default = random_index()
-    @param flat :: Bool. Default: True.
+    @param flat : Bool. Default: True.
         Option to automatically flatten callable values with lazy evaluation.
-    @return :: Callable Object. `Callable(*args, **kwargs) -> Value`
-        @param *args, **kwargs :: Optional arguments used to flatten the return.
+    @return : Callable Object. `Callable(*args, **kwargs) -> Value`
+        @param *args, **kwargs : Optional arguments used to flatten the return.
         @return Value or Value(*args, **kwargs) if Callable.
 
     Please refer to https://pypi.org/project/Fortuna/ for full documentation.
@@ -537,7 +537,7 @@ class RandomValue:
     __slots__ = ("data", "zero_cool", "flat")
 
     def __init__(self,
-                 collection: Iterable[Any],
+                 collection: Iterable,
                  zero_cool: Callable[[int], int] = random_index,
                  flat: bool = True):
         self.data = tuple(collection)
@@ -545,7 +545,7 @@ class RandomValue:
         self.zero_cool = zero_cool
         self.flat = flat
 
-    def __call__(self, *args, **kwargs) -> Any:
+    def __call__(self, *args, **kwargs):
         return flatten(self.data[self.zero_cool(len(self.data))], *args, flat=self.flat, **kwargs)
 
 
@@ -553,14 +553,14 @@ class TruffleShuffle:
     """ Truffle Shuffle
     Produces random values from a collection with a Wide Uniform Distribution.
 
-    @param collection :: Collection of Values. Any list-like object, a Set is
+    @param collection : Collection of Values. Any list-like object, a Set is
         recommended but not required.
-    @param flat :: Bool. Default: True. Option to automatically flatten
+    @param flat : Bool. Default: True. Option to automatically flatten
         callable values with lazy evaluation.
-    @return :: Callable Object. `Callable(*args, **kwargs) -> Value`
-        @param *args, **kwargs :: Optional arguments used to flatten the
+    @return : Callable Object. `Callable(*args, **kwargs) -> Value`
+        @param *args, **kwargs : Optional arguments used to flatten the
             return Value (below) if Callable.
-        @return :: Value or Value(*args, **kwargs) if Callable.
+        @return : Value or Value(*args, **kwargs) if Callable.
 
     Wide Uniform Distribution: "Wide" refers to the average distance between
     consecutive occurrences of the same value. The average width of the output
@@ -580,34 +580,34 @@ class TruffleShuffle:
     """
     __slots__ = ("flat", "data", "rotate_size")
 
-    def __init__(self, collection: Iterable[Any], flat: bool = True):
+    def __init__(self, collection: Iterable, flat: bool = True):
         self.flat = flat
         data = list(collection)
         shuffle(data)
         self.data = deque(data)
         self.rotate_size = int(sqrt(len(self.data)))
 
-    def __call__(self, *args, **kwargs) -> Any:
+    def __call__(self, *args, **kwargs):
         self.data.rotate(1 + _front_poisson(self.rotate_size))
         return flatten(self.data[-1], *args, flat=self.flat, **kwargs)
 
 
 class QuantumMonty:
     """ Quantum Monty
-    @param collection :: Collection of Values.
-    @param flat :: Bool. Default is True. Option to automatically flatten
+    @param collection : Collection of Values.
+    @param flat : Bool. Default is True. Option to automatically flatten
         callable values with lazy evaluation.
-    @return :: Callable Object with Monty Methods for producing various
+    @return : Callable Object with Monty Methods for producing various
         distributions of the collection.
-        @param *args, **kwargs :: Optional arguments used to flatten the return
+        @param *args, **kwargs : Optional arguments used to flatten the return
             Value (below) if Callable.
-        @return :: Random value from the collection.
+        @return : Random value from the collection.
 
     Please refer to https://pypi.org/project/Fortuna/ for full documentation.
     """
     __slots__ = ("flat", "size", "data", "truffle_shuffle", "cycles")
 
-    def __init__(self, collection: Iterable[Any], flat: bool = True):
+    def __init__(self, collection: Iterable, flat: bool = True):
         self.flat = flat
         self.data = tuple(collection)
         self.size = len(self.data)
@@ -615,11 +615,12 @@ class QuantumMonty:
         self.cycles = cycle(self.data)
         self.truffle_shuffle = TruffleShuffle(self.data, flat)
 
-    def __call__(self, *args, **kwargs) -> Any:
+    def __call__(self, *args, **kwargs):
         return self.quantum_monty(*args, **kwargs)
 
     def dispatch(self, monty: str) -> Callable:
-        """ For automation, prefer to use the methods directly when possible. """
+        """ For dispatch automation.
+        In general, prefer to use the methods directly when possible. """
         return {
             "flat_uniform": self.flat_uniform,
             "cycle": self.cycle,
@@ -639,7 +640,7 @@ class QuantumMonty:
             "quantum_monty": self.quantum_monty,
         }[monty]
 
-    def flat_uniform(self, *args, **kwargs) -> Any:
+    def flat_uniform(self, *args, **kwargs):
         return flatten(
             self.data[_random_index(self.size)], *args, flat=self.flat, **kwargs
         )
@@ -649,66 +650,66 @@ class QuantumMonty:
             next(self.cycles), *args, flat=self.flat, **kwargs
         )
 
-    def front_linear(self, *args, **kwargs) -> Any:
+    def front_linear(self, *args, **kwargs):
         return flatten(
             self.data[_front_linear(self.size)], *args, flat=self.flat, **kwargs
         )
 
-    def middle_linear(self, *args, **kwargs) -> Any:
+    def middle_linear(self, *args, **kwargs):
         return flatten(
             self.data[_middle_linear(self.size)], *args, flat=self.flat, **kwargs
         )
 
-    def back_linear(self, *args, **kwargs) -> Any:
+    def back_linear(self, *args, **kwargs):
         return flatten(
             self.data[_back_linear(self.size)], *args, flat=self.flat, **kwargs
         )
 
-    def quantum_linear(self, *args, **kwargs) -> Any:
+    def quantum_linear(self, *args, **kwargs):
         return flatten(
             self.data[_quantum_linear(self.size)], *args, flat=self.flat, **kwargs
         )
 
-    def front_gauss(self, *args, **kwargs) -> Any:
+    def front_gauss(self, *args, **kwargs):
         return flatten(
             self.data[_front_gauss(self.size)], *args, flat=self.flat, **kwargs)
 
-    def middle_gauss(self, *args, **kwargs) -> Any:
+    def middle_gauss(self, *args, **kwargs):
         return flatten(
             self.data[_middle_gauss(self.size)], *args, flat=self.flat, **kwargs
         )
 
-    def back_gauss(self, *args, **kwargs) -> Any:
+    def back_gauss(self, *args, **kwargs):
         return flatten(
             self.data[_back_gauss(self.size)], *args, flat=self.flat, **kwargs
         )
 
-    def quantum_gauss(self, *args, **kwargs) -> Any:
+    def quantum_gauss(self, *args, **kwargs):
         return flatten(
             self.data[_quantum_gauss(self.size)], *args, flat=self.flat, **kwargs
         )
 
-    def front_poisson(self, *args, **kwargs) -> Any:
+    def front_poisson(self, *args, **kwargs):
         return flatten(
             self.data[_front_poisson(self.size)], *args, flat=self.flat, **kwargs
         )
 
-    def middle_poisson(self, *args, **kwargs) -> Any:
+    def middle_poisson(self, *args, **kwargs):
         return flatten(
             self.data[_middle_poisson(self.size)], *args, flat=self.flat, **kwargs
         )
 
-    def back_poisson(self, *args, **kwargs) -> Any:
+    def back_poisson(self, *args, **kwargs):
         return flatten(
             self.data[_back_poisson(self.size)], *args, flat=self.flat, **kwargs
         )
 
-    def quantum_poisson(self, *args, **kwargs) -> Any:
+    def quantum_poisson(self, *args, **kwargs):
         return flatten(
             self.data[_quantum_poisson(self.size)], *args, flat=self.flat, **kwargs
         )
 
-    def quantum_monty(self, *args, **kwargs) -> Any:
+    def quantum_monty(self, *args, **kwargs):
         return flatten(
             self.data[_quantum_monty(self.size)], *args, flat=self.flat, **kwargs
         )
@@ -738,19 +739,19 @@ class FlexCat:
                  "double_cycle", "cycle")
 
     def __init__(self,
-                 matrix_data: Dict[Any, Iterable[Any]],
+                 matrix_data: Dict,
                  key_bias: str = "front_linear",
                  val_bias: str = "truffle_shuffle",
                  flat: bool = True):
         """
-        @param matrix_data :: Dictionary of Value Sequences.
-        @parm key_bias :: Default is "front_linear". String indicating the
+        @param matrix_data : Dictionary of Value Sequences.
+        @parm key_bias : Default is "front_linear". String indicating the
             name of the algorithm to use for random key selection.
-        @parm val_bias :: Default is "truffle_shuffle". String indicating the
+        @parm val_bias : Default is "truffle_shuffle". String indicating the
             name of the algorithm to use for random value selection.
-        @param flat :: Bool. Default is True. Option to automatically flatten
+        @param flat : Bool. Default is True. Option to automatically flatten
             callable values with lazy evaluation.
-        @return :: Callable Instance
+        @return : Callable Instance
         """
         self.double_cycle = key_bias == val_bias == "cycle"
         self.matrix_data = matrix_data
@@ -771,16 +772,16 @@ class FlexCat:
             cycle_source += seq
         self.cycle = cycle(cycle_source)
 
-    def __call__(self, cat_key=None, *args, **kwargs) -> Any:
+    def __call__(self, cat_key=None, *args, **kwargs):
         """
-        @param cat_key :: Optional String. Default is None.
+        @param cat_key : Optional String. Default is None.
             Key selection by name.
-        @param *args, **kwargs :: Optional arguments used to flatten the
+        @param *args, **kwargs : Optional arguments used to flatten the
             return Value (below) if Callable.
-        @return :: Value. Returns a random value generated with val_bias
+        @return : Value. Returns a random value generated with val_bias
             from a random sequence generated with key_bias.
         """
-        if self.double_cycle:
+        if not cat_key and self.double_cycle:
             return next(self.cycle)
         monty = self.random_selection
         key = cat_key if cat_key is not None else self.random_cat()
@@ -805,11 +806,11 @@ class WeightedChoice:
     """
     __slots__ = ("flat", "max_weight", "data")
 
-    def __call__(self, *args, **kwargs) -> Any:
+    def __call__(self, *args, **kwargs):
         """
-        @param *args, **kwargs :: Optional arguments
+        @param *args, **kwargs : Optional arguments
             used to flatten the return Value (below) if Callable.
-        @return :: Random value from the weighted_table,
+        @return : Random value from the weighted_table,
             distribution based on the weights of the values.
         """
         rand = _random_below(self.max_weight)
@@ -823,14 +824,14 @@ class RelativeWeightedChoice(WeightedChoice):
     __slots__ = ("flat", "max_weight", "data")
 
     def __init__(self,
-                 weighted_table: Iterable[Tuple[int, Any]],
+                 weighted_table: Iterable,
                  flat: bool = True):
         """
-        @param weighted_table :: Table of weighted pairs.
+        @param weighted_table : Table of weighted pairs.
             [ (w1, v1), (w2, v2), (w3, v3)... ] or zip(weights, values)
-        @param flat :: Bool. Default: True. Option to automatically
+        @param flat : Bool. Default: True. Option to automatically
             flatten callable values with lazy evaluation.
-        @return :: Callable Instance
+        @return : Callable Instance
         """
         self.flat = flat
         optimized_data = sorted(
@@ -849,13 +850,13 @@ class CumulativeWeightedChoice(WeightedChoice):
     __slots__ = ("flat", "max_weight", "data")
 
     def __init__(self,
-                 weighted_table: Iterable[Tuple[int, Any]],
+                 weighted_table: Iterable,
                  flat: bool = True):
         """
-        @param weighted_table :: Table of weighted pairs.
-        @param flat :: Bool. Default: True. Option to automatically
+        @param weighted_table : Table of weighted pairs.
+        @param flat : Bool. Default: True. Option to automatically
             flatten callable values with lazy evaluation.
-        @return :: Callable Instance
+        @return : Callable Instance
 
         Note: Logic dictates Cumulative Weights must be unique!
         """

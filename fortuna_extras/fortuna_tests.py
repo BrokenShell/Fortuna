@@ -41,7 +41,7 @@ def quick_test():
         random_value, some_list, label="random_value(some_list)"
     )
 
-    print("\nWide Distribution\n")
+    print("\nWide Distribution")
     truffle = TruffleShuffle(some_list)
     print("Truffle = TruffleShuffle(some_list)")
     distribution_timer(truffle, label="Truffle()")
@@ -49,7 +49,7 @@ def quick_test():
     print("truffle = truffle_shuffle(some_list)")
     distribution_timer(truffle, label="truffle()")
 
-    print("\nSingle objects with many distribution possibilities\n")
+    print("\nQuantumMonty")
     some_tuple = tuple(i for i in range(10))
     print("some_tuple = tuple(i for i in range(10))\n")
     monty = QuantumMonty(some_tuple)
@@ -60,7 +60,7 @@ def quick_test():
     print(f"rand_value = {rand_value}")
     distribution_timer(rand_value, label="rand_value()")
 
-    print("\nWeighted Tables:\n")
+    print("\nWeighted Tables:")
     population = ("A", "B", "C", "D")
     cum_weights = (1, 3, 6, 10)
     rel_weights = (1, 2, 3, 4)
@@ -92,7 +92,7 @@ def quick_test():
     print("rel_weighted_choice = RelativeWeightedChoice(rel_weighted_table)")
     distribution_timer(rel_weighted_choice, label="rel_weighted_choice()")
 
-    print("\nRandom Matrix Values:\n")
+    print("\nRandom Matrix Values:")
     some_matrix = {
         "A": (1, 2, 3, 4), "B": (10, 20, 30, 40), "C": (100, 200, 300, 400)
     }
@@ -102,7 +102,7 @@ def quick_test():
     distribution_timer(flex_cat, label='flex_cat()')
     distribution_timer(flex_cat, "C", label='flex_cat("C")')
 
-    print("\nRandom Integers:\n")
+    print("\nRandom Integers:")
     print("Base Case")
     distribution_timer(_random.randrange, 10)
     distribution_timer(random_below, 10)
@@ -131,78 +131,80 @@ def quick_test():
     distribution_timer(plus_or_minus_linear, 5)
     distribution_timer(plus_or_minus_gauss, 5)
 
-    print("\nRandom Floats:\n")
+    print("\nRandom Floats:")
     print("Base Case")
-    distribution_timer(_random.random, post_processor=round)
-    distribution_timer(canonical, post_processor=round)
+    timer(_random.random)
+    timer(canonical)
+
     print("Base Case")
     distribution_timer(_random.uniform, 0.0, 10.0, post_processor=_math.floor)
     distribution_timer(random_float, 0.0, 10.0, post_processor=_math.floor)
+
     print("Base Case")
     distribution_timer(_random.triangular, 0.0, 10.0, 5.0, post_processor=round)
     distribution_timer(triangular, 0.0, 10.0, 5.0, post_processor=round)
-    # _beta
-    distribution_timer(beta_variate, 1.0, 1.0, post_processor=round)
-    # _pareto
-    distribution_timer(pareto_variate, 1.0, post_processor=round)
-    # _vonmises
+
     print("Base Case")
     distribution_timer(_random.vonmisesvariate, 0.0, 1.0, post_processor=round)
     distribution_timer(vonmises_variate, 0.0, 1.0, post_processor=round)
-    # bernoulli_variate
-    distribution_timer(bernoulli_variate, 0.5, post_processor=round)
-    # binomial_variate
-    distribution_timer(binomial_variate, 3, 0.5, post_processor=round)
-    # negative_binomial_variate
-    distribution_timer(negative_binomial_variate, 3, 0.5, post_processor=round)
-    # geometric_variate
-    distribution_timer(geometric_variate, 0.5, post_processor=round)
-    # poisson_variate
-    distribution_timer(poisson_variate, 0.5, post_processor=round)
-    # _exponential
+
     print("Base Case")
     distribution_timer(_random.expovariate, 2.0, post_processor=round)
     distribution_timer(exponential_variate, 2.0, post_processor=round)
-    # _gamma
+
     print("Base Case")
     distribution_timer(_random.gammavariate, 1.0, 1.0, post_processor=round)
     distribution_timer(gamma_variate, 1.0, 1.0, post_processor=round)
-    # _weibull
+
     print("Base Case")
     distribution_timer(_random.weibullvariate, 1.0, 1.0, post_processor=round)
     distribution_timer(weibull_variate, 1.0, 1.0, post_processor=round)
-    # _normal
+
     print("Base Case")
     distribution_timer(_random.normalvariate, 0.0, 1.0, post_processor=round)
     distribution_timer(normal_variate, 0.0, 1.0, post_processor=round)
-    # _log_normal_variate
+
     print("Base Case")
     distribution_timer(_random.lognormvariate, 0.0, 1.0, post_processor=round)
     distribution_timer(log_normal_variate, 0.0, 1.0, post_processor=round)
-    # _extreme_value
-    distribution_timer(extreme_value_variate, 0.0, 2.0, post_processor=round)
-    # _chi_squared
-    distribution_timer(chi_squared_variate, 5.0, post_processor=round)
-    # _cauchy
-    distribution_timer(cauchy_variate, 0.0, 2.0, post_processor=round)
-    # _fisher_f
-    distribution_timer(fisher_f_variate, 2.0, 3.0, post_processor=round)
-    # _student_t
-    distribution_timer(student_t_variate, 5.0, post_processor=round)
 
-    print("\nRandom Booleans:\n")
+    print("timer(beta_variate, 1.0, 1.0)")
+    timer(beta_variate, 1.0, 1.0)
+    print("\ntimer(pareto_variate, 1.0)")
+    timer(pareto_variate, 1.0)
+    print("\ntimer(bernoulli_variate, 0.5)")
+    timer(bernoulli_variate, 0.5)
+    print("\ntimer(binomial_variate, 3, 0.5)")
+    timer(binomial_variate, 3, 0.5)
+    print("\ntimer(negative_binomial_variate, 3, 0.5)")
+    timer(negative_binomial_variate, 3, 0.5)
+    print("\ntimer(geometric_variate, 0.5)")
+    timer(geometric_variate, 0.5)
+    print("\ntimer(poisson_variate, 0.5)")
+    timer(poisson_variate, 0.5)
+    print("\ntimer(extreme_value_variate, 0.0, 2.0)")
+    timer(extreme_value_variate, 0.0, 2.0)
+    print("\ntimer(chi_squared_variate, 5.0)")
+    timer(chi_squared_variate, 5.0)
+    print("\ntimer(cauchy_variate, 0.0, 2.0)")
+    timer(cauchy_variate, 0.0, 2.0)
+    print("\ntimer(fisher_f_variate, 2.0, 3.0)")
+    timer(fisher_f_variate, 2.0, 3.0)
+    print("\ntimer(student_t_variate, 5.0)")
+    timer(student_t_variate, 5.0)
+
+    print("\nRandom Booleans:")
     distribution_timer(percent_true, 33.33)
 
-    print("\nShuffle Performance:\n")
+    print("\nShuffle Performance:")
     shuffle_cycles = 7
     small, medium, large = 10, 100, 1000
     some_small_list = list(range(small))
-    print(f"some_small_list = [i for i in range({small})]")
+    print(f"\tsome_small_list = [i for i in range({small})]")
     some_med_list = list(range(medium))
-    print(f"some_med_list = [i for i in range({medium})]")
+    print(f"\tsome_med_list = [i for i in range({medium})]")
     some_large_list = list(range(large))
-    print(f"some_large_list = [i for i in range({large})]")
-
+    print(f"\tsome_large_list = [i for i in range({large})]")
     print("\nBase Case:")
     print("Random.shuffle()  # fisher_yates in python")
     timer(_random.shuffle, some_small_list, cycles=shuffle_cycles)
@@ -230,7 +232,8 @@ def quick_test():
     timer(fisher_yates, some_med_list, cycles=shuffle_cycles)
     timer(fisher_yates, some_large_list, cycles=shuffle_cycles)
 
-    print("\nsmart_clamp(3, 2, 1) # should be 2: ", smart_clamp(3, 2, 1))
+    print("\n\nClamp Performance:")
+    print("smart_clamp(3, 2, 1) # should be 2: ", smart_clamp(3, 2, 1))
     timer(smart_clamp, 3, 2, 1, cycles=shuffle_cycles)
     print("float_clamp(3.0, 2.0, 1.0) # should be 2.0: ", float_clamp(3.0, 2.0, 1.0))
     timer(float_clamp, 3.0, 2.0, 1.0, cycles=shuffle_cycles)

@@ -1,7 +1,7 @@
 from Fortuna import *
 
 
-def range_accuracy(func, *args, expected_range, verbose=False, **kwargs):
+def range_accuracy(func, *args, expected_range, verbose=True, **kwargs):
     results = {func(*args, **kwargs) for _ in range(200000)}
     for itm in results:
         assert itm in expected_range, f"Range Error, range exceeded ({itm})."
@@ -12,7 +12,7 @@ def range_accuracy(func, *args, expected_range, verbose=False, **kwargs):
 
 
 def range_tests():
-    print("\n\nOutput Range Tests: ", end="")
+    print("\n\nOutput Range Tests: ")
     range_accuracy(random_below, 0, expected_range=(0,))
     range_accuracy(random_index, 0, expected_range=(-1,))
     range_accuracy(random_range, 0, expected_range=(0,))
@@ -83,7 +83,7 @@ def range_tests():
     range_accuracy(percent_true, 50, expected_range=(True, False))
     range_accuracy(percent_true, 0.1, expected_range=(True, False))
 
-    print("Success!")
+    print("Over All: Success!")
 
 
 if __name__ == "__main__":
