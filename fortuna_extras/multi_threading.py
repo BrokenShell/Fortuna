@@ -25,7 +25,7 @@ def proc_pool(func):
 
 if __name__ == '__main__':
     num = 768_000
-    print(f"Fortuna No Pool Baseline: {num} random numbers")
+    print(f"No Pool Baseline: {num} random numbers, one thread")
     start = time.perf_counter()
     test1 = tuple(Fortuna.random_range(100) for _ in range(num))
     stop = time.perf_counter()

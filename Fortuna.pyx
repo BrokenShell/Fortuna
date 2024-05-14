@@ -3,7 +3,7 @@
 from collections import deque
 from itertools import cycle
 from math import sqrt
-from typing import Callable, Iterable, Dict
+from typing import Callable, Iterable, Dict, Iterator
 
 version = "5.5.1"
 
@@ -547,6 +547,21 @@ class RandomValue:
 
     def __call__(self, *args, **kwargs):
         return flatten(self.data[self.zero_cool(len(self.data))], *args, flat=self.flat, **kwargs)
+
+
+class TruffleShuffle2:
+    __slots__ = ("flat", "data", "size", "pivot", "index")
+
+    def __init__(self, collection: Iterable, flat: bool = True):
+        self.flat = flat
+        self.data = list(collection) if isinstance(collection, Iterator) else collection
+        self.size = len(self.data)
+        self.pivot = int(sqrt(self.size))
+        self.index = _random_index(self.size)
+
+    def __call__(self, *args, **kwargs):
+        self.index = (self.index + 1 + _front_poisson(self.pivot)) % self.size
+        return flatten(self.data[self.index], *args, flat=self.flat, **kwargs)
 
 
 class TruffleShuffle:
