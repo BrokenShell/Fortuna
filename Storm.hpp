@@ -51,31 +51,31 @@ namespace Storm {
     }
 
     namespace Meters {
-        constexpr auto max_uint() noexcept -> Storm::Unsigned {
+        auto max_uint() noexcept -> Storm::Unsigned {
             return std::numeric_limits<Storm::Unsigned>::max();
         }
 
-        constexpr auto min_int() noexcept -> Storm::Integer {
+        auto min_int() noexcept -> Storm::Integer {
             return -std::numeric_limits<Storm::Integer>::max();
         }
 
-        constexpr auto max_int() noexcept -> Storm::Integer {
+        auto max_int() noexcept -> Storm::Integer {
             return std::numeric_limits<Storm::Integer>::max();
         }
 
-        constexpr auto min_float() noexcept -> Storm::Float {
+        auto min_float() noexcept -> Storm::Float {
             return std::numeric_limits<Storm::Float>::lowest();
         }
 
-        constexpr auto max_float() noexcept -> Storm::Float {
+        auto max_float() noexcept -> Storm::Float {
             return std::numeric_limits<Storm::Float>::max();
         }
 
-        constexpr auto min_below() noexcept -> Storm::Float {
+        auto min_below() noexcept -> Storm::Float {
             return std::nextafter(0.0, std::numeric_limits<Storm::Float>::lowest());
         }
 
-        constexpr auto min_above() noexcept -> Storm::Float {
+        auto min_above() noexcept -> Storm::Float {
             return std::nextafter(0.0, std::numeric_limits<Storm::Float>::max());
         }
     }
