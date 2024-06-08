@@ -5,7 +5,7 @@ from itertools import cycle
 from math import sqrt
 from typing import Callable, Iterable, Dict, Iterator
 
-version = "5.5.1"
+version = "5.5.6"
 
 cdef extern from "Storm.hpp":
     const char* _storm_version "Storm::get_version"()
