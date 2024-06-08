@@ -12,7 +12,7 @@ namespace Storm {
     using Integer = long long;
     using Unsigned = unsigned long long;
 
-    constexpr auto version{"4.0.1"};
+    constexpr auto version{"4.0.2"};
     constexpr auto get_version() noexcept -> const char* {
         return Storm::version;
     }
@@ -30,10 +30,6 @@ namespace Storm {
 
     namespace GearBox {
         template<typename Number>
-        concept Comparable = requires (Number x) { x < x; };
-
-        template<typename Number>
-        requires std::copyable<Number> && Comparable<Number>
         inline auto clamp(Number target, Number left, Number right) noexcept -> Number {
             return std::clamp(target, std::min(left, right), std::max(right, left));
         }
