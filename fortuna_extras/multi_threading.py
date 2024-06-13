@@ -40,13 +40,13 @@ if __name__ == '__main__':
     print(f"Time: {stop - start:.3f}s\n")
 
     print("Multiprocessing Pool Tests")
-
     print("Random")
     start = time.perf_counter()
     values = proc_pool(random.randrange)
     print(f"{values} - {'PASS' if len(set(values)) >= len(values[1:-1]) else 'FAIL'}")
     stop = time.perf_counter()
     print(f"Time: {stop - start:.3f}s\n")
+
     print("Fortuna")
     start = time.perf_counter()
     values = proc_pool(Fortuna.random_range)
