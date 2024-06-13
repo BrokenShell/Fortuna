@@ -15,4 +15,5 @@ ENV PATH="/venv/bin:$PATH"
 RUN python -m pip install --upgrade pip setuptools wheel
 RUN python -m pip install Fortuna[scope]
 
-CMD python -i -m fortuna_extras.fortuna_tests
+CMD python -m fortuna_extras.multi_threading
+#CMD bash
