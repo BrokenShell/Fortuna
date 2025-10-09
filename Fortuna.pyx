@@ -5,7 +5,7 @@ from itertools import cycle
 from math import sqrt
 from typing import Callable, Iterable, Dict, Iterator
 
-version = "5.5.7"
+version = "5.6.0"
 
 cdef extern from "Storm.hpp":
     const char* _storm_version "Storm::get_version"()
@@ -142,6 +142,27 @@ class DistributionRange:
 
     def __call__(self):
         return self.lower + self.zero_cool(1 + self.upper - self.lower)
+
+
+class FloatDistributionRange:
+    """ Float Distribution Range Generator
+
+    @param zero_cool: ZeroCool random distribution, F(N) -> [0, N-1]
+    @param lower: minimum
+    @param upper: maximum
+    """
+
+    def __init__(self, zero_cool: Callable, lower, upper):
+        self.zero_cool = zero_cool
+        self.lower_int = int(lower)
+        self.upper_int = int(upper)
+        self.lower_float = lower - self.lower_int
+        self.upper_float = upper - self.upper_int
+
+    def __call__(self):
+        i = self.lower_int + self.zero_cool(1 + self.upper_int - self.lower_int)
+        f = random_float(self.lower_float, self.upper_float)
+        return i + f
 
 
 def random_below(limit: int) -> int:
@@ -483,6 +504,7 @@ def cumulative_weighted_choice(weighted_table):
     for weight, value in weighted_table:
         if weight > rand:
             return value
+    return None
 
 
 def truffle_shuffle(data) -> Callable:
@@ -832,6 +854,7 @@ class WeightedChoice:
         for weight, value in self.data:
             if weight > rand:
                 return flatten(value, *args, flat=self.flat, **kwargs)
+        return None
 
 
 class RelativeWeightedChoice(WeightedChoice):
