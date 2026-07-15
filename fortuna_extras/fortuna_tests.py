@@ -57,7 +57,7 @@ def quick_test():
     distribution_timer(monty, label="monty()")
 
     rand_value = RandomValue(some_tuple)
-    print(f"rand_value = {rand_value}")
+    print(f"rand_value = RandomValue(some_tuple)")
     distribution_timer(rand_value, label="rand_value()")
 
     print("\nWeighted Tables:")

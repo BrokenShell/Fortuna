@@ -46,7 +46,7 @@ setup(
     },
     classifiers=[
         dev_status["Mature"],
-        "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.14",
         "Programming Language :: Cython",
         "Programming Language :: C++",
         "Operating System :: MacOS :: MacOS X",

@@ -75,7 +75,8 @@ def storm_version() -> str:
 def seed(value: int = 0) -> None:
     """ Seeds the Hurricane Engine
     Uses a hardware seeding methodology iff the host supports it and value == 0
-    Software seeding should only be used in single-thread applications.
+    Software seeding should only be used in single-thread applications, or in cases
+    where all threads should use the same seed.
     :param value: Integer [0, 18446744073709551615] default: 0, best if very large or 0
     :return: None """
     _seed(value)
