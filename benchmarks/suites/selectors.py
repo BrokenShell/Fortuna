@@ -15,6 +15,21 @@ VALUES_100 = tuple(range(100))
 MATRIX_10X10 = {key: tuple(range(key * 10, (key + 1) * 10)) for key in range(10)}
 SAMPLE_REGIMES = ((100, 10), (1_000, 10), (1_000, 500))
 WEIGHT_SIZES = (4, 100, 1_000)
+INDEX_PROFILES = (
+    "uniform",
+    "front_triangular",
+    "center_triangular",
+    "back_triangular",
+    "mixed_triangular",
+    "front_exponential",
+    "center_normal",
+    "back_exponential",
+    "mixed_exponential_normal",
+    "front_poisson",
+    "edge_poisson",
+    "back_poisson",
+    "quantum_monty",
+)
 
 VALUES_100_FIXTURE = {
     "id": "values-100",
@@ -293,15 +308,21 @@ def selector_cases() -> list[BenchmarkCase]:
     fortuna, error = _load_fortuna()
     cases: list[BenchmarkCase] = []
 
-    for name, source, profile, count in (
-        ("index-uniform-scalar-module", "module", "uniform", None),
-        ("index-uniform-scalar-generator", "generator", "uniform", None),
-        ("index-uniform-scalar-custom", "custom", "uniform", None),
-        ("index-front-triangular-scalar-module", "module", "front_triangular", None),
-        ("index-front-triangular-bulk-module-1000", "module", "front_triangular", 1_000),
-        ("index-uniform-bulk-generator-1000", "generator", "uniform", 1_000),
-        ("index-uniform-bulk-custom-1000", "custom", "uniform", 1_000),
-    ):
+    index_workloads = [
+        (f"index-{profile.replace('_', '-')}-scalar-{source}", source, profile, None)
+        for profile in INDEX_PROFILES
+        for source in ("module", "generator")
+    ]
+    index_workloads.extend(
+        (
+            ("index-uniform-scalar-custom", "custom", "uniform", None),
+            ("index-front-triangular-bulk-module-1000", "module", "front_triangular", 1_000),
+            ("index-uniform-bulk-generator-1000", "generator", "uniform", 1_000),
+            ("index-uniform-bulk-custom-1000", "custom", "uniform", 1_000),
+        )
+    )
+
+    for name, source, profile, count in index_workloads:
         workload_seed = None if source == "custom" else SEED
         generator_input = {
             "module": {"type": "Fortuna module-global engine", "seed": SEED},

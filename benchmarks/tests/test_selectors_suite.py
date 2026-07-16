@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from benchmarks.suites import all_cases, suite_names
-from benchmarks.suites.selectors import selector_cases
+from benchmarks.suites.selectors import INDEX_PROFILES, selector_cases
 
 
 def _cases_by_name():
@@ -70,6 +70,29 @@ def test_index_selector_workloads_match_timed_calls_and_rng_ownership():
     assert bulk["kwargs"] == {"count": 1_000}
     assert custom["seed"] is None
     assert custom["input"]["selector"]["generator"]["type"] == "_ConstantIndexGenerator"
+
+
+def test_index_selector_covers_every_profile_with_module_and_generator_sources():
+    cases = _cases_by_name()
+
+    for profile in INDEX_PROFILES:
+        benchmark_profile = profile.replace("_", "-")
+        for source, source_type in (
+            ("module", "Fortuna module-global engine"),
+            ("generator", "Fortuna.Generator"),
+        ):
+            workload = cases[f"index-{benchmark_profile}-scalar-{source}"].workload_payload
+
+            assert workload["args"] == [100]
+            assert workload["kwargs"] == {}
+            assert workload["seed"] == 0x5EED
+            assert workload["input"] == {
+                "callable": "IndexSelector.__call__",
+                "selector": {
+                    "generator": {"seed": 0x5EED, "type": source_type},
+                    "profile": profile,
+                },
+            }
 
 
 def test_reused_and_construction_workloads_distinguish_calls_from_fixtures():
