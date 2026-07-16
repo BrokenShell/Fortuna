@@ -1,0 +1,128 @@
+name: Build release wheels
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: wheels-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  verify-tag:
+    name: Verify release tag
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+        with:
+          persist-credentials: false
+      - name: Require the tag to match the project version
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: bash
+        run: |
+          version="$(python -c 'import tomllib; print(tomllib.load(open("pyproject.toml", "rb"))["project"]["version"])')"
+          test "${GITHUB_REF_NAME}" = "v${version}"
+
+  sdist:
+    name: Source distribution
+    needs: verify-tag
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@11f9893b081a58869d3b5fccaea48c9e9e46f990 # v8.3.2
+        with:
+          enable-cache: true
+          python-version: "3.14"
+      - run: uv build --sdist --no-sources
+      - name: Verify source distribution contents and isolated installation
+        shell: bash
+        run: |
+          archive="$(find dist -maxdepth 1 -name '*.tar.gz' -print -quit)"
+          test -n "$archive"
+          members="$(tar -tzf "$archive")"
+          for required in \
+            meson.build \
+            pyproject.toml \
+            src/Fortuna/_core.pyx \
+            src/Fortuna/_core.pyi \
+            src/Fortuna/cpp/fortuna_core.hpp \
+            src/Fortuna/py.typed \
+            src/Fortuna/vendor/Storm/Storm.hpp \
+            src/Fortuna/vendor/Storm/LICENSE
+          do
+            grep -q "/$required$" <<<"$members"
+          done
+          uv venv --python 3.14 /tmp/fortuna-sdist-check
+          uv pip install --python /tmp/fortuna-sdist-check/bin/python "$archive"
+          cd /tmp
+          /tmp/fortuna-sdist-check/bin/python -c "from importlib.metadata import version; from pathlib import Path; import Fortuna; root = Path(Fortuna.__file__).parent; assert version('Fortuna') == Fortuna.__version__ == '6.0.0'; assert Fortuna.storm_version() == '5.0.1'; assert (root / '_core.pyi').is_file() and (root / 'py.typed').is_file(); a = Fortuna.Generator(0); b = Fortuna.Generator(0); assert [a.random_int(-10, 10) for _ in range(8)] == [b.random_int(-10, 10) for _ in range(8)]"
+      - name: Store source distribution as a workflow artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: sdist
+          path: dist/*.tar.gz
+          if-no-files-found: error
+          retention-days: 14
+
+  wheels:
+    name: ${{ matrix.platform }} ${{ matrix.arch }} wheels
+    needs: verify-tag
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            platform: linux
+            arch: x86_64
+          - runner: ubuntu-24.04
+            platform: linux
+            arch: aarch64
+          - runner: macos-15-intel
+            platform: macos
+            arch: x86_64
+          - runner: macos-15
+            platform: macos
+            arch: arm64
+          - runner: windows-latest
+            platform: windows
+            arch: AMD64
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+        with:
+          persist-credentials: false
+      - name: Enable Linux aarch64 emulation
+        if: matrix.platform == 'linux' && matrix.arch == 'aarch64'
+        uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130 # v3
+        with:
+          platforms: arm64
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.14"
+      - name: Build CPython 3.11-3.14 wheels
+        uses: pypa/cibuildwheel@8d2b08b68458a16aeb24b64e68a09ab1c8e82084 # v3.4.1
+        env:
+          CIBW_ARCHS: ${{ matrix.arch }}
+          CIBW_BUILD: "cp311-* cp312-* cp313-* cp314-*"
+          CIBW_BUILD_FRONTEND: "build[uv]"
+          CIBW_SKIP: "*-musllinux_*"
+          CIBW_TEST_COMMAND: >-
+            python -c "from importlib.metadata import version; from pathlib import Path; import Fortuna; root = Path(Fortuna.__file__).parent; assert version('Fortuna') == Fortuna.__version__ == '6.0.0'; assert Fortuna.storm_version() == '5.0.1'; assert (root / '_core.pyi').is_file() and (root / 'py.typed').is_file(); a = Fortuna.Generator(0); b = Fortuna.Generator(0); assert [a.random_int(-10, 10) for _ in range(8)] == [b.random_int(-10, 10) for _ in range(8)]"
+        with:
+          output-dir: wheelhouse
+      - name: Store wheels as workflow artifacts
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: wheels-${{ matrix.platform }}-${{ matrix.arch }}
+          path: wheelhouse/*.whl
+          if-no-files-found: error
+          retention-days: 14
+
+# This workflow deliberately ends with GitHub artifacts. It has no PyPI
+# environment, trusted-publishing permission, credential access, or publish step.

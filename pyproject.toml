@@ -1,2 +1,75 @@
 [build-system]
-requires = ["setuptools", "wheel", "Cython"]
+build-backend = "mesonpy"
+requires = [
+    "Cython==3.2.8",
+    "meson-python==0.20.0",
+    "meson==1.11.2",
+    "ninja==1.13.0",
+]
+
+[project]
+name = "Fortuna"
+version = "6.0.0"
+description = "A fast, explicit random generation toolkit"
+readme = "README.md"
+requires-python = ">=3.11,<3.15"
+license = "MIT"
+license-files = ["LICENSE", "src/Fortuna/vendor/Storm/LICENSE"]
+authors = [
+    { name = "Robert Sharp", email = "webmaster@sharpdesigndigital.com" },
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Programming Language :: Cython",
+    "Programming Language :: C++",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Operating System :: MacOS",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: POSIX :: Linux",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+keywords = [
+    "random",
+    "random-number-generator",
+    "distributions",
+    "weighted-choice",
+    "simulation",
+]
+
+[project.urls]
+Homepage = "https://github.com/BrokenShell/Fortuna"
+Issues = "https://github.com/BrokenShell/Fortuna/issues"
+Source = "https://github.com/BrokenShell/Fortuna"
+
+[dependency-groups]
+dev = [
+    "Cython==3.2.8",
+    "meson-python==0.20.0",
+    "meson==1.11.2",
+    "ninja==1.13.0",
+    "pytest>=8.4.0",
+    "pytest-xdist>=3.8.0",
+    "ruff>=0.12.0",
+]
+
+[tool.pytest.ini_options]
+addopts = "-ra --strict-config --strict-markers"
+testpaths = ["tests", "benchmarks/tests"]
+markers = [
+    "statistical: deterministic statistical contract tests",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["B", "E", "F", "I", "UP"]
+
+[tool.meson-python.args]
+setup = ["-Dbuildtype=release", "-Db_ndebug=if-release"]
