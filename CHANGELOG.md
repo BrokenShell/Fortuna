@@ -1,6 +1,6 @@
 # Changelog
 
-## 6.0.0 - Unreleased
+## 6.0.1 - Unreleased
 
 Fortuna 6 is a clean, intentionally breaking reconstruction.
 
@@ -21,7 +21,9 @@ Fortuna 6 is a clean, intentionally breaking reconstruction.
 - Vendored Storm was upgraded from 4.0.4 to the immutable 5.0.1 release.
 - `seed(0)` is deterministic. Entropy construction is explicit.
 - Ranges now follow directed Python `range` semantics.
-- Indexes, dice sizes, and counts reject historical negative sentinels.
+- `random_below` and `random_index` restore their distinct negative
+  continuations; `random_range` retains directed Python `range` semantics.
+- Dice sizes and counts reject historical negative sentinels.
 - Callable resolution propagates user exceptions and has a recursion guard.
 - Positional recipes use names matching their actual algorithms.
 - `random_below(2**64)` covers the complete unsigned 64-bit result domain.
@@ -42,7 +44,7 @@ Fortuna 6 is a clean, intentionally breaking reconstruction.
 - MonkeyScope and the `scope` installation extra.
 - `fortuna_extras`, Docker experiments, and publishing shell scripts.
 - Numeric-limit and clamp helpers.
-- ZeroCool, signed sentinel behavior, MultiChoice, TruffleShuffle2,
+- ZeroCool, signed dice sentinels, MultiChoice, TruffleShuffle2,
   FloatDistributionRange, duplicate shuffle APIs, and the public
   WeightedChoice base.
 - Historical positional-profile names and redundant profile mixtures.

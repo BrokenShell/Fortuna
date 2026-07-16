@@ -78,8 +78,8 @@ validated before the engine advances.
 | --- | --- |
 | `percent_true(percent=50.0, *, count=None)` | Boolean with the given probability expressed in `[0, 100]`. |
 | `bernoulli_variate(probability=0.5, *, count=None)` | Boolean with success probability in `[0, 1]`. |
-| `random_below(limit, *, count=None)` | Uniform integer in `[0, limit)`; `1 <= limit <= 2**64`, including the complete unsigned 64-bit result domain at the upper limit. |
-| `random_index(size, *, count=None)` | Uniform integer in `[0, size)`; `1 <= size <= SIZE_MAX`, where `SIZE_MAX` is the platform C++ `std::size_t` maximum. |
+| `random_below(limit, *, count=None)` | Uniform integer in `[0, limit)` for positive `limit`, `(limit, 0]` for negative `limit`, and exactly `0` when `limit == 0`; `abs(limit) <= 2**64`. |
+| `random_index(size, *, count=None)` | Uniform integer in `[0, size)` for positive `size` and `[size, 0)` for negative `size`; `size` must be nonzero and `abs(size) <= SIZE_MAX`. |
 | `random_int(low, high, *, count=None)` | Uniform signed 64-bit integer in the inclusive interval `[low, high]`. |
 | `random_uint(low, high, *, count=None)` | Uniform unsigned 64-bit integer in the inclusive interval `[low, high]`. |
 | `random_range(start, stop=None, step=1, *, count=None)` | Uniform member of the nonempty integer range described by Python `range` arguments. Inputs must fit the signed 64-bit domain. |
@@ -90,13 +90,28 @@ validated before the engine advances.
 | `plus_or_minus_triangular(radius=1, *, count=None)` | Signed integer in `[-radius, radius]`, triangularly concentrated near zero. |
 | `plus_or_minus_normal(radius=1, *, count=None)` | Signed integer in `[-radius, radius]`, normally concentrated near zero. |
 
-`random_below` and `random_index` describe the same ordinary index interval,
-but they have different native domains. `random_below` accepts limits through
-`2**64`, covering all unsigned 64-bit results at that upper limit.
-`random_index` accepts sizes through C++ `SIZE_MAX`: on a 64-bit build that is
-`2**64 - 1`, not Python's typically smaller `sys.maxsize`. Collection helpers
-naturally pass Python collection lengths, but the numeric primitive itself is
-not restricted to Python's signed sequence-length domain.
+For positive inputs, `random_below` and `random_index` both produce the usual
+zero-based interval. Their negative continuations deliberately preserve
+different structures:
+
+```python
+Fortuna.random_below(-10)  # one of -9, -8, ..., -1, 0
+Fortuna.random_index(-10)  # one of -10, -9, ..., -2, -1
+Fortuna.random_range(-10)  # ValueError: the implied range(0, -10) is empty
+```
+
+`random_below` reflects the positive result around zero. `random_index`
+preserves Python's positive/negative indexing equivalence: for a ten-item
+sequence, every positive index `i` corresponds to the negative index `i - 10`.
+An explicit two-bound range remains valid, so `random_range(-10, 0)` produces
+a member of `range(-10, 0)`.
+
+`random_below` accepts magnitudes through `2**64`, covering the complete
+unsigned 64-bit draw domain at that magnitude. `random_index` accepts
+magnitudes through C++ `SIZE_MAX`: on a 64-bit build that is `2**64 - 1`, not
+Python's typically smaller `sys.maxsize`. Collection helpers naturally pass
+positive Python collection lengths, but the numeric primitive itself is not
+restricted to Python's signed sequence-length domain.
 
 ### Floating-point generation
 

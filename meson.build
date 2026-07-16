@@ -1,7 +1,7 @@
 project(
   'Fortuna',
   ['c', 'cpp', 'cython'],
-  version: '6.0.0',
+  version: '6.0.1',
   meson_version: '>=1.6.0',
   default_options: [
     'cpp_std=c++20',

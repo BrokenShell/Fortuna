@@ -104,7 +104,6 @@ def test_specialized_bounded_sequences_are_stable(method, args, expected):
     [
         ("percent_true", (-1.0,)),
         ("bernoulli_variate", (1.5,)),
-        ("random_below", (0,)),
         ("random_index", (0,)),
         ("random_int", (10, 1)),
         ("random_range", (0, 10, 0)),
@@ -189,6 +188,10 @@ def test_python_style_directed_random_range():
     generator = Fortuna.Generator(4)
     assert all(0 <= value < 10 for value in generator.random_range(10, count=50))
     assert all(value in range(10, -1, -2) for value in generator.random_range(10, -1, -2, count=50))
+    with pytest.raises(ValueError):
+        generator.random_range(-10)
+    with pytest.raises(ValueError):
+        Fortuna.random_range(-10)
     with pytest.raises(ValueError):
         generator.random_range(10, 0, 1)
     with pytest.raises(ValueError):
@@ -590,6 +593,65 @@ def test_random_below_supports_the_full_uint64_domain():
         generator.random_below(2**64 + 1)
     with pytest.raises(OverflowError):
         generator.random_index(2**64)
+
+
+@pytest.mark.parametrize("method", ["random_below", "random_index"])
+@pytest.mark.parametrize("count", [None, 32])
+@pytest.mark.parametrize("owner_kind", ["module", "generator"])
+def test_negative_continuations_match_positive_draws(method, count, owner_kind):
+    seed = 0xF07A_6001
+
+    def draw(limit):
+        if owner_kind == "module":
+            Fortuna.seed(seed)
+            return getattr(Fortuna, method)(limit, count=count)
+        return getattr(Fortuna.Generator(seed), method)(limit, count=count)
+
+    positive = draw(10)
+    negative = draw(-10)
+    if count is None:
+        positive = [positive]
+        negative = [negative]
+
+    if method == "random_below":
+        assert negative == [-value for value in positive]
+        assert all(-9 <= value <= 0 for value in negative)
+    else:
+        assert negative == [value - 10 for value in positive]
+        assert all(-10 <= value <= -1 for value in negative)
+
+
+@pytest.mark.parametrize("owner_kind", ["module", "generator"])
+def test_random_below_zero_is_constant_and_does_not_advance(owner_kind):
+    seed = 0xF07A_6002
+    control = Fortuna.Generator(seed)
+    if owner_kind == "module":
+        Fortuna.seed(seed)
+        owner = Fortuna
+    else:
+        owner = Fortuna.Generator(seed)
+
+    assert owner.random_below(0) == 0
+    assert owner.random_below(0, count=4) == [0, 0, 0, 0]
+    with pytest.raises(ValueError, match="count must be nonnegative"):
+        owner.random_below(0, count=-1)
+    assert owner.random_uint(0, 2**64 - 1) == control.random_uint(0, 2**64 - 1)
+
+
+def test_negative_continuations_preserve_full_native_magnitudes():
+    generator = Fortuna.Generator(0)
+    below = generator.random_below(-(2**64), count=32)
+    assert all(-(2**64) < value <= 0 for value in below)
+    assert any(value < -(2**63) for value in below)
+
+    index = generator.random_index(-(2**64 - 1), count=32)
+    assert all(-(2**64 - 1) <= value < 0 for value in index)
+    assert any(value < -(2**63) for value in index)
+
+    with pytest.raises(OverflowError):
+        generator.random_below(-(2**64) - 1)
+    with pytest.raises(OverflowError):
+        generator.random_index(-(2**64))
 
 
 def test_ability_dice_has_no_historical_upper_clamp():

@@ -323,7 +323,7 @@ cdef uint64_t _as_uint64(object value, str name) except *:
     return result
 
 
-cdef uint64_t _below_high(object value) except *:
+cdef inline uint64_t _below_high(object value, int* direction) except *:
     cdef object integer
     cdef uint64_t result
     if isinstance(value, bool):
@@ -335,12 +335,85 @@ cdef uint64_t _below_high(object value) except *:
             integer = operator.index(value)
         except TypeError as error:
             raise TypeError("limit must be an integer") from error
-    if integer <= 0:
-        raise ValueError("limit must be greater than zero")
-    if integer > 2**64:
-        raise OverflowError("limit must not exceed 2**64")
-    result = integer - 1
+    if integer == 0:
+        direction[0] = 0
+        return 0
+    if integer > 0:
+        direction[0] = 1
+        if integer > 2**64:
+            raise OverflowError("limit magnitude must not exceed 2**64")
+        result = integer - 1
+        return result
+    direction[0] = -1
+    if integer < -(2**64):
+        raise OverflowError("limit magnitude must not exceed 2**64")
+    result = -integer - 1
     return result
+
+
+cdef inline uint64_t _index_magnitude(object value, int* direction) except *:
+    cdef object integer
+    cdef uint64_t result
+    if isinstance(value, bool):
+        raise TypeError("size must be an integer, not bool")
+    if type(value) is int:
+        if value < 0:
+            direction[0] = -1
+            integer = -value
+        else:
+            direction[0] = 1
+            integer = value
+        result = <uint64_t>raw_long_as_unsigned_long_long(<PyObject*>integer)
+        if result == <uint64_t>-1 and raw_error_occurred() != NULL:
+            raw_error_clear()
+            raise OverflowError("size must be in the unsigned 64-bit range") from None
+        return result
+    try:
+        integer = operator.index(value)
+    except TypeError as error:
+        raise TypeError("size must be an integer") from error
+    if integer < 0:
+        direction[0] = -1
+        integer = -integer
+    else:
+        direction[0] = 1
+    result = <uint64_t>raw_long_as_unsigned_long_long(<PyObject*>integer)
+    if result == <uint64_t>-1 and raw_error_occurred() != NULL:
+        raw_error_clear()
+        raise OverflowError("size must be in the unsigned 64-bit range") from None
+    return result
+
+
+cdef object _reflected_below_result(object result, int direction):
+    cdef Py_ssize_t index
+    cdef list values
+    if direction > 0:
+        return result
+    if type(result) is list:
+        values = result
+        for index in range(len(values)):
+            values[index] = -values[index]
+        return values
+    return -result
+
+
+cdef object _continued_index_result(
+    object result,
+    int direction,
+    uint64_t magnitude,
+):
+    cdef Py_ssize_t index
+    cdef list values
+    cdef object offset
+    if direction > 0:
+        return result
+    offset = magnitude
+    if type(result) is list:
+        values = result
+        for index in range(len(values)):
+            values[index] = values[index] - offset
+        return values
+    return result - offset
 
 
 cdef Py_ssize_t _as_count(object value) except *:
@@ -367,6 +440,12 @@ cdef Py_ssize_t _as_count(object value) except *:
         raw_error_clear()
         raise OverflowError("count exceeds the platform size limit") from None
     return result
+
+
+cdef object _zero_result(object count):
+    if count is None:
+        return 0
+    return [0] * _as_count(count)
 
 
 cdef Py_ssize_t _validated_generated_index(object value, Py_ssize_t size) except *:
@@ -927,22 +1006,38 @@ cdef class Generator:
         return bool(scalar)
 
     def random_below(self, limit, *, count=None):
-        cdef uint64_t high = _below_high(limit)
+        cdef int direction
+        cdef uint64_t high = _below_high(limit, &direction)
         cdef uint64_t scalar
+        cdef object result
+        if direction == 0:
+            return _zero_result(count)
         if count is not None:
-            return _unsigned_generator_result(self._generator, 0, 0, high, 0.0, count)
+            result = _unsigned_generator_result(
+                self._generator, 0, 0, high, 0.0, count
+            )
+            return _reflected_below_result(result, direction)
         with nogil:
             scalar = core_generator_random_below(self._generator[0], high)
-        return scalar
+        if direction > 0:
+            return scalar
+        return -(<object>scalar)
 
     def random_index(self, size, *, count=None):
-        cdef uint64_t checked = _as_uint64(size, "size")
+        cdef int direction
+        cdef uint64_t checked = _index_magnitude(size, &direction)
         cdef uint64_t scalar
+        cdef object result
         if count is not None:
-            return _unsigned_generator_result(self._generator, 1, checked, 0, 0.0, count)
+            result = _unsigned_generator_result(
+                self._generator, 1, checked, 0, 0.0, count
+            )
+            return _continued_index_result(result, direction, checked)
         with nogil:
             scalar = core_generator_random_index(self._generator[0], checked)
-        return scalar
+        if direction > 0:
+            return scalar
+        return (<object>scalar) - checked
 
     def random_int(self, low, high, *, count=None):
         cdef int64_t checked_low = _as_int64(low, "low")
@@ -1529,23 +1624,35 @@ def bernoulli_variate(probability=0.5, *, count=None):
 
 
 def random_below(limit, *, count=None):
-    cdef uint64_t high = _below_high(limit)
+    cdef int direction
+    cdef uint64_t high = _below_high(limit, &direction)
     cdef uint64_t scalar
+    cdef object result
+    if direction == 0:
+        return _zero_result(count)
     if count is not None:
-        return _unsigned_result(_module(), 0, 0, high, 0.0, count)
+        result = _unsigned_result(_module(), 0, 0, high, 0.0, count)
+        return _reflected_below_result(result, direction)
     _prepare_module_scalar()
     scalar = core_module_random_below(high)
-    return scalar
+    if direction > 0:
+        return scalar
+    return -(<object>scalar)
 
 
 def random_index(size, *, count=None):
-    cdef uint64_t checked = _as_uint64(size, "size")
+    cdef int direction
+    cdef uint64_t checked = _index_magnitude(size, &direction)
     cdef uint64_t scalar
+    cdef object result
     if count is not None:
-        return _unsigned_result(_module(), 1, checked, 0, 0.0, count)
+        result = _unsigned_result(_module(), 1, checked, 0, 0.0, count)
+        return _continued_index_result(result, direction, checked)
     _prepare_module_scalar()
     scalar = core_module_random_index(checked)
-    return scalar
+    if direction > 0:
+        return scalar
+    return (<object>scalar) - checked
 
 
 def random_int(low, high, *, count=None):

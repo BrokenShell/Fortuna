@@ -58,8 +58,12 @@ and process tests aligned with this contract.
 Optimization must preserve draw schedules, validation boundaries, and callback
 behavior, not just result ranges. In particular:
 
-- `random_index` accepts the C++ `std::size_t` domain, which may extend beyond
-  Python's `sys.maxsize`.
+- `random_below` reflects negative inputs around zero, while `random_index`
+  offsets negative inputs into Python's negative-index interval. Their positive
+  draws and native magnitudes remain the source sequences for those
+  continuations.
+- `random_index` accepts positive and negative magnitudes through the C++
+  `std::size_t` domain, which may extend beyond Python's `sys.maxsize`.
 - Singleton `random_value` and `sample(..., 1)` consume one bounded draw;
   `shuffle` on zero or one element consumes none.
 - The native `Generator.shuffle` path, including an unchanged inherited method,

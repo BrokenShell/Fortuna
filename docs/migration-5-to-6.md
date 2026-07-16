@@ -65,11 +65,26 @@ center/edge, and back triangular, exponential/normal, and Poisson profiles.
 | `plus_or_minus_gauss` | `plus_or_minus_normal` |
 | `version` | `__version__` |
 
+## Negative integer continuations
+
+Fortuna 6 retains the two intentional negative continuations from Fortuna 5:
+
+```python
+random_below(-10)  # [-9, 0]
+random_index(-10)  # [-10, -1]
+```
+
+`random_below` reflects the ordinary positive draw around zero, while
+`random_index` preserves Python's equivalence between positive and negative
+indexes. `random_range` instead follows Python's directed `range` contract:
+`random_range(-10)` is empty and raises `ValueError`, while
+`random_range(-10, 0)` is valid.
+
 ## Removed interfaces
 
 The following concepts do not have compatibility replacements:
 
-- Negative `random_below`, negative indexes, signed dice, and reordered ranges.
+- Signed dice and reordered ranges.
 - `ZeroCool`; use `IndexProfile` and `IndexSelector`.
 - `DistributionRange` and `FloatDistributionRange`.
 - `MultiChoice`.
