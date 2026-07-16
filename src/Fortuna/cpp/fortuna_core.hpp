@@ -66,6 +66,8 @@ public:
         }
     }
 
+    void prepare() { static_cast<void>(engine()); }
+
     void seed(const std::uint64_t seed_value) {
         generator_.seed(seed_value);
         entropy_managed_ = false;

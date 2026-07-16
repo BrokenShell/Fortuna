@@ -91,9 +91,20 @@ def random_value(data: Iterable[Any], *, generator: Any | None = None) -> Any:
 
 
 def shuffle(array: MutableSequence[Any], *, generator: Any | None = None) -> None:
-    """Shuffle a mutable sequence in place using unbiased Fisher-Yates draws."""
+    """Shuffle a mutable sequence in place using Fortuna's native Knuth-B loop."""
     if not isinstance(array, MutableSequence):
         raise TypeError("array must be a mutable sequence")
+    if generator is None:
+        from . import _core
+
+        _core.shuffle(array)
+        return
+    native_shuffle = getattr(generator, "shuffle", None)
+    if callable(native_shuffle):
+        native_shuffle(array)
+        return
+    # Preserve dependency injection for custom generator-like objects. The
+    # optimized Fortuna Generator path above owns the release-critical case.
     uniform = IndexSelector(IndexProfile.UNIFORM, generator=generator)
     for position in range(len(array) - 1, 0, -1):
         other = uniform(position + 1)

@@ -27,6 +27,8 @@ Fortuna 6 is a clean, intentionally breaking reconstruction.
 - `random_below(2**64)` covers the complete unsigned 64-bit result domain.
 - Distribution inputs use explicit safe domains; floating results are finite or
   raise `OverflowError` instead of leaking NaN, infinity, or saturated sentinels.
+- `shuffle` uses the native Knuth-B loop with one lock per explicit-generator
+  operation instead of routing every swap through Python selector machinery.
 
 ### Removed
 

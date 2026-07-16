@@ -19,6 +19,7 @@ cdef extern from "src/Fortuna/cpp/fortuna_core.hpp" namespace "FortunaCore":
         void reseed_from_entropy() except + nogil
         void lock() except + nogil
         void unlock() noexcept nogil
+        void prepare() except + nogil
 
     const char* core_storm_version "FortunaCore::storm_version"() noexcept nogil
     GeneratorCore* core_module_generator "FortunaCore::module_generator"() except + nogil
@@ -349,6 +350,39 @@ cdef object _bool_generator_result(
             generator.unlock()
 
 
+cdef void _shuffle_knuth_b(GeneratorCore* generator, object data, bint synchronize) except *:
+    cdef Py_ssize_t last
+    cdef Py_ssize_t position
+    cdef Py_ssize_t other
+    if not isinstance(data, MutableSequence):
+        raise TypeError("data must be a mutable sequence")
+    last = len(data) - 1
+    if last <= 0:
+        return
+    if synchronize:
+        with nogil:
+            generator.lock()
+        try:
+            # Entropy-managed generators may need process-local reseeding after
+            # fork. Do that outside the GIL before the Python-object swap loop.
+            with nogil:
+                generator.prepare()
+            for position in range(last - 1, -1, -1):
+                other = <Py_ssize_t>core_unsigned(
+                    generator[0], 0, <uint64_t>position, <uint64_t>last, 0.0
+                )
+                data[position], data[other] = data[other], data[position]
+        finally:
+            with nogil:
+                generator.unlock()
+        return
+    for position in range(last - 1, -1, -1):
+        other = <Py_ssize_t>core_unsigned(
+            generator[0], 0, <uint64_t>position, <uint64_t>last, 0.0
+        )
+        data[position], data[other] = data[other], data[position]
+
+
 cdef bytes _stream_payload(object stream_id):
     cdef bytes magnitude
     cdef bytes encoded
@@ -615,13 +649,7 @@ cdef class Generator:
         return data[self.random_index(len(data))]
 
     def shuffle(self, data):
-        cdef Py_ssize_t position
-        cdef Py_ssize_t other
-        if not isinstance(data, MutableSequence):
-            raise TypeError("data must be a mutable sequence")
-        for position in range(len(data) - 1, 0, -1):
-            other = self.random_index(position + 1)
-            data[position], data[other] = data[other], data[position]
+        _shuffle_knuth_b(self._generator, data, True)
 
     def sample(self, population, k):
         cdef Py_ssize_t checked_k = _as_count(k)
@@ -652,6 +680,10 @@ def from_entropy():
 
 def for_stream(root_seed, stream_id):
     return Generator.for_stream(root_seed, stream_id)
+
+
+def shuffle(data):
+    _shuffle_knuth_b(_module(), data, False)
 
 
 def percent_true(percent=50.0, *, count=None):

@@ -194,7 +194,7 @@ def test_random_value_uses_uniform_index_and_rejects_empty_data():
         random_value((), generator=generator)
 
 
-def test_shuffle_is_in_place_fisher_yates_and_returns_none():
+def test_shuffle_custom_generator_fallback_is_fisher_yates_and_returns_none():
     generator = FakeGenerator(indices=(0, 1, 0))
     values = [0, 1, 2, 3]
     assert shuffle(values, generator=generator) is None

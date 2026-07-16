@@ -135,6 +135,18 @@ def test_generator_collection_operations():
         generator.sample(range(2), 3)
 
 
+def test_knuth_b_shuffle_is_deterministic_for_module_and_generator():
+    expected = [5, 8, 1, 7, 3, 4, 6, 9, 0, 2]
+    generator_values = list(range(10))
+    Fortuna.Generator(101).shuffle(generator_values)
+    assert generator_values == expected
+
+    module_values = list(range(10))
+    Fortuna.seed(101)
+    Fortuna.shuffle(module_values)
+    assert module_values == expected
+
+
 def test_generator_random_value_materializes_iterables():
     generator = Fortuna.Generator(1)
     assert generator.random_value(value for value in ("only",)) == "only"

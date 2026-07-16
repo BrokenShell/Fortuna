@@ -177,7 +177,7 @@ draw from the calling thread's module default.
 | API | Meaning |
 | --- | --- |
 | `random_value(data, *, generator=None)` | Materialize a nonempty iterable and return one uniformly selected value. |
-| `shuffle(array, *, generator=None)` | Unbiased in-place Fisher-Yates shuffle of a mutable sequence; returns `None`. |
+| `shuffle(array, *, generator=None)` | Unbiased in-place Knuth-B shuffle of a mutable sequence; returns `None`. Fortuna generators use the native loop; custom generator-like objects retain a Fisher-Yates fallback. |
 | `sample(population, k, *, generator=None)` | Return `k` uniformly selected values without replacement from an iterable. |
 | `resolve(value, *args, resolve_callables=True, max_depth=100, **kwargs)` | Repeatedly call a callable result until it resolves to a non-callable. Arguments are passed only to the first call. Cycle and depth violations raise `RuntimeError`. |
 
