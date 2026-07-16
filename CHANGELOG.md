@@ -29,6 +29,9 @@ Fortuna 6 is a clean, intentionally breaking reconstruction.
   raise `OverflowError` instead of leaking NaN, infinity, or saturated sentinels.
 - `shuffle` uses the native Knuth-B loop with one lock per explicit-generator
   operation instead of routing every swap through Python selector machinery.
+- `canonical` uses dedicated scalar and bulk paths that preserve its seeded
+  sequence while avoiding generic validation, dispatch, and per-value engine
+  preparation.
 
 ### Removed
 

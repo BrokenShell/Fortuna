@@ -98,6 +98,10 @@ that can cover all `2**64` possible unsigned 64-bit values, while
 | `random_float(low=0.0, high=1.0, *, count=None)` | Uniform float in `[low, high)`; equal bounds return that bound. |
 | `triangular(low, high, mode, *, count=None)` | Triangular float on `[low, high]` with `low <= mode <= high`; equal bounds return that bound. |
 
+`canonical` consumes one MT19937-64 engine result, discards its lowest 11 bits,
+and scales the remaining 53 bits by `2**-53`. Bulk generation preserves the
+exact scalar sequence while preparing the engine only once per operation.
+
 ### Probability distributions
 
 | API | Parameters and result |

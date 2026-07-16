@@ -32,6 +32,22 @@ def test_bulk_is_scalar_equivalent(method, args):
     ]
 
 
+def test_canonical_sequence_is_stable():
+    expected = [
+        0.755155532954539,
+        0.6390313938546974,
+        0.7521452007480266,
+        0.13627268363243705,
+        0.9032689664283783,
+    ]
+    generator = Fortuna.Generator(42)
+    assert generator.canonical(count=0) == []
+    assert generator.canonical(count=5) == expected
+    Fortuna.seed(42)
+    assert Fortuna.canonical(count=0) == []
+    assert Fortuna.canonical(count=5) == expected
+
+
 def test_integer_boundaries_do_not_round_through_float():
     generator = Fortuna.Generator(7)
     minimum = -(2**63)

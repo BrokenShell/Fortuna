@@ -64,6 +64,22 @@ def _shuffle(module: Any | None, import_error: str | None) -> BenchmarkCase:
     return BenchmarkCase("fortuna-scalar", "shuffle-100", setup=setup)
 
 
+def _generator_canonical(module: Any | None, import_error: str | None) -> BenchmarkCase:
+    generator_type = getattr(module, "Generator", None) if module is not None else None
+    if not callable(generator_type):
+        return BenchmarkCase(
+            "fortuna-scalar",
+            "generator-canonical",
+            skip_reason=import_error or "Fortuna.Generator is unavailable",
+        )
+
+    def setup():
+        generator = generator_type(0)
+        return generator.canonical
+
+    return BenchmarkCase("fortuna-scalar", "generator-canonical", setup=setup)
+
+
 def fortuna_scalar_cases() -> list[BenchmarkCase]:
     fortuna, error = _load_fortuna()
     specs = (
@@ -81,6 +97,7 @@ def fortuna_scalar_cases() -> list[BenchmarkCase]:
         ("exponential_variate", (1.0,)),
     )
     cases = [_scalar(fortuna, error, name, arguments) for name, arguments in specs]
+    cases.append(_generator_canonical(fortuna, error))
     cases.append(_shuffle(fortuna, error))
     return cases
 

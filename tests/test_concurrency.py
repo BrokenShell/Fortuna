@@ -58,6 +58,18 @@ def test_shared_generator_serializes_entire_bulk_operations():
     assert sorted(actual_chunks) == sorted(expected_chunks)
 
 
+def test_shared_generator_serializes_specialized_canonical_bulk_operations():
+    count = 10_000
+    workers = 4
+    shared = Fortuna.Generator(54321)
+    control = Fortuna.Generator(54321)
+    expected_chunks = [tuple(control.canonical(count=count)) for _ in range(workers)]
+    with ThreadPoolExecutor(max_workers=workers) as executor:
+        futures = [executor.submit(shared.canonical, count=count) for _ in range(workers)]
+        actual_chunks = [tuple(future.result()) for future in futures]
+    assert sorted(actual_chunks) == sorted(expected_chunks)
+
+
 def test_count_conversion_can_reenter_the_same_generator():
     generator = Fortuna.Generator(912)
     control = Fortuna.Generator(912)
@@ -124,6 +136,34 @@ def test_module_and_entropy_generators_reseed_after_fork():
     assert Fortuna.random_uint(0, 2**64 - 1) == inherited_module_value
     assert child_module != inherited_module_value
     assert child_entropy != entropy_generator.random_uint(0, 2**64 - 1)
+
+
+@pytest.mark.skipif(
+    "fork" not in multiprocessing.get_all_start_methods(), reason="fork unavailable"
+)
+def test_specialized_canonical_reseeds_module_and_entropy_generator_after_fork():
+    Fortuna.seed(505)
+    control = Fortuna.Generator(505)
+    assert Fortuna.canonical() == control.canonical()
+    inherited_value = control.canonical()
+    entropy_generator = Fortuna.from_entropy()
+
+    read_fd, write_fd = os.pipe()
+    process_id = os.fork()
+    if process_id == 0:  # pragma: no cover - assertions occur in parent
+        os.close(read_fd)
+        values = (Fortuna.canonical(), entropy_generator.canonical())
+        os.write(write_fd, f"{values[0]!r},{values[1]!r}".encode("ascii"))
+        os.close(write_fd)
+        os._exit(0)
+    os.close(write_fd)
+    child_module, child_entropy = map(float, os.read(read_fd, 256).decode("ascii").split(","))
+    os.close(read_fd)
+    os.waitpid(process_id, 0)
+
+    assert Fortuna.canonical() == inherited_value
+    assert child_module != inherited_value
+    assert child_entropy != entropy_generator.canonical()
 
 
 @pytest.mark.skipif(

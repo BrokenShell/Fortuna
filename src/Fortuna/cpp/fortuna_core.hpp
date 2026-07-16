@@ -87,12 +87,29 @@ public:
         return generator_.engine();
     }
 
+    // The module-level owner already performs its fork check before exposing
+    // this generator. Explicit generators must continue to use engine().
+    auto prepared_engine() noexcept -> Storm::engine_type& { return generator_.engine(); }
+
 private:
     Storm::Generator generator_;
     bool entropy_managed_{false};
     std::uint64_t process_id_;
     bool synchronized_;
     std::mutex mutex_;
+};
+
+class GeneratorLockGuard {
+public:
+    explicit GeneratorLockGuard(GeneratorCore& generator) : generator_{generator} {
+        generator_.lock();
+    }
+    ~GeneratorLockGuard() { generator_.unlock(); }
+    GeneratorLockGuard(const GeneratorLockGuard&) = delete;
+    auto operator=(const GeneratorLockGuard&) -> GeneratorLockGuard& = delete;
+
+private:
+    GeneratorCore& generator_;
 };
 
 struct ModuleState {
@@ -108,6 +125,18 @@ inline auto module_generator() -> GeneratorCore* {
         module_state.needs_entropy = false;
     }
     return &module_state.generator;
+}
+
+inline auto module_engine() -> Storm::engine_type& {
+    return module_generator()->prepared_engine();
+}
+
+inline auto module_needs_prepare() noexcept -> bool { return module_state.needs_entropy; }
+
+inline void module_prepare() { static_cast<void>(module_generator()); }
+
+inline auto module_prepared_engine() noexcept -> Storm::engine_type& {
+    return module_state.generator.prepared_engine();
 }
 
 inline void module_seed(const std::uint64_t seed_value) {
@@ -175,6 +204,31 @@ inline auto storm_version() noexcept -> const char* { return Storm::version; }
 
 inline auto canonical(GeneratorCore& generator) -> double {
     return Storm::canonical(generator.engine());
+}
+
+inline auto module_canonical_prepared() noexcept -> double {
+    return Storm::canonical(module_prepared_engine());
+}
+
+inline void module_canonical_fill(double* output, const std::size_t count) {
+    auto& engine = module_engine();
+    for (std::size_t index = 0; index < count; ++index) {
+        output[index] = Storm::canonical(engine);
+    }
+}
+
+inline auto generator_canonical(GeneratorCore& generator) -> double {
+    const GeneratorLockGuard guard{generator};
+    return Storm::canonical(generator.engine());
+}
+
+inline void generator_canonical_fill(GeneratorCore& generator, double* output,
+                                     const std::size_t count) {
+    const GeneratorLockGuard guard{generator};
+    auto& engine = generator.engine();
+    for (std::size_t index = 0; index < count; ++index) {
+        output[index] = Storm::canonical(engine);
+    }
 }
 
 inline auto random_int(GeneratorCore& generator, const std::int64_t low,

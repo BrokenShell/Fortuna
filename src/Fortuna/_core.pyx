@@ -9,7 +9,14 @@ import os
 
 from libc.stddef cimport size_t
 from libc.stdint cimport int64_t, uint64_t, uint8_t
+from cpython.list cimport PyList_New
+from cpython.object cimport PyObject
 from libcpp.vector cimport vector
+
+
+cdef extern from "Python.h":
+    PyObject* raw_float_from_double "PyFloat_FromDouble"(double) except NULL
+    void raw_list_set_item "PyList_SET_ITEM"(PyObject*, Py_ssize_t, PyObject*)
 
 
 cdef extern from "src/Fortuna/cpp/fortuna_core.hpp" namespace "FortunaCore":
@@ -38,6 +45,18 @@ cdef extern from "src/Fortuna/cpp/fortuna_core.hpp" namespace "FortunaCore":
     ) except + nogil
     bint core_bool "FortunaCore::sample_bool_unchecked"(
         GeneratorCore&, int, double
+    ) except + nogil
+    bint core_module_needs_prepare "FortunaCore::module_needs_prepare"() noexcept nogil
+    void core_module_prepare "FortunaCore::module_prepare"() except + nogil
+    double core_module_canonical_prepared "FortunaCore::module_canonical_prepared"() noexcept nogil
+    void core_module_canonical_fill "FortunaCore::module_canonical_fill"(
+        double*, size_t
+    ) except + nogil
+    double core_generator_canonical "FortunaCore::generator_canonical"(
+        GeneratorCore&
+    ) except + nogil
+    void core_generator_canonical_fill "FortunaCore::generator_canonical_fill"(
+        GeneratorCore&, double*, size_t
     ) except + nogil
     void core_validate_signed "FortunaCore::validate_signed"(
         int, int64_t, int64_t, int64_t
@@ -299,6 +318,37 @@ cdef object _float_generator_result(
             generator.unlock()
 
 
+cdef list _canonical_list(vector[double]& values):
+    cdef Py_ssize_t size = <Py_ssize_t>values.size()
+    cdef Py_ssize_t index
+    cdef list result = PyList_New(size)
+    cdef PyObject* item
+    for index in range(size):
+        item = raw_float_from_double(values[index])
+        raw_list_set_item(<PyObject*>result, index, item)
+    return result
+
+
+cdef list _module_canonical_bulk(object count):
+    cdef vector[double] values
+    cdef Py_ssize_t size = _as_count(count)
+    values.resize(size)
+    if size:
+        with nogil:
+            core_module_canonical_fill(&values[0], <size_t>size)
+    return _canonical_list(values)
+
+
+cdef list _generator_canonical_bulk(GeneratorCore* generator, object count):
+    cdef vector[double] values
+    cdef Py_ssize_t size = _as_count(count)
+    values.resize(size)
+    if size:
+        with nogil:
+            core_generator_canonical_fill(generator[0], &values[0], <size_t>size)
+    return _canonical_list(values)
+
+
 cdef object _bool_dispatch(
     GeneratorCore* generator,
     int operation,
@@ -552,7 +602,12 @@ cdef class Generator:
         )
 
     def canonical(self, *, count=None):
-        return _float_generator_result(self._generator, 0, 0.0, 0.0, 0.0, count)
+        cdef double scalar
+        if count is not None:
+            return _generator_canonical_bulk(self._generator, count)
+        with nogil:
+            scalar = core_generator_canonical(self._generator[0])
+        return scalar
 
     def random_float(self, low=0.0, high=1.0, *, count=None):
         return _float_generator_result(self._generator, 1, _as_double(low, "low"),
@@ -788,7 +843,12 @@ def plus_or_minus_normal(radius=1, *, count=None):
 
 
 def canonical(*, count=None):
-    return _float_result(_module(), 0, 0.0, 0.0, 0.0, count)
+    if count is not None:
+        return _module_canonical_bulk(count)
+    if core_module_needs_prepare():
+        with nogil:
+            core_module_prepare()
+    return core_module_canonical_prepared()
 
 
 def random_float(low=0.0, high=1.0, *, count=None):
