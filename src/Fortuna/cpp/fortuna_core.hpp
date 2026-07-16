@@ -1082,11 +1082,11 @@ inline void validate_bool(const int operation, const double parameter) {
     throw std::invalid_argument{"unknown boolean sampling operation"};
 }
 
-// Scalar entry points deliberately bypass the operation-code dispatch used by
-// the bulk implementation. Module calls prepare the thread-local owner before
-// entering these functions, so their hot path can use the prepared engine
-// directly. Explicit-generator calls hold the generator lock across fork
-// preparation, validation, and the draw.
+// Scalar entry points bypass the Cython bulk dispatcher. The simplest hot
+// operations have named native entry points; the larger distribution families
+// share the compact operation-code switch below. Module calls prepare the
+// thread-local owner before entering these functions, while explicit-generator
+// calls hold the generator lock across fork preparation, validation, and draw.
 inline auto module_random_below_prepared(const std::uint64_t high) -> std::uint64_t {
     return Storm::uniform_unsigned(module_prepared_engine(), 0, high);
 }
@@ -1324,6 +1324,34 @@ inline auto generator_normal(GeneratorCore& generator, const double mean,
     const GeneratorLockGuard guard{generator};
     validate_float(9, mean, deviation, 0.0);
     return finite_output(normal(generator, mean, deviation));
+}
+
+inline auto module_unsigned_scalar_prepared(const int operation, const std::uint64_t a,
+                                            const std::uint64_t b,
+                                            const double parameter) -> std::uint64_t {
+    validate_unsigned(operation, a, b, parameter);
+    return sample_unsigned_unchecked(module_state.generator, operation, a, b, parameter);
+}
+
+inline auto generator_unsigned_scalar(GeneratorCore& generator, const int operation,
+                                      const std::uint64_t a, const std::uint64_t b,
+                                      const double parameter) -> std::uint64_t {
+    const GeneratorLockGuard guard{generator};
+    validate_unsigned(operation, a, b, parameter);
+    return sample_unsigned_unchecked(generator, operation, a, b, parameter);
+}
+
+inline auto module_float_scalar_prepared(const int operation, const double a, const double b,
+                                         const double c) -> double {
+    validate_float(operation, a, b, c);
+    return sample_float_unchecked(module_state.generator, operation, a, b, c);
+}
+
+inline auto generator_float_scalar(GeneratorCore& generator, const int operation, const double a,
+                                   const double b, const double c) -> double {
+    const GeneratorLockGuard guard{generator};
+    validate_float(operation, a, b, c);
+    return sample_float_unchecked(generator, operation, a, b, c);
 }
 
 inline auto module_percent_true_prepared(const double percent) -> bool {

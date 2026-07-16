@@ -133,6 +133,18 @@ cdef extern from "src/Fortuna/cpp/fortuna_core.hpp" namespace "FortunaCore":
     double core_generator_normal "FortunaCore::generator_normal"(
         GeneratorCore&, double, double
     ) except + nogil
+    uint64_t core_module_unsigned_scalar "FortunaCore::module_unsigned_scalar_prepared"(
+        int, uint64_t, uint64_t, double
+    ) except + nogil
+    uint64_t core_generator_unsigned_scalar "FortunaCore::generator_unsigned_scalar"(
+        GeneratorCore&, int, uint64_t, uint64_t, double
+    ) except + nogil
+    double core_module_float_scalar "FortunaCore::module_float_scalar_prepared"(
+        int, double, double, double
+    ) except + nogil
+    double core_generator_float_scalar "FortunaCore::generator_float_scalar"(
+        GeneratorCore&, int, double, double, double
+    ) except + nogil
     bint core_module_percent_true "FortunaCore::module_percent_true_prepared"(
         double
     ) except + nogil
@@ -1035,35 +1047,87 @@ cdef class Generator:
         return scalar
 
     def beta_variate(self, alpha, beta, *, count=None):
-        return _float_generator_result(self._generator, 3, _as_double(alpha, "alpha"),
-                                       _as_double(beta, "beta"), 0.0, count)
+        cdef double checked_alpha = _as_double(alpha, "alpha")
+        cdef double checked_beta = _as_double(beta, "beta")
+        cdef double scalar
+        if count is not None:
+            return _float_generator_result(
+                self._generator, 3, checked_alpha, checked_beta, 0.0, count
+            )
+        with nogil:
+            scalar = core_generator_float_scalar(
+                self._generator[0], 3, checked_alpha, checked_beta, 0.0
+            )
+        return scalar
 
     def pareto_variate(self, alpha, *, count=None):
-        return _float_generator_result(
-            self._generator, 4, _as_double(alpha, "alpha"), 0.0, 0.0, count
-        )
+        cdef double checked = _as_double(alpha, "alpha")
+        cdef double scalar
+        if count is not None:
+            return _float_generator_result(self._generator, 4, checked, 0.0, 0.0, count)
+        with nogil:
+            scalar = core_generator_float_scalar(self._generator[0], 4, checked, 0.0, 0.0)
+        return scalar
 
     def vonmises_variate(self, mu, kappa, *, count=None):
-        return _float_generator_result(self._generator, 5, _as_double(mu, "mu"),
-                                       _as_double(kappa, "kappa"), 0.0, count)
+        cdef double checked_mu = _as_double(mu, "mu")
+        cdef double checked_kappa = _as_double(kappa, "kappa")
+        cdef double scalar
+        if count is not None:
+            return _float_generator_result(
+                self._generator, 5, checked_mu, checked_kappa, 0.0, count
+            )
+        with nogil:
+            scalar = core_generator_float_scalar(
+                self._generator[0], 5, checked_mu, checked_kappa, 0.0
+            )
+        return scalar
 
     def binomial_variate(self, trials, probability, *, count=None):
-        return _unsigned_generator_result(self._generator, 5, _as_uint64(trials, "trials"), 0,
-                                          _as_double(probability, "probability"), count)
+        cdef uint64_t checked_trials = _as_uint64(trials, "trials")
+        cdef double checked_probability = _as_double(probability, "probability")
+        cdef uint64_t scalar
+        if count is not None:
+            return _unsigned_generator_result(
+                self._generator, 5, checked_trials, 0, checked_probability, count
+            )
+        with nogil:
+            scalar = core_generator_unsigned_scalar(
+                self._generator[0], 5, checked_trials, 0, checked_probability
+            )
+        return scalar
 
     def negative_binomial_variate(self, successes, probability, *, count=None):
-        return _unsigned_generator_result(self._generator, 6,
-                                          _as_uint64(successes, "successes"), 0,
-                                          _as_double(probability, "probability"), count)
+        cdef uint64_t checked_successes = _as_uint64(successes, "successes")
+        cdef double checked_probability = _as_double(probability, "probability")
+        cdef uint64_t scalar
+        if count is not None:
+            return _unsigned_generator_result(
+                self._generator, 6, checked_successes, 0, checked_probability, count
+            )
+        with nogil:
+            scalar = core_generator_unsigned_scalar(
+                self._generator[0], 6, checked_successes, 0, checked_probability
+            )
+        return scalar
 
     def geometric_variate(self, probability, *, count=None):
-        return _unsigned_generator_result(self._generator, 7, 0, 0,
-                                          _as_double(probability, "probability"), count)
+        cdef double checked = _as_double(probability, "probability")
+        cdef uint64_t scalar
+        if count is not None:
+            return _unsigned_generator_result(self._generator, 7, 0, 0, checked, count)
+        with nogil:
+            scalar = core_generator_unsigned_scalar(self._generator[0], 7, 0, 0, checked)
+        return scalar
 
     def poisson_variate(self, mean, *, count=None):
-        return _unsigned_generator_result(
-            self._generator, 8, 0, 0, _as_double(mean, "mean"), count
-        )
+        cdef double checked = _as_double(mean, "mean")
+        cdef uint64_t scalar
+        if count is not None:
+            return _unsigned_generator_result(self._generator, 8, 0, 0, checked, count)
+        with nogil:
+            scalar = core_generator_unsigned_scalar(self._generator[0], 8, 0, 0, checked)
+        return scalar
 
     def exponential_variate(self, rate, *, count=None):
         cdef double checked = _as_double(rate, "rate")
@@ -1075,12 +1139,32 @@ cdef class Generator:
         return scalar
 
     def gamma_variate(self, shape, scale, *, count=None):
-        return _float_generator_result(self._generator, 7, _as_double(shape, "shape"),
-                                       _as_double(scale, "scale"), 0.0, count)
+        cdef double checked_shape = _as_double(shape, "shape")
+        cdef double checked_scale = _as_double(scale, "scale")
+        cdef double scalar
+        if count is not None:
+            return _float_generator_result(
+                self._generator, 7, checked_shape, checked_scale, 0.0, count
+            )
+        with nogil:
+            scalar = core_generator_float_scalar(
+                self._generator[0], 7, checked_shape, checked_scale, 0.0
+            )
+        return scalar
 
     def weibull_variate(self, shape, scale, *, count=None):
-        return _float_generator_result(self._generator, 8, _as_double(shape, "shape"),
-                                       _as_double(scale, "scale"), 0.0, count)
+        cdef double checked_shape = _as_double(shape, "shape")
+        cdef double checked_scale = _as_double(scale, "scale")
+        cdef double scalar
+        if count is not None:
+            return _float_generator_result(
+                self._generator, 8, checked_shape, checked_scale, 0.0, count
+            )
+        with nogil:
+            scalar = core_generator_float_scalar(
+                self._generator[0], 8, checked_shape, checked_scale, 0.0
+            )
+        return scalar
 
     def normal_variate(self, mean, std_dev, *, count=None):
         cdef double checked_mean = _as_double(mean, "mean")
@@ -1097,33 +1181,78 @@ cdef class Generator:
         return scalar
 
     def log_normal_variate(self, log_mean, log_deviation, *, count=None):
-        return _float_generator_result(self._generator, 10, _as_double(log_mean, "log_mean"),
-                                       _as_double(log_deviation, "log_deviation"), 0.0, count)
+        cdef double checked_mean = _as_double(log_mean, "log_mean")
+        cdef double checked_deviation = _as_double(log_deviation, "log_deviation")
+        cdef double scalar
+        if count is not None:
+            return _float_generator_result(
+                self._generator, 10, checked_mean, checked_deviation, 0.0, count
+            )
+        with nogil:
+            scalar = core_generator_float_scalar(
+                self._generator[0], 10, checked_mean, checked_deviation, 0.0
+            )
+        return scalar
 
     def extreme_value_variate(self, location, scale, *, count=None):
-        return _float_generator_result(self._generator, 11, _as_double(location, "location"),
-                                       _as_double(scale, "scale"), 0.0, count)
+        cdef double checked_location = _as_double(location, "location")
+        cdef double checked_scale = _as_double(scale, "scale")
+        cdef double scalar
+        if count is not None:
+            return _float_generator_result(
+                self._generator, 11, checked_location, checked_scale, 0.0, count
+            )
+        with nogil:
+            scalar = core_generator_float_scalar(
+                self._generator[0], 11, checked_location, checked_scale, 0.0
+            )
+        return scalar
 
     def chi_squared_variate(self, degrees_of_freedom, *, count=None):
-        return _float_generator_result(
-            self._generator, 12,
-            _as_double(degrees_of_freedom, "degrees_of_freedom"), 0.0, 0.0, count
-        )
+        cdef double checked = _as_double(degrees_of_freedom, "degrees_of_freedom")
+        cdef double scalar
+        if count is not None:
+            return _float_generator_result(self._generator, 12, checked, 0.0, 0.0, count)
+        with nogil:
+            scalar = core_generator_float_scalar(self._generator[0], 12, checked, 0.0, 0.0)
+        return scalar
 
     def cauchy_variate(self, location, scale, *, count=None):
-        return _float_generator_result(self._generator, 13, _as_double(location, "location"),
-                                       _as_double(scale, "scale"), 0.0, count)
+        cdef double checked_location = _as_double(location, "location")
+        cdef double checked_scale = _as_double(scale, "scale")
+        cdef double scalar
+        if count is not None:
+            return _float_generator_result(
+                self._generator, 13, checked_location, checked_scale, 0.0, count
+            )
+        with nogil:
+            scalar = core_generator_float_scalar(
+                self._generator[0], 13, checked_location, checked_scale, 0.0
+            )
+        return scalar
 
     def fisher_f_variate(self, degrees_1, degrees_2, *, count=None):
-        return _float_generator_result(self._generator, 14,
-                                       _as_double(degrees_1, "degrees_1"),
-                                       _as_double(degrees_2, "degrees_2"), 0.0, count)
+        cdef double checked_first = _as_double(degrees_1, "degrees_1")
+        cdef double checked_second = _as_double(degrees_2, "degrees_2")
+        cdef double scalar
+        if count is not None:
+            return _float_generator_result(
+                self._generator, 14, checked_first, checked_second, 0.0, count
+            )
+        with nogil:
+            scalar = core_generator_float_scalar(
+                self._generator[0], 14, checked_first, checked_second, 0.0
+            )
+        return scalar
 
     def student_t_variate(self, degrees_of_freedom, *, count=None):
-        return _float_generator_result(
-            self._generator, 15,
-            _as_double(degrees_of_freedom, "degrees_of_freedom"), 0.0, 0.0, count
-        )
+        cdef double checked = _as_double(degrees_of_freedom, "degrees_of_freedom")
+        cdef double scalar
+        if count is not None:
+            return _float_generator_result(self._generator, 15, checked, 0.0, 0.0, count)
+        with nogil:
+            scalar = core_generator_float_scalar(self._generator[0], 15, checked, 0.0, 0.0)
+        return scalar
 
     def front_triangular(self, size, *, count=None):
         cdef uint64_t checked = _as_uint64(size, "size")
@@ -1494,35 +1623,81 @@ def triangular(low, high, mode, *, count=None):
 
 
 def beta_variate(alpha, beta, *, count=None):
-    return _float_result(_module(), 3, _as_double(alpha, "alpha"),
-                         _as_double(beta, "beta"), 0.0, count)
+    cdef double checked_alpha = _as_double(alpha, "alpha")
+    cdef double checked_beta = _as_double(beta, "beta")
+    cdef double scalar
+    if count is not None:
+        return _float_result(_module(), 3, checked_alpha, checked_beta, 0.0, count)
+    _prepare_module_scalar()
+    scalar = core_module_float_scalar(3, checked_alpha, checked_beta, 0.0)
+    return scalar
 
 
 def pareto_variate(alpha, *, count=None):
-    return _float_result(_module(), 4, _as_double(alpha, "alpha"), 0.0, 0.0, count)
+    cdef double checked = _as_double(alpha, "alpha")
+    cdef double scalar
+    if count is not None:
+        return _float_result(_module(), 4, checked, 0.0, 0.0, count)
+    _prepare_module_scalar()
+    scalar = core_module_float_scalar(4, checked, 0.0, 0.0)
+    return scalar
 
 
 def vonmises_variate(mu, kappa, *, count=None):
-    return _float_result(_module(), 5, _as_double(mu, "mu"),
-                         _as_double(kappa, "kappa"), 0.0, count)
+    cdef double checked_mu = _as_double(mu, "mu")
+    cdef double checked_kappa = _as_double(kappa, "kappa")
+    cdef double scalar
+    if count is not None:
+        return _float_result(_module(), 5, checked_mu, checked_kappa, 0.0, count)
+    _prepare_module_scalar()
+    scalar = core_module_float_scalar(5, checked_mu, checked_kappa, 0.0)
+    return scalar
 
 
 def binomial_variate(trials, probability, *, count=None):
-    return _unsigned_result(_module(), 5, _as_uint64(trials, "trials"), 0,
-                            _as_double(probability, "probability"), count)
+    cdef uint64_t checked_trials = _as_uint64(trials, "trials")
+    cdef double checked_probability = _as_double(probability, "probability")
+    cdef uint64_t scalar
+    if count is not None:
+        return _unsigned_result(
+            _module(), 5, checked_trials, 0, checked_probability, count
+        )
+    _prepare_module_scalar()
+    scalar = core_module_unsigned_scalar(5, checked_trials, 0, checked_probability)
+    return scalar
 
 
 def negative_binomial_variate(successes, probability, *, count=None):
-    return _unsigned_result(_module(), 6, _as_uint64(successes, "successes"), 0,
-                            _as_double(probability, "probability"), count)
+    cdef uint64_t checked_successes = _as_uint64(successes, "successes")
+    cdef double checked_probability = _as_double(probability, "probability")
+    cdef uint64_t scalar
+    if count is not None:
+        return _unsigned_result(
+            _module(), 6, checked_successes, 0, checked_probability, count
+        )
+    _prepare_module_scalar()
+    scalar = core_module_unsigned_scalar(6, checked_successes, 0, checked_probability)
+    return scalar
 
 
 def geometric_variate(probability, *, count=None):
-    return _unsigned_result(_module(), 7, 0, 0, _as_double(probability, "probability"), count)
+    cdef double checked = _as_double(probability, "probability")
+    cdef uint64_t scalar
+    if count is not None:
+        return _unsigned_result(_module(), 7, 0, 0, checked, count)
+    _prepare_module_scalar()
+    scalar = core_module_unsigned_scalar(7, 0, 0, checked)
+    return scalar
 
 
 def poisson_variate(mean, *, count=None):
-    return _unsigned_result(_module(), 8, 0, 0, _as_double(mean, "mean"), count)
+    cdef double checked = _as_double(mean, "mean")
+    cdef uint64_t scalar
+    if count is not None:
+        return _unsigned_result(_module(), 8, 0, 0, checked, count)
+    _prepare_module_scalar()
+    scalar = core_module_unsigned_scalar(8, 0, 0, checked)
+    return scalar
 
 
 def exponential_variate(rate, *, count=None):
@@ -1536,13 +1711,25 @@ def exponential_variate(rate, *, count=None):
 
 
 def gamma_variate(shape, scale, *, count=None):
-    return _float_result(_module(), 7, _as_double(shape, "shape"),
-                         _as_double(scale, "scale"), 0.0, count)
+    cdef double checked_shape = _as_double(shape, "shape")
+    cdef double checked_scale = _as_double(scale, "scale")
+    cdef double scalar
+    if count is not None:
+        return _float_result(_module(), 7, checked_shape, checked_scale, 0.0, count)
+    _prepare_module_scalar()
+    scalar = core_module_float_scalar(7, checked_shape, checked_scale, 0.0)
+    return scalar
 
 
 def weibull_variate(shape, scale, *, count=None):
-    return _float_result(_module(), 8, _as_double(shape, "shape"),
-                         _as_double(scale, "scale"), 0.0, count)
+    cdef double checked_shape = _as_double(shape, "shape")
+    cdef double checked_scale = _as_double(scale, "scale")
+    cdef double scalar
+    if count is not None:
+        return _float_result(_module(), 8, checked_shape, checked_scale, 0.0, count)
+    _prepare_module_scalar()
+    scalar = core_module_float_scalar(8, checked_shape, checked_scale, 0.0)
+    return scalar
 
 
 def normal_variate(mean, std_dev, *, count=None):
@@ -1559,33 +1746,75 @@ def normal_variate(mean, std_dev, *, count=None):
 
 
 def log_normal_variate(log_mean, log_deviation, *, count=None):
-    return _float_result(_module(), 10, _as_double(log_mean, "log_mean"),
-                         _as_double(log_deviation, "log_deviation"), 0.0, count)
+    cdef double checked_mean = _as_double(log_mean, "log_mean")
+    cdef double checked_deviation = _as_double(log_deviation, "log_deviation")
+    cdef double scalar
+    if count is not None:
+        return _float_result(
+            _module(), 10, checked_mean, checked_deviation, 0.0, count
+        )
+    _prepare_module_scalar()
+    scalar = core_module_float_scalar(10, checked_mean, checked_deviation, 0.0)
+    return scalar
 
 
 def extreme_value_variate(location, scale, *, count=None):
-    return _float_result(_module(), 11, _as_double(location, "location"),
-                         _as_double(scale, "scale"), 0.0, count)
+    cdef double checked_location = _as_double(location, "location")
+    cdef double checked_scale = _as_double(scale, "scale")
+    cdef double scalar
+    if count is not None:
+        return _float_result(
+            _module(), 11, checked_location, checked_scale, 0.0, count
+        )
+    _prepare_module_scalar()
+    scalar = core_module_float_scalar(11, checked_location, checked_scale, 0.0)
+    return scalar
 
 
 def chi_squared_variate(degrees_of_freedom, *, count=None):
-    return _float_result(_module(), 12, _as_double(degrees_of_freedom, "degrees_of_freedom"),
-                         0.0, 0.0, count)
+    cdef double checked = _as_double(degrees_of_freedom, "degrees_of_freedom")
+    cdef double scalar
+    if count is not None:
+        return _float_result(_module(), 12, checked, 0.0, 0.0, count)
+    _prepare_module_scalar()
+    scalar = core_module_float_scalar(12, checked, 0.0, 0.0)
+    return scalar
 
 
 def cauchy_variate(location, scale, *, count=None):
-    return _float_result(_module(), 13, _as_double(location, "location"),
-                         _as_double(scale, "scale"), 0.0, count)
+    cdef double checked_location = _as_double(location, "location")
+    cdef double checked_scale = _as_double(scale, "scale")
+    cdef double scalar
+    if count is not None:
+        return _float_result(
+            _module(), 13, checked_location, checked_scale, 0.0, count
+        )
+    _prepare_module_scalar()
+    scalar = core_module_float_scalar(13, checked_location, checked_scale, 0.0)
+    return scalar
 
 
 def fisher_f_variate(degrees_1, degrees_2, *, count=None):
-    return _float_result(_module(), 14, _as_double(degrees_1, "degrees_1"),
-                         _as_double(degrees_2, "degrees_2"), 0.0, count)
+    cdef double checked_first = _as_double(degrees_1, "degrees_1")
+    cdef double checked_second = _as_double(degrees_2, "degrees_2")
+    cdef double scalar
+    if count is not None:
+        return _float_result(
+            _module(), 14, checked_first, checked_second, 0.0, count
+        )
+    _prepare_module_scalar()
+    scalar = core_module_float_scalar(14, checked_first, checked_second, 0.0)
+    return scalar
 
 
 def student_t_variate(degrees_of_freedom, *, count=None):
-    return _float_result(_module(), 15, _as_double(degrees_of_freedom, "degrees_of_freedom"),
-                         0.0, 0.0, count)
+    cdef double checked = _as_double(degrees_of_freedom, "degrees_of_freedom")
+    cdef double scalar
+    if count is not None:
+        return _float_result(_module(), 15, checked, 0.0, 0.0, count)
+    _prepare_module_scalar()
+    scalar = core_module_float_scalar(15, checked, 0.0, 0.0)
+    return scalar
 
 
 def front_triangular(size, *, count=None):
