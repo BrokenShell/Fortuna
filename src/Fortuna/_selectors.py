@@ -213,6 +213,23 @@ _NATIVE_PROFILE_METHODS = {
     profile: getattr(_core, method_name) for profile, method_name in _PROFILE_METHODS.items()
 }
 _NATIVE_RANDOM_FLOAT = _core.random_float
+_NATIVE_FRONT_POISSON = _NATIVE_PROFILE_METHODS[IndexProfile.FRONT_POISSON]
+_NATIVE_QUANTUM_MONTY = _NATIVE_PROFILE_METHODS[IndexProfile.QUANTUM_MONTY]
+_QUANTUM_MONTY_DISPATCH = {
+    IndexProfile.UNIFORM: "flat_uniform",
+    IndexProfile.FRONT_TRIANGULAR: "front_triangular",
+    IndexProfile.CENTER_TRIANGULAR: "center_triangular",
+    IndexProfile.BACK_TRIANGULAR: "back_triangular",
+    IndexProfile.MIXED_TRIANGULAR: "mixed_triangular",
+    IndexProfile.FRONT_EXPONENTIAL: "front_exponential",
+    IndexProfile.CENTER_NORMAL: "center_normal",
+    IndexProfile.BACK_EXPONENTIAL: "back_exponential",
+    IndexProfile.MIXED_EXPONENTIAL_NORMAL: "mixed_exponential_normal",
+    IndexProfile.FRONT_POISSON: "front_poisson",
+    IndexProfile.EDGE_POISSON: "edge_poisson",
+    IndexProfile.BACK_POISSON: "back_poisson",
+    IndexProfile.QUANTUM_MONTY: "quantum_monty",
+}
 
 
 def _coerce_profile(profile: IndexProfile | str) -> IndexProfile:
@@ -342,6 +359,29 @@ class IndexSelector:
         return result
 
 
+def _profile_index(profile: IndexProfile, size: int, generator: Any | None) -> int:
+    """Draw one already-sized profile index without constructing an adapter.
+
+    Value engines validate and retain their collection size at construction, so
+    routing every pull through a fresh ``IndexSelector`` only repeats adapter
+    setup.  Keep the same native trust boundary here: exact Fortuna entry points
+    are trusted, while custom generators, subclasses, and monkeypatched module
+    functions are validated before their result can index a collection.
+    """
+    method_name = _PROFILE_METHODS[profile]
+    if generator is None:
+        method = getattr(_core, method_name)
+        value = method(size)
+        if method is _NATIVE_PROFILE_METHODS[profile]:
+            return value
+    else:
+        method = getattr(generator, method_name)
+        value = method(size)
+        if type(generator) is _core.Generator:
+            return value
+    return IndexSelector._validated_index(value, size)
+
+
 class _ValueEngine(Generic[_T]):
     __slots__ = ("_generator", "resolve_callables")
 
@@ -361,6 +401,13 @@ class _ValueEngine(Generic[_T]):
         def __call__(self, *args: Any, **kwargs: Any) -> _T: ...
 
     def _resolve(self, value: _T, *args: Any, **kwargs: Any) -> _T:
+        resolve_callables = self.resolve_callables
+        if resolve_callables is False:
+            return value
+        if resolve_callables is not True:
+            raise TypeError("resolve_callables must be a bool")
+        if not callable(value):
+            return value
         return cast(
             _T,
             resolve(
@@ -437,7 +484,12 @@ class RandomValue(_ValueEngine[_T]):
         return self._generator
 
     def _index(self) -> int:
-        value = self.selector(len(self.data))
+        selector = self.selector
+        value = selector(len(self.data))
+        if type(selector) is IndexSelector:
+            # The exact adapter has already enforced the complete scalar index
+            # contract.  Subclasses and arbitrary callables remain untrusted.
+            return cast(int, value)
         index = _integer(value, name="selector result")
         if not 0 <= index < len(self.data):
             raise ValueError(
@@ -452,7 +504,7 @@ class RandomValue(_ValueEngine[_T]):
 class TruffleShuffle(_ValueEngine[_T]):
     """Stateful wide-uniform selector with randomized forward rotation."""
 
-    __slots__ = ("data", "rotate_size")
+    __slots__ = ("_distance_method", "_trusted_distance", "data", "rotate_size")
 
     @overload
     def __init__(
@@ -489,10 +541,25 @@ class TruffleShuffle(_ValueEngine[_T]):
             data[position], data[other] = data[other], data[position]
         self.data = deque(data)
         self.rotate_size = max(1, math.isqrt(len(data)))
+        self._distance_method: Callable[[int], Any] | None = None
+        self._trusted_distance = False
 
     def __call__(self, *args: Any, **kwargs: Any) -> _T:
-        profile = IndexSelector(IndexProfile.FRONT_POISSON, generator=self.generator)
-        distance = 1 + profile(self.rotate_size)
+        method = self._distance_method
+        if method is None:
+            generator = self._generator
+            if generator is None:
+                method = _core.front_poisson
+                self._trusted_distance = method is _NATIVE_FRONT_POISSON
+            else:
+                method = generator.front_poisson
+                self._trusted_distance = type(generator) is _core.Generator
+            self._distance_method = method
+        value = method(self.rotate_size)
+        if self._trusted_distance:
+            distance = 1 + value
+        else:
+            distance = 1 + IndexSelector._validated_index(value, self.rotate_size)
         self.data.rotate(distance)
         return self._resolve(self.data[-1], *args, **kwargs)
 
@@ -566,28 +633,12 @@ class QuantumMonty(_ValueEngine[_T]):
         *args: Any,
         **kwargs: Any,
     ) -> _T:
-        index = IndexSelector(profile, generator=self.generator)(self.size)
-        if not isinstance(index, int):  # pragma: no cover - scalar contract invariant
-            raise RuntimeError("scalar index selection returned a bulk result")
+        index = _profile_index(profile, self.size, self.generator)
         return self._resolve(self.data[index], *args, **kwargs)
 
     def dispatch(self, profile: IndexProfile | str) -> Callable[..., _T]:
         canonical = _coerce_profile(profile)
-        return {
-            IndexProfile.UNIFORM: self.flat_uniform,
-            IndexProfile.FRONT_TRIANGULAR: self.front_triangular,
-            IndexProfile.CENTER_TRIANGULAR: self.center_triangular,
-            IndexProfile.BACK_TRIANGULAR: self.back_triangular,
-            IndexProfile.MIXED_TRIANGULAR: self.mixed_triangular,
-            IndexProfile.FRONT_EXPONENTIAL: self.front_exponential,
-            IndexProfile.CENTER_NORMAL: self.center_normal,
-            IndexProfile.BACK_EXPONENTIAL: self.back_exponential,
-            IndexProfile.MIXED_EXPONENTIAL_NORMAL: self.mixed_exponential_normal,
-            IndexProfile.FRONT_POISSON: self.front_poisson,
-            IndexProfile.EDGE_POISSON: self.edge_poisson,
-            IndexProfile.BACK_POISSON: self.back_poisson,
-            IndexProfile.QUANTUM_MONTY: self.quantum_monty,
-        }[canonical]
+        return getattr(self, _QUANTUM_MONTY_DISPATCH[canonical])
 
     def __call__(self, *args: Any, **kwargs: Any) -> _T:
         return self.quantum_monty(*args, **kwargs)
@@ -635,8 +686,20 @@ class QuantumMonty(_ValueEngine[_T]):
         return self._profile_value(IndexProfile.BACK_POISSON, *args, **kwargs)
 
     def quantum_monty(self, *args: Any, **kwargs: Any) -> _T:
-        checked_index = IndexSelector(IndexProfile.UNIFORM, generator=self.generator)(
-            len(self.QUANTUM_MONTY_PROFILES)
+        generator = self._generator
+        if generator is None:
+            method = _core.quantum_monty
+            checked_index = method(self.size)
+            if method is not _NATIVE_QUANTUM_MONTY:
+                checked_index = IndexSelector._validated_index(checked_index, self.size)
+            return self._resolve(self.data[checked_index], *args, **kwargs)
+        if type(generator) is _core.Generator:
+            checked_index = generator.quantum_monty(self.size)
+            return self._resolve(self.data[checked_index], *args, **kwargs)
+        checked_index = _profile_index(
+            IndexProfile.UNIFORM,
+            len(self.QUANTUM_MONTY_PROFILES),
+            generator,
         )
         profile = self.QUANTUM_MONTY_PROFILES[checked_index]
         return self._profile_value(profile, *args, **kwargs)

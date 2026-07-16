@@ -471,6 +471,15 @@ def test_random_value_can_return_callables_without_resolving():
         RandomValue((1,), resolve_callables=1)
 
 
+@pytest.mark.parametrize("value", [1, lambda: 1])
+def test_value_engine_revalidates_mutated_resolve_callables(value):
+    selector = RandomValue((value,))
+    selector.resolve_callables = 1
+
+    with pytest.raises(TypeError, match="resolve_callables must be a bool"):
+        selector()
+
+
 def test_truffle_shuffle_handles_single_value_and_preserves_contents():
     singleton = TruffleShuffle(("only",), generator=FakeGenerator())
     assert singleton.take(3) == ["only", "only", "only"]

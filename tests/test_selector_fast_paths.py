@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 from collections import deque
 from collections.abc import Callable, Iterable
 from concurrent.futures import ThreadPoolExecutor
@@ -8,7 +9,7 @@ from typing import Any
 import pytest
 
 from Fortuna import _core
-from Fortuna._selectors import IndexProfile, IndexSelector, sample
+from Fortuna._selectors import IndexProfile, IndexSelector, QuantumMonty, TruffleShuffle, sample
 
 PROFILE_METHODS = {
     IndexProfile.UNIFORM: "random_index",
@@ -67,6 +68,103 @@ def test_index_selector_native_paths_preserve_profile_sequence_and_next_draw(
 
     assert actual == expected
     assert next_draw() == control.random_uint(0, UINT64_MAX)
+
+
+@pytest.mark.parametrize("source", ["module", "generator"])
+def test_quantum_monty_value_engine_fused_path_preserves_sequence_and_next_draw(source):
+    control = _core.Generator(SEED)
+    if source == "module":
+        _core.seed(SEED)
+        selector = QuantumMonty(range(SIZE), resolve_callables=False)
+        next_draw: Callable[[], int] = _next_module_draw
+    else:
+        generator = _core.Generator(SEED)
+        selector = QuantumMonty(
+            range(SIZE),
+            resolve_callables=False,
+            generator=generator,
+        )
+
+        def next_draw():
+            return generator.random_uint(0, UINT64_MAX)
+
+    assert selector.take(COUNT) == [control.quantum_monty(SIZE) for _ in range(COUNT)]
+    assert next_draw() == control.random_uint(0, UINT64_MAX)
+
+
+@pytest.mark.parametrize(
+    ("result", "error", "message"),
+    [
+        (False, TypeError, "generated index must be an integer, not bool"),
+        (SIZE, ValueError, rf"outside \[0, {SIZE}\)"),
+    ],
+)
+def test_quantum_monty_value_engine_validates_monkeypatched_module_endpoint(
+    monkeypatch, result, error, message
+):
+    selector = QuantumMonty(range(SIZE), resolve_callables=False)
+    calls = []
+
+    def quantum_monty(size):
+        calls.append(size)
+        return result
+
+    monkeypatch.setattr(_core, "quantum_monty", quantum_monty)
+    with pytest.raises(error, match=message):
+        selector()
+    assert calls == [SIZE]
+
+
+@pytest.mark.parametrize("source", ["module", "generator"])
+def test_truffle_shuffle_cached_draw_preserves_sequence_and_next_draw(source):
+    control = _core.Generator(SEED)
+    values = list(range(SIZE))
+    expected_data = values.copy()
+    for position in range(SIZE - 1, 0, -1):
+        other = control.random_index(position + 1)
+        expected_data[position], expected_data[other] = (
+            expected_data[other],
+            expected_data[position],
+        )
+    expected_data = deque(expected_data)
+    rotate_size = max(1, math.isqrt(SIZE))
+    expected = []
+    for _ in range(COUNT):
+        expected_data.rotate(1 + control.front_poisson(rotate_size))
+        expected.append(expected_data[-1])
+
+    if source == "module":
+        _core.seed(SEED)
+        selector = TruffleShuffle(values, resolve_callables=False)
+        next_draw: Callable[[], int] = _next_module_draw
+    else:
+        generator = _core.Generator(SEED)
+        selector = TruffleShuffle(
+            values,
+            resolve_callables=False,
+            generator=generator,
+        )
+
+        def next_draw():
+            return generator.random_uint(0, UINT64_MAX)
+
+    assert selector.take(COUNT) == expected
+    assert next_draw() == control.random_uint(0, UINT64_MAX)
+
+
+def test_truffle_shuffle_cached_custom_draw_remains_validated():
+    class InvalidGenerator:
+        @staticmethod
+        def random_index(size):
+            return 0
+
+        @staticmethod
+        def front_poisson(size):
+            return size
+
+    selector = TruffleShuffle(range(SIZE), generator=InvalidGenerator())
+    with pytest.raises(ValueError, match="outside"):
+        selector()
 
 
 @pytest.mark.parametrize(
