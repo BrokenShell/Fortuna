@@ -442,12 +442,6 @@ cdef Py_ssize_t _as_count(object value) except *:
     return result
 
 
-cdef object _zero_result(object count):
-    if count is None:
-        return 0
-    return [0] * _as_count(count)
-
-
 cdef Py_ssize_t _validated_generated_index(object value, Py_ssize_t size) except *:
     cdef object index
     if isinstance(value, bool):
@@ -1011,7 +1005,9 @@ cdef class Generator:
         cdef uint64_t scalar
         cdef object result
         if direction == 0:
-            return _zero_result(count)
+            if count is not None:
+                _as_count(count)
+            raise ValueError("limit must be nonzero")
         if count is not None:
             result = _unsigned_generator_result(
                 self._generator, 0, 0, high, 0.0, count
@@ -1629,7 +1625,9 @@ def random_below(limit, *, count=None):
     cdef uint64_t scalar
     cdef object result
     if direction == 0:
-        return _zero_result(count)
+        if count is not None:
+            _as_count(count)
+        raise ValueError("limit must be nonzero")
     if count is not None:
         result = _unsigned_result(_module(), 0, 0, high, 0.0, count)
         return _reflected_below_result(result, direction)

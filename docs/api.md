@@ -78,7 +78,7 @@ validated before the engine advances.
 | --- | --- |
 | `percent_true(percent=50.0, *, count=None)` | Boolean with the given probability expressed in `[0, 100]`. |
 | `bernoulli_variate(probability=0.5, *, count=None)` | Boolean with success probability in `[0, 1]`. |
-| `random_below(limit, *, count=None)` | Uniform integer in `[0, limit)` for positive `limit`, `(limit, 0]` for negative `limit`, and exactly `0` when `limit == 0`; `abs(limit) <= 2**64`. |
+| `random_below(limit, *, count=None)` | Uniform integer in `[0, limit)` for positive `limit` and `(limit, 0]` for negative `limit`; `limit` must be nonzero and `abs(limit) <= 2**64`. |
 | `random_index(size, *, count=None)` | Uniform integer in `[0, size)` for positive `size` and `[size, 0)` for negative `size`; `size` must be nonzero and `abs(size) <= SIZE_MAX`. |
 | `random_int(low, high, *, count=None)` | Uniform signed 64-bit integer in the inclusive interval `[low, high]`. |
 | `random_uint(low, high, *, count=None)` | Uniform unsigned 64-bit integer in the inclusive interval `[low, high]`. |
@@ -105,6 +105,10 @@ preserves Python's positive/negative indexing equivalence: for a ten-item
 sequence, every positive index `i` corresponds to the negative index `i - 10`.
 An explicit two-bound range remains valid, so `random_range(-10, 0)` produces
 a member of `range(-10, 0)`.
+
+Zero is outside both bounded domains. `random_below(0)` and `random_index(0)`
+raise `ValueError`, including when `count=0`, because neither describes a
+possible result.
 
 `random_below` accepts magnitudes through `2**64`, covering the complete
 unsigned 64-bit draw domain at that magnitude. `random_index` accepts

@@ -22,7 +22,8 @@ Fortuna 6 is a clean, intentionally breaking reconstruction.
 - `seed(0)` is deterministic. Entropy construction is explicit.
 - Ranges now follow directed Python `range` semantics.
 - `random_below` and `random_index` restore their distinct negative
-  continuations; `random_range` retains directed Python `range` semantics.
+  continuations while rejecting their shared zero singularity; `random_range`
+  retains directed Python `range` semantics.
 - Dice sizes and counts reject historical negative sentinels.
 - Callable resolution propagates user exceptions and has a recursion guard.
 - Positional recipes use names matching their actual algorithms.

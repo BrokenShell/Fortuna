@@ -80,6 +80,10 @@ indexes. `random_range` instead follows Python's directed `range` contract:
 `random_range(-10)` is empty and raises `ValueError`, while
 `random_range(-10, 0)` is valid.
 
+Unlike Fortuna 5, Fortuna 6 rejects zero for both bounded functions. Zero is a
+true empty-domain singularity: there is no integer below zero in the requested
+interval and no index into a sequence of size zero.
+
 ## Removed interfaces
 
 The following concepts do not have compatibility replacements:

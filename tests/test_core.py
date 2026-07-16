@@ -104,6 +104,7 @@ def test_specialized_bounded_sequences_are_stable(method, args, expected):
     [
         ("percent_true", (-1.0,)),
         ("bernoulli_variate", (1.5,)),
+        ("random_below", (0,)),
         ("random_index", (0,)),
         ("random_int", (10, 1)),
         ("random_range", (0, 10, 0)),
@@ -126,6 +127,7 @@ def test_invalid_specialized_generator_scalar_does_not_advance(method, args):
 @pytest.mark.parametrize(
     ("function", "args"),
     [
+        (Fortuna.random_below, (0,)),
         (Fortuna.random_index, (0,)),
         (Fortuna.random_int, (10, 1)),
         (Fortuna.random_float, (2.0, 1.0)),
@@ -201,6 +203,8 @@ def test_python_style_directed_random_range():
 @pytest.mark.parametrize(
     ("method", "args"),
     [
+        ("random_below", (0,)),
+        ("random_index", (0,)),
         ("random_int", (10, 1)),
         ("random_range", (0, 10, 0)),
         ("normal_variate", (0.0, -1.0)),
@@ -621,21 +625,12 @@ def test_negative_continuations_match_positive_draws(method, count, owner_kind):
         assert all(-10 <= value <= -1 for value in negative)
 
 
-@pytest.mark.parametrize("owner_kind", ["module", "generator"])
-def test_random_below_zero_is_constant_and_does_not_advance(owner_kind):
-    seed = 0xF07A_6002
-    control = Fortuna.Generator(seed)
-    if owner_kind == "module":
-        Fortuna.seed(seed)
-        owner = Fortuna
-    else:
-        owner = Fortuna.Generator(seed)
-
-    assert owner.random_below(0) == 0
-    assert owner.random_below(0, count=4) == [0, 0, 0, 0]
-    with pytest.raises(ValueError, match="count must be nonnegative"):
-        owner.random_below(0, count=-1)
-    assert owner.random_uint(0, 2**64 - 1) == control.random_uint(0, 2**64 - 1)
+@pytest.mark.parametrize("owner", [Fortuna, Fortuna.Generator(0)])
+@pytest.mark.parametrize("method", ["random_below", "random_index"])
+@pytest.mark.parametrize("count", [None, 0])
+def test_zero_is_a_singularity_for_bounded_domains(owner, method, count):
+    with pytest.raises(ValueError):
+        getattr(owner, method)(0, count=count)
 
 
 def test_negative_continuations_preserve_full_native_magnitudes():
