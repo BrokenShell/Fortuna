@@ -90,6 +90,8 @@ def run_case(case: BenchmarkCase, config: BenchmarkConfig) -> BenchmarkResult:
         status="ok",
         unit=case.unit,
         values_per_call=case.values_per_call,
+        workload=case.workload_payload,
+        workload_signature=case.workload_signature,
     )
     try:
         loops = calibrate(case, config)

@@ -51,7 +51,12 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--fail-on-regression",
         action="store_true",
-        help="return a failure status when comparison finds a regression",
+        help="require a complete baseline and fail when comparison finds a regression",
+    )
+    parser.add_argument(
+        "--require-complete-baseline",
+        action="store_true",
+        help="require every selected case to have matching declared workload metadata",
     )
     parser.add_argument(
         "--allow-incomparable-baseline",
@@ -86,6 +91,17 @@ def main(argv: Sequence[str] | None = None) -> int:
     if not math.isfinite(args.threshold) or args.threshold < 0:
         print("Regression threshold must be finite and nonnegative.", file=sys.stderr)
         return 2
+    if (args.fail_on_regression or args.require_complete_baseline) and not args.baseline:
+        print("A complete comparison requires --baseline.", file=sys.stderr)
+        return 2
+    if args.allow_incomparable_baseline and (
+        args.fail_on_regression or args.require_complete_baseline
+    ):
+        print(
+            "--allow-incomparable-baseline cannot be used with a strict comparison.",
+            file=sys.stderr,
+        )
+        return 2
     cases = select_cases(all_cases(), args.suite or (), args.case)
     if not cases:
         print("No benchmark cases matched.", file=sys.stderr)
@@ -118,13 +134,18 @@ def main(argv: Sequence[str] | None = None) -> int:
                 for issue in issues:
                     print(f"- {issue}", file=sys.stderr)
                 return 2
-            regressions = compare_results(results, baseline, args.threshold)
+            regressions = compare_results(
+                results,
+                baseline,
+                args.threshold,
+                require_complete=args.require_complete_baseline or args.fail_on_regression,
+            )
         except (OSError, ValueError) as error:
             print(f"Cannot use baseline: {error}", file=sys.stderr)
             return 2
 
     payload = {
-        "schema_version": 1,
+        "schema_version": 2,
         "environment": environment,
         "config": asdict(config),
         "selection": {"suites": args.suite or [], "cases": args.case},

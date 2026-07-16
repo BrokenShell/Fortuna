@@ -2,13 +2,53 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
+import hashlib
+import json
+import math
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import asdict, dataclass, field
 from typing import Any, Literal
 
 BenchmarkUnit = Literal["call", "value"]
 Operation = Callable[[], Any]
 Setup = Callable[[], Operation]
+_WORKLOAD_FIELDS = frozenset({"args", "kwargs", "seed", "input", "setup_variant"})
+
+
+def _normalize_workload_value(value: Any, path: str = "workload") -> Any:
+    """Return a deterministic, JSON-safe representation of workload metadata."""
+
+    if value is None or isinstance(value, (str, bool, int)):
+        return value
+    if isinstance(value, float):
+        if not math.isfinite(value):
+            raise ValueError(f"{path} contains a non-finite float")
+        return value
+    if isinstance(value, Mapping):
+        if any(not isinstance(key, str) for key in value):
+            raise ValueError(f"{path} mapping keys must be strings")
+        return {
+            key: _normalize_workload_value(value[key], f"{path}.{key}") for key in sorted(value)
+        }
+    if isinstance(value, Sequence) and not isinstance(value, (str, bytes, bytearray)):
+        return [
+            _normalize_workload_value(item, f"{path}[{index}]") for index, item in enumerate(value)
+        ]
+    raise ValueError(f"{path} contains unsupported value {type(value).__name__}")
+
+
+def calculate_workload_signature(payload: Mapping[str, Any]) -> str:
+    """Hash canonical workload metadata for artifact comparison."""
+
+    normalized = _normalize_workload_value(payload)
+    encoded = json.dumps(
+        normalized,
+        ensure_ascii=True,
+        allow_nan=False,
+        separators=(",", ":"),
+        sort_keys=True,
+    ).encode()
+    return f"sha256:{hashlib.sha256(encoded).hexdigest()}"
 
 
 class SkipBenchmark(RuntimeError):
@@ -32,6 +72,7 @@ class BenchmarkCase:
     values_per_call: int = 1
     description: str = ""
     skip_reason: str | None = None
+    workload: Mapping[str, Any] | None = None
 
     def __post_init__(self) -> None:
         if self.operation is not None and self.setup is not None:
@@ -42,10 +83,55 @@ class BenchmarkCase:
             raise ValueError("values_per_call must be positive")
         if self.unit == "call" and self.values_per_call != 1:
             raise ValueError("scalar cases must measure one call")
+        if self.workload is not None:
+            fields = set(self.workload)
+            if fields != _WORKLOAD_FIELDS:
+                missing = sorted(_WORKLOAD_FIELDS - fields)
+                extra = sorted(fields - _WORKLOAD_FIELDS)
+                details = []
+                if missing:
+                    details.append(f"missing {', '.join(missing)}")
+                if extra:
+                    details.append(f"unknown {', '.join(extra)}")
+                raise ValueError(f"workload metadata is incomplete ({'; '.join(details)})")
+            if not isinstance(self.workload["args"], Sequence) or isinstance(
+                self.workload["args"], (str, bytes, bytearray)
+            ):
+                raise ValueError("workload.args must be a sequence")
+            if not isinstance(self.workload["kwargs"], Mapping):
+                raise ValueError("workload.kwargs must be a mapping")
+            if (
+                not isinstance(self.workload["setup_variant"], str)
+                or not self.workload["setup_variant"]
+            ):
+                raise ValueError("workload.setup_variant must be a non-empty string")
+            object.__setattr__(self, "workload", _normalize_workload_value(self.workload))
 
     @property
     def identifier(self) -> str:
         return f"{self.suite}/{self.name}"
+
+    @property
+    def workload_payload(self) -> dict[str, Any]:
+        """Describe the timed workload without inspecting opaque callables."""
+
+        if self.workload is not None:
+            payload = dict(self.workload)
+            declared = True
+        else:
+            payload = {
+                "args": [],
+                "kwargs": {},
+                "seed": None,
+                "input": None,
+                "setup_variant": "per-sample-setup" if self.setup else "direct-operation",
+            }
+            declared = False
+        return {"schema_version": 1, "declared": declared, **payload}
+
+    @property
+    def workload_signature(self) -> str:
+        return calculate_workload_signature(self.workload_payload)
 
     def prepare(self) -> Operation:
         if self.skip_reason:
@@ -86,6 +172,8 @@ class BenchmarkResult:
     values_per_second: float | None = None
     reason: str | None = None
     comparison: dict[str, Any] | None = None
+    workload: dict[str, Any] | None = None
+    workload_signature: str | None = None
 
     @property
     def identifier(self) -> str:
@@ -115,4 +203,8 @@ class BenchmarkResult:
             payload["reason"] = self.reason
         if self.comparison is not None:
             payload["comparison"] = self.comparison
+        if self.workload is not None:
+            payload["workload"] = self.workload
+        if self.workload_signature is not None:
+            payload["workload_signature"] = self.workload_signature
         return payload

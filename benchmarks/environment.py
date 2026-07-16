@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import datetime as dt
+import hashlib
 import importlib
+import importlib.metadata
 import json
 import multiprocessing
 import os
@@ -14,6 +16,18 @@ from pathlib import Path
 from typing import Any
 
 REPOSITORY = Path(__file__).resolve().parents[1]
+_BUILD_OPTION_NAMES = {
+    "buildtype",
+    "optimization",
+    "debug",
+    "b_lto",
+    "b_ndebug",
+    "b_pie",
+    "c_args",
+    "cpp_args",
+    "c_link_args",
+    "cpp_link_args",
+}
 
 
 def _git(*args: str) -> str | None:
@@ -44,6 +58,87 @@ def _package_versions() -> dict[str, Any]:
     except Exception as error:
         storm = f"unavailable ({type(error).__name__}: {error})"
     return {"available": True, "fortuna": version, "storm": storm}
+
+
+def _distribution_version(name: str) -> str | None:
+    try:
+        return importlib.metadata.version(name)
+    except importlib.metadata.PackageNotFoundError:
+        return None
+
+
+def _sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        for block in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def _load_json(path: Path) -> Any:
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+
+
+def _meson_toolchain(extension: Path) -> dict[str, Any]:
+    info = extension.parent / "meson-info"
+    raw_compilers = _load_json(info / "intro-compilers.json")
+    host = raw_compilers.get("host", {}) if isinstance(raw_compilers, dict) else {}
+    compilers = {
+        language: {
+            key: details.get(key)
+            for key in ("id", "version", "full_version", "linker_id", "exelist")
+        }
+        for language, details in sorted(host.items())
+        if isinstance(details, dict)
+    }
+
+    raw_options = _load_json(info / "intro-buildoptions.json")
+    build_options = {}
+    if isinstance(raw_options, list):
+        build_options = {
+            item["name"]: item.get("value")
+            for item in raw_options
+            if isinstance(item, dict) and item.get("name") in _BUILD_OPTION_NAMES
+        }
+    return {
+        "build_metadata_available": bool(compilers or build_options),
+        "compilers": compilers or None,
+        "build_options": build_options or None,
+        "build_packages": {
+            name: _distribution_version(name)
+            for name in ("Cython", "meson", "meson-python", "ninja")
+        },
+        "environment": {
+            name: os.environ[name]
+            for name in ("CC", "CXX", "CFLAGS", "CXXFLAGS", "CPPFLAGS", "LDFLAGS", "ARCHFLAGS")
+            if name in os.environ
+        },
+    }
+
+
+def _native_build_identity() -> dict[str, Any]:
+    try:
+        core = importlib.import_module("Fortuna._core")
+        location = getattr(core, "__file__", None)
+        if not location:
+            raise RuntimeError("Fortuna._core has no file location")
+        extension = Path(location).resolve()
+        stat = extension.stat()
+        return {
+            "available": True,
+            "extension": {
+                "module": "Fortuna._core",
+                "path": str(extension),
+                "size_bytes": stat.st_size,
+                "sha256": _sha256(extension),
+            },
+            "toolchain": _meson_toolchain(extension),
+        }
+    except Exception as error:
+        return {"available": False, "error": f"{type(error).__name__}: {error}"}
 
 
 def _cpu_affinity() -> list[int] | None:
@@ -109,6 +204,7 @@ def collect_environment() -> dict[str, Any]:
             "multiprocessing_start_method": multiprocessing.get_start_method(),
         },
         "packages": _package_versions(),
+        "native_build": _native_build_identity(),
     }
 
 
