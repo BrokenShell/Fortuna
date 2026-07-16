@@ -28,6 +28,7 @@ jobs:
       - run: uv sync --frozen --group dev --no-build-isolation-package Fortuna --reinstall-package Fortuna
       - run: uv run --frozen ruff check .
       - run: uv run --frozen ruff format --check .
+      - run: uv run --frozen pyright
 
   test:
     name: Tests (${{ matrix.os }}, Python ${{ matrix.python }})

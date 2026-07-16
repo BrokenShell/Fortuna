@@ -9,12 +9,43 @@ from collections.abc import Callable, Iterable, Mapping, MutableSequence
 from enum import StrEnum
 from itertools import cycle as iter_cycle
 from numbers import Real
-from typing import Any
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Generic,
+    Literal,
+    Protocol,
+    TypeAlias,
+    TypeVar,
+    cast,
+    overload,
+)
 
 from . import _core
 
 _DEFAULT_RESOLVE_DEPTH = 100
 _MISSING = object()
+
+_T = TypeVar("_T")
+_K = TypeVar("_K")
+_Weight = int | float
+_Resolvable: TypeAlias = _T | Callable[..., "_Resolvable[_T]"]
+
+
+class _IndexGenerator(Protocol):
+    def random_index(self, size: int) -> Any: ...
+
+
+class _ShuffleGenerator(Protocol):
+    def shuffle(self, data: MutableSequence[Any]) -> None: ...
+
+
+class _FloatGenerator(Protocol):
+    def random_float(self, low: float = 0.0, high: float = 1.0) -> Any: ...
+
+
+class _IndexCallable(Protocol):
+    def __call__(self, size: int) -> Any: ...
 
 
 def _integer(value: Any, *, name: str, minimum: int | None = None) -> int:
@@ -79,13 +110,15 @@ def resolve(
     return current
 
 
-def random_value(data: Iterable[Any], *, generator: Any | None = None) -> Any:
+def random_value(
+    data: Iterable[_T], *, generator: _core.Generator | _IndexGenerator | None = None
+) -> _T:
     """Return one uniformly selected value from a nonempty iterable."""
     if generator is not None and type(generator) is _core.Generator:
         return generator.random_value(data)
 
     data_type = type(data)
-    values = data if data_type is tuple else tuple(data)
+    values: tuple[_T, ...] = data if data_type is tuple else tuple(data)  # type: ignore[assignment]
     size = len(values)
     if not size:
         raise ValueError("data must not be empty")
@@ -96,7 +129,11 @@ def random_value(data: Iterable[Any], *, generator: Any | None = None) -> Any:
     return values[index]
 
 
-def shuffle(array: MutableSequence[Any], *, generator: Any | None = None) -> None:
+def shuffle(
+    array: MutableSequence[_T],
+    *,
+    generator: _core.Generator | _IndexGenerator | _ShuffleGenerator | None = None,
+) -> None:
     """Shuffle a mutable sequence in place using Fortuna's native Knuth-B loop."""
     if not isinstance(array, MutableSequence):
         raise TypeError("array must be a mutable sequence")
@@ -116,11 +153,11 @@ def shuffle(array: MutableSequence[Any], *, generator: Any | None = None) -> Non
 
 
 def sample(
-    population: Iterable[Any],
+    population: Iterable[_T],
     k: int,
     *,
-    generator: Any | None = None,
-) -> list[Any]:
+    generator: _core.Generator | _IndexGenerator | None = None,
+) -> list[_T]:
     """Return ``k`` uniformly selected values without replacement."""
     checked_k = _integer(k, name="k", minimum=0)
     data = list(population)
@@ -233,13 +270,34 @@ class IndexSelector:
         self._draw_method = None
         self._trusted_native = False
 
+    @overload
+    def __call__(self, size: int, *, count: None = None) -> int: ...
+
+    @overload
+    def __call__(self, size: int, *, count: int) -> list[int]: ...
+
+    @overload
+    def __call__(self, size: int, *, count: int | None) -> int | list[int]: ...
+
     def __call__(self, size: int, *, count: int | None = None) -> int | list[int]:
+        checked_count: int | None = None
+        if count is not None:
+            if type(count) is int:
+                checked_count = count
+                if checked_count < 0:
+                    raise ValueError("count must be nonnegative")
+            else:
+                checked_count = _integer(count, name="count")
+                if checked_count < 0:
+                    raise ValueError("count must be nonnegative")
         if type(size) is int:
             checked_size = size
             if checked_size < 1:
                 raise ValueError("size must be >= 1")
         else:
             checked_size = _integer(size, name="size", minimum=1)
+        if checked_count == 0:
+            return []
         method = self._draw_method
         if method is None:
             source = self._generator
@@ -250,7 +308,7 @@ class IndexSelector:
                 method = getattr(source, self._method_name)
                 self._trusted_native = type(source) is _core.Generator
             self._draw_method = method
-        if count is None:
+        if checked_count is None:
             value = method(checked_size)
             if self._trusted_native:
                 return value
@@ -259,12 +317,6 @@ class IndexSelector:
                     return value
                 raise ValueError(f"generated index {value} is outside [0, {checked_size})")
             return self._validated_index(value, checked_size)
-        if type(count) is int:
-            checked_count = count
-            if checked_count < 0:
-                raise ValueError("count must be >= 0")
-        else:
-            checked_count = _integer(count, name="count", minimum=0)
         values = method(checked_size, count=checked_count)
         if self._trusted_native:
             return values
@@ -290,39 +342,73 @@ class IndexSelector:
         return result
 
 
-class _ValueEngine:
-    __slots__ = ("generator", "resolve_callables")
+class _ValueEngine(Generic[_T]):
+    __slots__ = ("_generator", "resolve_callables")
 
     def __init__(self, *, resolve_callables: bool, generator: Any | None) -> None:
         if not isinstance(resolve_callables, bool):
             raise TypeError("resolve_callables must be a bool")
         self.resolve_callables = resolve_callables
-        self.generator = generator
+        self._generator = generator
 
-    def _resolve(self, value: Any, *args: Any, **kwargs: Any) -> Any:
-        return resolve(
-            value,
-            *args,
-            resolve_callables=self.resolve_callables,
-            **kwargs,
+    @property
+    def generator(self) -> Any | None:
+        """Return this engine's draw source; the binding is read-only."""
+        return self._generator
+
+    if TYPE_CHECKING:
+
+        def __call__(self, *args: Any, **kwargs: Any) -> _T: ...
+
+    def _resolve(self, value: _T, *args: Any, **kwargs: Any) -> _T:
+        return cast(
+            _T,
+            resolve(
+                value,
+                *args,
+                resolve_callables=self.resolve_callables,
+                **kwargs,
+            ),
         )
 
-    def take(self, count: int, *args: Any, **kwargs: Any) -> list[Any]:
+    def take(self, count: int, *args: Any, **kwargs: Any) -> list[_T]:
         checked_count = _integer(count, name="count", minimum=0)
         return [self(*args, **kwargs) for _ in range(checked_count)]
 
 
-class RandomValue(_ValueEngine):
-    """Select a value using a positional profile or custom index callable."""
+class RandomValue(_ValueEngine[_T]):
+    """Select using an owned profile or a retained index callable.
+
+    A supplied ``IndexSelector`` or custom callable owns its draw source, so it
+    cannot be combined with this constructor's ``generator`` argument.
+    """
 
     __slots__ = ("data", "selector")
+
+    @overload
+    def __init__(
+        self,
+        collection: Iterable[_T],
+        selector: IndexProfile | str | IndexSelector | _IndexCallable = IndexProfile.UNIFORM,
+        *,
+        resolve_callables: Literal[False],
+        generator: Any | None = None,
+    ) -> None: ...
+
+    @overload
+    def __init__(
+        self,
+        collection: Iterable[_Resolvable[_T]],
+        selector: IndexProfile | str | IndexSelector | _IndexCallable = IndexProfile.UNIFORM,
+        *,
+        resolve_callables: Literal[True] = True,
+        generator: Any | None = None,
+    ) -> None: ...
 
     def __init__(
         self,
         collection: Iterable[Any],
-        selector: IndexProfile | str | IndexSelector | Callable[[int], int] = (
-            IndexProfile.UNIFORM
-        ),
+        selector: IndexProfile | str | IndexSelector | _IndexCallable = IndexProfile.UNIFORM,
         *,
         resolve_callables: bool = True,
         generator: Any | None = None,
@@ -332,16 +418,23 @@ class RandomValue(_ValueEngine):
         if not self.data:
             raise ValueError("collection must not be empty")
         if isinstance(selector, IndexSelector):
-            self.selector = IndexSelector(
-                selector.profile,
-                generator=generator if generator is not None else selector.generator,
-            )
+            if generator is not None:
+                raise TypeError("generator must be omitted when selector is an IndexSelector")
+            self.selector = selector
         elif isinstance(selector, (IndexProfile, str)):
             self.selector = IndexSelector(selector, generator=generator)
         elif callable(selector):
+            if generator is not None:
+                raise TypeError("generator must be omitted when selector is a custom callable")
             self.selector = selector
         else:
             raise TypeError("selector must be an IndexProfile, canonical string, or callable")
+
+    @property
+    def generator(self) -> Any | None:
+        if isinstance(self.selector, IndexSelector):
+            return self.selector.generator
+        return self._generator
 
     def _index(self) -> int:
         value = self.selector(len(self.data))
@@ -352,14 +445,32 @@ class RandomValue(_ValueEngine):
             )
         return index
 
-    def __call__(self, *args: Any, **kwargs: Any) -> Any:
+    def __call__(self, *args: Any, **kwargs: Any) -> _T:
         return self._resolve(self.data[self._index()], *args, **kwargs)
 
 
-class TruffleShuffle(_ValueEngine):
+class TruffleShuffle(_ValueEngine[_T]):
     """Stateful wide-uniform selector with randomized forward rotation."""
 
     __slots__ = ("data", "rotate_size")
+
+    @overload
+    def __init__(
+        self,
+        collection: Iterable[_T],
+        *,
+        resolve_callables: Literal[False],
+        generator: Any | None = None,
+    ) -> None: ...
+
+    @overload
+    def __init__(
+        self,
+        collection: Iterable[_Resolvable[_T]],
+        *,
+        resolve_callables: Literal[True] = True,
+        generator: Any | None = None,
+    ) -> None: ...
 
     def __init__(
         self,
@@ -379,14 +490,14 @@ class TruffleShuffle(_ValueEngine):
         self.data = deque(data)
         self.rotate_size = max(1, math.isqrt(len(data)))
 
-    def __call__(self, *args: Any, **kwargs: Any) -> Any:
+    def __call__(self, *args: Any, **kwargs: Any) -> _T:
         profile = IndexSelector(IndexProfile.FRONT_POISSON, generator=self.generator)
         distance = 1 + profile(self.rotate_size)
         self.data.rotate(distance)
         return self._resolve(self.data[-1], *args, **kwargs)
 
 
-class QuantumMonty(_ValueEngine):
+class QuantumMonty(_ValueEngine[_T]):
     """Value selector backed by Fortuna's named positional profiles."""
 
     QUANTUM_MONTY_PROFILES = (
@@ -403,6 +514,24 @@ class QuantumMonty(_ValueEngine):
 
     __slots__ = ("data", "size", "_cycle", "_truffle")
 
+    @overload
+    def __init__(
+        self,
+        collection: Iterable[_T],
+        *,
+        resolve_callables: Literal[False],
+        generator: Any | None = None,
+    ) -> None: ...
+
+    @overload
+    def __init__(
+        self,
+        collection: Iterable[_Resolvable[_T]],
+        *,
+        resolve_callables: Literal[True] = True,
+        generator: Any | None = None,
+    ) -> None: ...
+
     def __init__(
         self,
         collection: Iterable[Any],
@@ -416,9 +545,9 @@ class QuantumMonty(_ValueEngine):
             raise ValueError("collection must not be empty")
         self.size = len(self.data)
         self._cycle = iter_cycle(self.data)
-        self._truffle: TruffleShuffle | None = None
+        self._truffle: TruffleShuffle[_T] | None = None
 
-    def _truffle_selector(self) -> TruffleShuffle:
+    def _truffle_selector(self) -> TruffleShuffle[_T]:
         selector = self._truffle
         if selector is None:
             # Construct into a local first so a failed initialization never
@@ -436,13 +565,13 @@ class QuantumMonty(_ValueEngine):
         profile: IndexProfile,
         *args: Any,
         **kwargs: Any,
-    ) -> Any:
+    ) -> _T:
         index = IndexSelector(profile, generator=self.generator)(self.size)
         if not isinstance(index, int):  # pragma: no cover - scalar contract invariant
             raise RuntimeError("scalar index selection returned a bulk result")
         return self._resolve(self.data[index], *args, **kwargs)
 
-    def dispatch(self, profile: IndexProfile | str) -> Callable[..., Any]:
+    def dispatch(self, profile: IndexProfile | str) -> Callable[..., _T]:
         canonical = _coerce_profile(profile)
         return {
             IndexProfile.UNIFORM: self.flat_uniform,
@@ -460,52 +589,52 @@ class QuantumMonty(_ValueEngine):
             IndexProfile.QUANTUM_MONTY: self.quantum_monty,
         }[canonical]
 
-    def __call__(self, *args: Any, **kwargs: Any) -> Any:
+    def __call__(self, *args: Any, **kwargs: Any) -> _T:
         return self.quantum_monty(*args, **kwargs)
 
-    def flat_uniform(self, *args: Any, **kwargs: Any) -> Any:
+    def flat_uniform(self, *args: Any, **kwargs: Any) -> _T:
         return self._profile_value(IndexProfile.UNIFORM, *args, **kwargs)
 
-    def cycle(self, *args: Any, **kwargs: Any) -> Any:
+    def cycle(self, *args: Any, **kwargs: Any) -> _T:
         return self._resolve(next(self._cycle), *args, **kwargs)
 
-    def truffle_shuffle(self, *args: Any, **kwargs: Any) -> Any:
+    def truffle_shuffle(self, *args: Any, **kwargs: Any) -> _T:
         return self._truffle_selector()(*args, **kwargs)
 
-    def front_triangular(self, *args: Any, **kwargs: Any) -> Any:
+    def front_triangular(self, *args: Any, **kwargs: Any) -> _T:
         return self._profile_value(IndexProfile.FRONT_TRIANGULAR, *args, **kwargs)
 
-    def center_triangular(self, *args: Any, **kwargs: Any) -> Any:
+    def center_triangular(self, *args: Any, **kwargs: Any) -> _T:
         return self._profile_value(IndexProfile.CENTER_TRIANGULAR, *args, **kwargs)
 
-    def back_triangular(self, *args: Any, **kwargs: Any) -> Any:
+    def back_triangular(self, *args: Any, **kwargs: Any) -> _T:
         return self._profile_value(IndexProfile.BACK_TRIANGULAR, *args, **kwargs)
 
-    def mixed_triangular(self, *args: Any, **kwargs: Any) -> Any:
+    def mixed_triangular(self, *args: Any, **kwargs: Any) -> _T:
         return self._profile_value(IndexProfile.MIXED_TRIANGULAR, *args, **kwargs)
 
-    def front_exponential(self, *args: Any, **kwargs: Any) -> Any:
+    def front_exponential(self, *args: Any, **kwargs: Any) -> _T:
         return self._profile_value(IndexProfile.FRONT_EXPONENTIAL, *args, **kwargs)
 
-    def center_normal(self, *args: Any, **kwargs: Any) -> Any:
+    def center_normal(self, *args: Any, **kwargs: Any) -> _T:
         return self._profile_value(IndexProfile.CENTER_NORMAL, *args, **kwargs)
 
-    def back_exponential(self, *args: Any, **kwargs: Any) -> Any:
+    def back_exponential(self, *args: Any, **kwargs: Any) -> _T:
         return self._profile_value(IndexProfile.BACK_EXPONENTIAL, *args, **kwargs)
 
-    def mixed_exponential_normal(self, *args: Any, **kwargs: Any) -> Any:
+    def mixed_exponential_normal(self, *args: Any, **kwargs: Any) -> _T:
         return self._profile_value(IndexProfile.MIXED_EXPONENTIAL_NORMAL, *args, **kwargs)
 
-    def front_poisson(self, *args: Any, **kwargs: Any) -> Any:
+    def front_poisson(self, *args: Any, **kwargs: Any) -> _T:
         return self._profile_value(IndexProfile.FRONT_POISSON, *args, **kwargs)
 
-    def edge_poisson(self, *args: Any, **kwargs: Any) -> Any:
+    def edge_poisson(self, *args: Any, **kwargs: Any) -> _T:
         return self._profile_value(IndexProfile.EDGE_POISSON, *args, **kwargs)
 
-    def back_poisson(self, *args: Any, **kwargs: Any) -> Any:
+    def back_poisson(self, *args: Any, **kwargs: Any) -> _T:
         return self._profile_value(IndexProfile.BACK_POISSON, *args, **kwargs)
 
-    def quantum_monty(self, *args: Any, **kwargs: Any) -> Any:
+    def quantum_monty(self, *args: Any, **kwargs: Any) -> _T:
         checked_index = IndexSelector(IndexProfile.UNIFORM, generator=self.generator)(
             len(self.QUANTUM_MONTY_PROFILES)
         )
@@ -514,12 +643,12 @@ class QuantumMonty(_ValueEngine):
 
 
 def _selection_engine(
-    collection: Iterable[Any],
+    collection: Iterable[_T],
     strategy: Any,
     *,
     resolve_callables: bool,
     generator: Any | None,
-) -> _ValueEngine:
+) -> _ValueEngine[_T]:
     if strategy is TruffleShuffle:
         return TruffleShuffle(
             collection,
@@ -559,7 +688,21 @@ def _validated_selection_strategy(strategy: Any) -> Any:
     raise TypeError("selector must be an IndexProfile, canonical string, or callable")
 
 
-class FlexCat(_ValueEngine):
+def _validate_generator_ownership(strategy: Any, generator: Any | None) -> None:
+    if generator is None:
+        return
+    if isinstance(strategy, IndexSelector):
+        raise TypeError("generator must be omitted when selector is an IndexSelector")
+    if (
+        callable(strategy)
+        and strategy is not RandomValue
+        and strategy is not TruffleShuffle
+        and strategy is not QuantumMonty
+    ):
+        raise TypeError("generator must be omitted when selector is a custom callable")
+
+
+class FlexCat(_ValueEngine[_T], Generic[_K, _T]):
     """Select a category and then a value using independent strategies.
 
     A strategy is a canonical :class:`IndexProfile`, an ``IndexSelector``, a
@@ -569,9 +712,31 @@ class FlexCat(_ValueEngine):
 
     __slots__ = ("matrix_data", "key_selector", "value_selectors")
 
+    @overload
     def __init__(
         self,
-        matrix_data: Mapping[Any, Iterable[Any]],
+        matrix_data: Mapping[_K, Iterable[_T]],
+        key_selector: Any = IndexProfile.FRONT_TRIANGULAR,
+        value_selector: Any = TruffleShuffle,
+        *,
+        resolve_callables: Literal[False],
+        generator: Any | None = None,
+    ) -> None: ...
+
+    @overload
+    def __init__(
+        self,
+        matrix_data: Mapping[_K, Iterable[_Resolvable[_T]]],
+        key_selector: Any = IndexProfile.FRONT_TRIANGULAR,
+        value_selector: Any = TruffleShuffle,
+        *,
+        resolve_callables: Literal[True] = True,
+        generator: Any | None = None,
+    ) -> None: ...
+
+    def __init__(
+        self,
+        matrix_data: Mapping[_K, Iterable[Any]],
         key_selector: Any = IndexProfile.FRONT_TRIANGULAR,
         value_selector: Any = TruffleShuffle,
         *,
@@ -587,7 +752,9 @@ class FlexCat(_ValueEngine):
 
         checked_key_selector = _validated_selection_strategy(key_selector)
         checked_value_selector = _validated_selection_strategy(value_selector)
-        materialized_matrix: dict[Any, tuple[Any, ...]] = {}
+        _validate_generator_ownership(checked_key_selector, generator)
+        _validate_generator_ownership(checked_value_selector, generator)
+        materialized_matrix: dict[_K, tuple[Any, ...]] = {}
         for key, values in copied_matrix.items():
             materialized_values = tuple(values)
             if not materialized_values:
@@ -614,13 +781,19 @@ class FlexCat(_ValueEngine):
         self.key_selector = constructed_key_selector
         self.value_selectors = constructed_value_selectors
 
-    def __call__(self, cat_key: Any = _MISSING, *args: Any, **kwargs: Any) -> Any:
-        key = self.key_selector() if cat_key is _MISSING else cat_key
+    @overload
+    def __call__(self, cat_key: _K, *args: Any, **kwargs: Any) -> _T: ...
+
+    @overload
+    def __call__(self, **kwargs: Any) -> _T: ...
+
+    def __call__(self, cat_key: object = _MISSING, *args: Any, **kwargs: Any) -> _T:
+        key = self.key_selector() if cat_key is _MISSING else cast(_K, cat_key)
         return self.value_selectors[key](*args, **kwargs)
 
 
-def _weighted_pairs(weighted_table: Iterable[Any]) -> list[tuple[float, Any]]:
-    result: list[tuple[float, Any]] = []
+def _weighted_pairs(weighted_table: Iterable[tuple[_Weight, _T]]) -> list[tuple[float, _T]]:
+    result: list[tuple[float, _T]] = []
     for position, pair in enumerate(weighted_table):
         try:
             weight, value = pair
@@ -653,10 +826,10 @@ def _validated_weighted_draw(value: Any, total: float) -> float:
     return draw
 
 
-class _WeightedChoice(_ValueEngine):
+class _WeightedChoice(_ValueEngine[_T]):
     __slots__ = ("data", "total")
 
-    def __call__(self, *args: Any, **kwargs: Any) -> Any:
+    def __call__(self, *args: Any, **kwargs: Any) -> _T:
         source = self.generator
         if source is None:
             draw_method = _core.random_float
@@ -675,19 +848,37 @@ class _WeightedChoice(_ValueEngine):
         return self._resolve(self.data[-1][1], *args, **kwargs)
 
 
-class RelativeWeightedChoice(_WeightedChoice):
+class RelativeWeightedChoice(_WeightedChoice[_T]):
     """Choose values using nonnegative relative real weights."""
+
+    @overload
+    def __init__(
+        self,
+        weighted_table: Iterable[tuple[_Weight, _T]],
+        *,
+        resolve_callables: Literal[False],
+        generator: _core.Generator | _FloatGenerator | None = None,
+    ) -> None: ...
+
+    @overload
+    def __init__(
+        self,
+        weighted_table: Iterable[tuple[_Weight, _Resolvable[_T]]],
+        *,
+        resolve_callables: Literal[True] = True,
+        generator: _core.Generator | _FloatGenerator | None = None,
+    ) -> None: ...
 
     def __init__(
         self,
-        weighted_table: Iterable[Any],
+        weighted_table: Iterable[tuple[_Weight, Any]],
         *,
         resolve_callables: bool = True,
-        generator: Any | None = None,
+        generator: _core.Generator | _FloatGenerator | None = None,
     ) -> None:
         super().__init__(resolve_callables=resolve_callables, generator=generator)
         cumulative = 0.0
-        data: list[tuple[float, Any]] = []
+        data: list[tuple[float, _T]] = []
         for weight, value in _weighted_pairs(weighted_table):
             if weight < 0.0:
                 raise ValueError("relative weights must be nonnegative")
@@ -701,15 +892,33 @@ class RelativeWeightedChoice(_WeightedChoice):
         self.total = cumulative
 
 
-class CumulativeWeightedChoice(_WeightedChoice):
+class CumulativeWeightedChoice(_WeightedChoice[_T]):
     """Choose values using finite, positive, strictly increasing thresholds."""
+
+    @overload
+    def __init__(
+        self,
+        weighted_table: Iterable[tuple[_Weight, _T]],
+        *,
+        resolve_callables: Literal[False],
+        generator: _core.Generator | _FloatGenerator | None = None,
+    ) -> None: ...
+
+    @overload
+    def __init__(
+        self,
+        weighted_table: Iterable[tuple[_Weight, _Resolvable[_T]]],
+        *,
+        resolve_callables: Literal[True] = True,
+        generator: _core.Generator | _FloatGenerator | None = None,
+    ) -> None: ...
 
     def __init__(
         self,
-        weighted_table: Iterable[Any],
+        weighted_table: Iterable[tuple[_Weight, Any]],
         *,
         resolve_callables: bool = True,
-        generator: Any | None = None,
+        generator: _core.Generator | _FloatGenerator | None = None,
     ) -> None:
         super().__init__(resolve_callables=resolve_callables, generator=generator)
         pairs = _weighted_pairs(weighted_table)

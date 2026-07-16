@@ -54,8 +54,16 @@ dev = [
     "ninja==1.13.0",
     "pytest>=8.4.0",
     "pytest-xdist>=3.8.0",
+    "pyright==1.1.411",
     "ruff>=0.12.0",
 ]
+
+[tool.pyright]
+include = ["src/Fortuna", "tests/typing"]
+pythonVersion = "3.11"
+typeCheckingMode = "standard"
+reportMissingModuleSource = false
+reportUnnecessaryTypeIgnoreComment = true
 
 [tool.pytest.ini_options]
 addopts = "-ra --strict-config --strict-markers"

@@ -149,7 +149,7 @@ def test_index_selector_bulk_and_validation():
     assert selector(4, count=0) == []
     with pytest.raises(ValueError, match="size must be >= 1"):
         selector(0)
-    with pytest.raises(ValueError, match="count must be >= 0"):
+    with pytest.raises(ValueError, match="count must be nonnegative"):
         selector(1, count=-1)
     with pytest.raises(TypeError, match="not bool"):
         selector(True)
