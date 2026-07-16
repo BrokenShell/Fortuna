@@ -984,6 +984,178 @@ inline void validate_bool(const int operation, const double parameter) {
     throw std::invalid_argument{"unknown boolean sampling operation"};
 }
 
+// Scalar entry points deliberately bypass the operation-code dispatch used by
+// the bulk implementation. Module calls prepare the thread-local owner before
+// entering these functions, so their hot path can use the prepared engine
+// directly. Explicit-generator calls hold the generator lock across fork
+// preparation, validation, and the draw.
+inline auto module_random_below_prepared(const std::uint64_t high) -> std::uint64_t {
+    return Storm::uniform_unsigned(module_prepared_engine(), 0, high);
+}
+
+inline auto generator_random_below(GeneratorCore& generator, const std::uint64_t high)
+    -> std::uint64_t {
+    const GeneratorLockGuard guard{generator};
+    return Storm::uniform_unsigned(generator.engine(), 0, high);
+}
+
+inline auto module_random_index_prepared(const std::uint64_t size) -> std::uint64_t {
+    validate_unsigned(1, size, 0, 0.0);
+    return static_cast<std::uint64_t>(
+        Storm::uniform_index(module_prepared_engine(), checked_size(size)));
+}
+
+inline auto generator_random_index(GeneratorCore& generator, const std::uint64_t size)
+    -> std::uint64_t {
+    const GeneratorLockGuard guard{generator};
+    validate_unsigned(1, size, 0, 0.0);
+    return static_cast<std::uint64_t>(random_index(generator, checked_size(size)));
+}
+
+inline auto module_random_int_prepared(const std::int64_t low, const std::int64_t high)
+    -> std::int64_t {
+    validate_signed(0, low, high, 0);
+    return Storm::uniform_integer(module_prepared_engine(), low, high);
+}
+
+inline auto generator_random_int(GeneratorCore& generator, const std::int64_t low,
+                                 const std::int64_t high) -> std::int64_t {
+    const GeneratorLockGuard guard{generator};
+    validate_signed(0, low, high, 0);
+    return random_int(generator, low, high);
+}
+
+inline auto module_random_range_prepared(const std::int64_t start, const std::int64_t stop,
+                                         const std::int64_t step) -> std::int64_t {
+    validate_signed(1, start, stop, step);
+    return Storm::random_range(module_prepared_engine(), start, stop, step);
+}
+
+inline auto generator_random_range(GeneratorCore& generator, const std::int64_t start,
+                                   const std::int64_t stop, const std::int64_t step)
+    -> std::int64_t {
+    const GeneratorLockGuard guard{generator};
+    validate_signed(1, start, stop, step);
+    return random_range(generator, start, stop, step);
+}
+
+inline auto module_roll_die_prepared(const std::uint64_t sides) -> std::uint64_t {
+    validate_unsigned(2, sides, 0, 0.0);
+    return static_cast<std::uint64_t>(
+        Storm::roll_die(module_prepared_engine(), checked_size(sides)));
+}
+
+inline auto generator_roll_die(GeneratorCore& generator, const std::uint64_t sides)
+    -> std::uint64_t {
+    const GeneratorLockGuard guard{generator};
+    validate_unsigned(2, sides, 0, 0.0);
+    return static_cast<std::uint64_t>(roll_die(generator, checked_size(sides)));
+}
+
+inline auto module_roll_dice_prepared(const std::uint64_t rolls, const std::uint64_t sides)
+    -> std::uint64_t {
+    validate_unsigned(3, rolls, sides, 0.0);
+    return Storm::roll_dice(module_prepared_engine(), checked_size(rolls), checked_size(sides));
+}
+
+inline auto generator_roll_dice(GeneratorCore& generator, const std::uint64_t rolls,
+                                const std::uint64_t sides) -> std::uint64_t {
+    const GeneratorLockGuard guard{generator};
+    validate_unsigned(3, rolls, sides, 0.0);
+    return roll_dice(generator, checked_size(rolls), checked_size(sides));
+}
+
+inline auto module_random_float_prepared(const double low, const double high) -> double {
+    validate_float(1, low, high, 0.0);
+    if (low == high) {
+        return low;
+    }
+    std::uniform_real_distribution<double> distribution{low, high};
+    const double value = distribution(module_prepared_engine());
+    return finite_output(value < high ? value : std::nextafter(high, low));
+}
+
+inline auto generator_random_float(GeneratorCore& generator, const double low,
+                                   const double high) -> double {
+    const GeneratorLockGuard guard{generator};
+    validate_float(1, low, high, 0.0);
+    return finite_output(random_float(generator, low, high));
+}
+
+inline auto module_triangular_prepared(const double low, const double high, const double mode)
+    -> double {
+    validate_float(2, low, high, mode);
+    if (low == high) {
+        return low;
+    }
+    const double span = high - low;
+    const double value = Storm::canonical(module_prepared_engine());
+    const double fraction = (mode - low) / span;
+    const double result = value > fraction
+                              ? high - span * std::sqrt((1.0 - value) * (1.0 - fraction))
+                              : low + span * std::sqrt(value * fraction);
+    return finite_output(result);
+}
+
+inline auto generator_triangular(GeneratorCore& generator, const double low, const double high,
+                                 const double mode) -> double {
+    const GeneratorLockGuard guard{generator};
+    validate_float(2, low, high, mode);
+    return finite_output(triangular(generator, low, high, mode));
+}
+
+inline auto module_exponential_prepared(const double rate) -> double {
+    validate_float(6, rate, 0.0, 0.0);
+    std::exponential_distribution<double> distribution{rate};
+    return finite_output(distribution(module_prepared_engine()));
+}
+
+inline auto generator_exponential(GeneratorCore& generator, const double rate) -> double {
+    const GeneratorLockGuard guard{generator};
+    validate_float(6, rate, 0.0, 0.0);
+    return finite_output(exponential(generator, rate));
+}
+
+inline auto module_normal_prepared(const double mean, const double deviation) -> double {
+    validate_float(9, mean, deviation, 0.0);
+    if (deviation == 0.0) {
+        return mean;
+    }
+    std::normal_distribution<double> distribution{mean, deviation};
+    return finite_output(distribution(module_prepared_engine()));
+}
+
+inline auto generator_normal(GeneratorCore& generator, const double mean,
+                             const double deviation) -> double {
+    const GeneratorLockGuard guard{generator};
+    validate_float(9, mean, deviation, 0.0);
+    return finite_output(normal(generator, mean, deviation));
+}
+
+inline auto module_percent_true_prepared(const double percent) -> bool {
+    validate_bool(0, percent);
+    std::bernoulli_distribution distribution{percent / 100.0};
+    return distribution(module_prepared_engine());
+}
+
+inline auto generator_percent_true(GeneratorCore& generator, const double percent) -> bool {
+    const GeneratorLockGuard guard{generator};
+    validate_bool(0, percent);
+    return percent_true(generator, percent);
+}
+
+inline auto module_bernoulli_prepared(const double probability) -> bool {
+    validate_bool(1, probability);
+    std::bernoulli_distribution distribution{probability};
+    return distribution(module_prepared_engine());
+}
+
+inline auto generator_bernoulli(GeneratorCore& generator, const double probability) -> bool {
+    const GeneratorLockGuard guard{generator};
+    validate_bool(1, probability);
+    return bernoulli(generator, probability);
+}
+
 inline auto sample_signed(GeneratorCore& generator, const int operation, const std::int64_t a,
                           const std::int64_t b, const std::int64_t c) -> std::int64_t {
     validate_signed(operation, a, b, c);

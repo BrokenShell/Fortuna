@@ -64,20 +64,51 @@ def _shuffle(module: Any | None, import_error: str | None) -> BenchmarkCase:
     return BenchmarkCase("fortuna-scalar", "shuffle-100", setup=setup)
 
 
-def _generator_canonical(module: Any | None, import_error: str | None) -> BenchmarkCase:
+def _generator_scalar(
+    module: Any | None,
+    import_error: str | None,
+    name: str,
+    arguments: tuple[Any, ...] = (),
+) -> BenchmarkCase:
     generator_type = getattr(module, "Generator", None) if module is not None else None
     if not callable(generator_type):
         return BenchmarkCase(
             "fortuna-scalar",
-            "generator-canonical",
+            f"generator-{name}",
             skip_reason=import_error or "Fortuna.Generator is unavailable",
+        )
+    method = getattr(generator_type, name, None)
+    if not callable(method):
+        return BenchmarkCase(
+            "fortuna-scalar",
+            f"generator-{name}",
+            skip_reason=f"Fortuna.Generator.{name} is unavailable",
         )
 
     def setup():
         generator = generator_type(0)
-        return generator.canonical
+        bound = getattr(generator, name)
+        if arguments:
+            return lambda: bound(*arguments)
+        return bound
 
-    return BenchmarkCase("fortuna-scalar", "generator-canonical", setup=setup)
+    return BenchmarkCase("fortuna-scalar", f"generator-{name}", setup=setup)
+
+
+def _uniform_index_selector(module: Any | None, import_error: str | None) -> BenchmarkCase:
+    selector_type = getattr(module, "IndexSelector", None) if module is not None else None
+    if not callable(selector_type):
+        return BenchmarkCase(
+            "fortuna-scalar",
+            "index-selector-uniform",
+            skip_reason=import_error or "Fortuna.IndexSelector is unavailable",
+        )
+
+    def setup():
+        selector = selector_type("uniform")
+        return lambda: selector(100)
+
+    return BenchmarkCase("fortuna-scalar", "index-selector-uniform", setup=setup)
 
 
 def fortuna_scalar_cases() -> list[BenchmarkCase]:
@@ -85,6 +116,7 @@ def fortuna_scalar_cases() -> list[BenchmarkCase]:
     specs = (
         ("canonical", ()),
         ("random_below", (1000,)),
+        ("random_index", (1000,)),
         ("random_range", (0, 1000)),
         ("random_int", (-1000, 1000)),
         ("random_float", (-1.0, 1.0)),
@@ -97,7 +129,8 @@ def fortuna_scalar_cases() -> list[BenchmarkCase]:
         ("exponential_variate", (1.0,)),
     )
     cases = [_scalar(fortuna, error, name, arguments) for name, arguments in specs]
-    cases.append(_generator_canonical(fortuna, error))
+    cases.extend(_generator_scalar(fortuna, error, name, arguments) for name, arguments in specs)
+    cases.append(_uniform_index_selector(fortuna, error))
     cases.append(_shuffle(fortuna, error))
     return cases
 

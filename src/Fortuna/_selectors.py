@@ -1,9 +1,4 @@
-"""Collection selectors built on Fortuna's random generator primitives.
-
-This module intentionally imports :mod:`Fortuna._core` only while drawing a
-value.  The public package can therefore re-export these classes without
-creating an import cycle with the compiled extension.
-"""
+"""Collection selectors built on Fortuna's random generator primitives."""
 
 from __future__ import annotations
 
@@ -16,6 +11,8 @@ from itertools import cycle as iter_cycle
 from numbers import Real
 from typing import Any
 
+from . import _core
+
 _DEFAULT_RESOLVE_DEPTH = 100
 _MISSING = object()
 
@@ -23,10 +20,13 @@ _MISSING = object()
 def _integer(value: Any, *, name: str, minimum: int | None = None) -> int:
     if isinstance(value, bool):
         raise TypeError(f"{name} must be an integer, not bool")
-    try:
-        result = operator.index(value)
-    except TypeError as error:
-        raise TypeError(f"{name} must be an integer") from error
+    if type(value) is int:
+        result = value
+    else:
+        try:
+            result = operator.index(value)
+        except TypeError as error:
+            raise TypeError(f"{name} must be an integer") from error
     if minimum is not None and result < minimum:
         raise ValueError(f"{name} must be >= {minimum}")
     return result
@@ -36,8 +36,6 @@ def _draw(generator: Any | None, method: str, *args: Any, **kwargs: Any) -> Any:
     """Draw through an explicit generator or the thread-local core function."""
     if generator is not None:
         return getattr(generator, method)(*args, **kwargs)
-    from . import _core
-
     return getattr(_core, method)(*args, **kwargs)
 
 
@@ -83,10 +81,18 @@ def resolve(
 
 def random_value(data: Iterable[Any], *, generator: Any | None = None) -> Any:
     """Return one uniformly selected value from a nonempty iterable."""
-    values = tuple(data)
-    if not values:
+    if generator is not None and type(generator) is _core.Generator:
+        return generator.random_value(data)
+
+    data_type = type(data)
+    values = data if data_type is tuple else tuple(data)
+    size = len(values)
+    if not size:
         raise ValueError("data must not be empty")
-    index = IndexSelector(IndexProfile.UNIFORM, generator=generator)(len(values))
+    if generator is None:
+        index = _core.random_index(size)
+    else:
+        index = IndexSelector._validated_index(generator.random_index(size), size)
     return values[index]
 
 
@@ -95,8 +101,6 @@ def shuffle(array: MutableSequence[Any], *, generator: Any | None = None) -> Non
     if not isinstance(array, MutableSequence):
         raise TypeError("array must be a mutable sequence")
     if generator is None:
-        from . import _core
-
         _core.shuffle(array)
         return
     native_shuffle = getattr(generator, "shuffle", None)
@@ -179,7 +183,7 @@ def _coerce_profile(profile: IndexProfile | str) -> IndexProfile:
 class IndexSelector:
     """Callable adapter from an :class:`IndexProfile` to an index draw."""
 
-    __slots__ = ("profile", "generator")
+    __slots__ = ("_draw_method", "_generator", "_method_name", "_profile")
 
     def __init__(
         self,
@@ -187,16 +191,48 @@ class IndexSelector:
         *,
         generator: Any | None = None,
     ) -> None:
-        self.profile = _coerce_profile(profile)
-        self.generator = generator
+        self._draw_method: Callable[..., Any] | None = None
+        self._generator = generator
+        self.profile = profile
+
+    @property
+    def profile(self) -> IndexProfile:
+        return self._profile
+
+    @profile.setter
+    def profile(self, value: IndexProfile | str) -> None:
+        profile = _coerce_profile(value)
+        self._profile = profile
+        self._method_name = _PROFILE_METHODS[profile]
+        self._draw_method = None
+
+    @property
+    def generator(self) -> Any | None:
+        return self._generator
+
+    @generator.setter
+    def generator(self, value: Any | None) -> None:
+        self._generator = value
+        self._draw_method = None
 
     def __call__(self, size: int, *, count: int | None = None) -> int | list[int]:
         checked_size = _integer(size, name="size", minimum=1)
-        method = _PROFILE_METHODS[self.profile]
+        method = self._draw_method
+        if method is None:
+            source = self._generator
+            if source is None:
+                source = _core
+            method = getattr(source, self._method_name)
+            self._draw_method = method
         if count is None:
-            return self._validated_index(_draw(self.generator, method, checked_size), checked_size)
+            value = method(checked_size)
+            if type(value) is int:
+                if 0 <= value < checked_size:
+                    return value
+                raise ValueError(f"generated index {value} is outside [0, {checked_size})")
+            return self._validated_index(value, checked_size)
         checked_count = _integer(count, name="count", minimum=0)
-        values = _draw(self.generator, method, checked_size, count=checked_count)
+        values = method(checked_size, count=checked_count)
         if not isinstance(values, list):
             raise TypeError("bulk profile generation must return a list")
         if len(values) != checked_count:

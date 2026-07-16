@@ -90,5 +90,9 @@ Correctness tests and statistical validation live in `tests/`. Performance
 measurement lives in `benchmarks/`; benchmark timing is not an ordinary CI pass
 condition.
 
+Fortuna's native Knuth-B shuffle is deliberately optimized for larger
+workloads, where its forward traversal has shown the clearest advantage over
+reverse Fisher-Yates in this project's controlled benchmarks.
+
 See the [API reference](docs/api.md) for the complete public surface and the
 [migration guide](docs/migration-5-to-6.md) for renamed and removed interfaces.

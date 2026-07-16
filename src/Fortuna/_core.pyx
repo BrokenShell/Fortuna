@@ -58,6 +58,78 @@ cdef extern from "src/Fortuna/cpp/fortuna_core.hpp" namespace "FortunaCore":
     void core_generator_canonical_fill "FortunaCore::generator_canonical_fill"(
         GeneratorCore&, double*, size_t
     ) except + nogil
+    uint64_t core_module_random_below "FortunaCore::module_random_below_prepared"(
+        uint64_t
+    ) except + nogil
+    uint64_t core_generator_random_below "FortunaCore::generator_random_below"(
+        GeneratorCore&, uint64_t
+    ) except + nogil
+    uint64_t core_module_random_index "FortunaCore::module_random_index_prepared"(
+        uint64_t
+    ) except + nogil
+    uint64_t core_generator_random_index "FortunaCore::generator_random_index"(
+        GeneratorCore&, uint64_t
+    ) except + nogil
+    int64_t core_module_random_int "FortunaCore::module_random_int_prepared"(
+        int64_t, int64_t
+    ) except + nogil
+    int64_t core_generator_random_int "FortunaCore::generator_random_int"(
+        GeneratorCore&, int64_t, int64_t
+    ) except + nogil
+    int64_t core_module_random_range "FortunaCore::module_random_range_prepared"(
+        int64_t, int64_t, int64_t
+    ) except + nogil
+    int64_t core_generator_random_range "FortunaCore::generator_random_range"(
+        GeneratorCore&, int64_t, int64_t, int64_t
+    ) except + nogil
+    uint64_t core_module_roll_die "FortunaCore::module_roll_die_prepared"(
+        uint64_t
+    ) except + nogil
+    uint64_t core_generator_roll_die "FortunaCore::generator_roll_die"(
+        GeneratorCore&, uint64_t
+    ) except + nogil
+    uint64_t core_module_roll_dice "FortunaCore::module_roll_dice_prepared"(
+        uint64_t, uint64_t
+    ) except + nogil
+    uint64_t core_generator_roll_dice "FortunaCore::generator_roll_dice"(
+        GeneratorCore&, uint64_t, uint64_t
+    ) except + nogil
+    double core_module_random_float "FortunaCore::module_random_float_prepared"(
+        double, double
+    ) except + nogil
+    double core_generator_random_float "FortunaCore::generator_random_float"(
+        GeneratorCore&, double, double
+    ) except + nogil
+    double core_module_triangular "FortunaCore::module_triangular_prepared"(
+        double, double, double
+    ) except + nogil
+    double core_generator_triangular "FortunaCore::generator_triangular"(
+        GeneratorCore&, double, double, double
+    ) except + nogil
+    double core_module_exponential "FortunaCore::module_exponential_prepared"(
+        double
+    ) except + nogil
+    double core_generator_exponential "FortunaCore::generator_exponential"(
+        GeneratorCore&, double
+    ) except + nogil
+    double core_module_normal "FortunaCore::module_normal_prepared"(
+        double, double
+    ) except + nogil
+    double core_generator_normal "FortunaCore::generator_normal"(
+        GeneratorCore&, double, double
+    ) except + nogil
+    bint core_module_percent_true "FortunaCore::module_percent_true_prepared"(
+        double
+    ) except + nogil
+    bint core_generator_percent_true "FortunaCore::generator_percent_true"(
+        GeneratorCore&, double
+    ) except + nogil
+    bint core_module_bernoulli "FortunaCore::module_bernoulli_prepared"(
+        double
+    ) except + nogil
+    bint core_generator_bernoulli "FortunaCore::generator_bernoulli"(
+        GeneratorCore&, double
+    ) except + nogil
     void core_validate_signed "FortunaCore::validate_signed"(
         int, int64_t, int64_t, int64_t
     ) except + nogil
@@ -77,6 +149,9 @@ cdef int64_t _as_int64(object value, str name) except *:
     cdef int64_t result
     if isinstance(value, bool):
         raise TypeError(f"{name} must be an integer, not bool")
+    if type(value) is int:
+        result = value
+        return result
     try:
         integer = operator.index(value)
     except TypeError as error:
@@ -90,6 +165,11 @@ cdef uint64_t _as_uint64(object value, str name) except *:
     cdef uint64_t result
     if isinstance(value, bool):
         raise TypeError(f"{name} must be an integer, not bool")
+    if type(value) is int:
+        if value < 0:
+            raise ValueError(f"{name} must be nonnegative")
+        result = value
+        return result
     try:
         integer = operator.index(value)
     except TypeError as error:
@@ -105,10 +185,13 @@ cdef uint64_t _below_high(object value) except *:
     cdef uint64_t result
     if isinstance(value, bool):
         raise TypeError("limit must be an integer, not bool")
-    try:
-        integer = operator.index(value)
-    except TypeError as error:
-        raise TypeError("limit must be an integer") from error
+    if type(value) is int:
+        integer = value
+    else:
+        try:
+            integer = operator.index(value)
+        except TypeError as error:
+            raise TypeError("limit must be an integer") from error
     if integer <= 0:
         raise ValueError("limit must be greater than zero")
     if integer > 2**64:
@@ -122,6 +205,11 @@ cdef Py_ssize_t _as_count(object value) except *:
     cdef Py_ssize_t result
     if isinstance(value, bool):
         raise TypeError("count must be an integer, not bool")
+    if type(value) is int:
+        if value < 0:
+            raise ValueError("count must be nonnegative")
+        result = value
+        return result
     try:
         integer = operator.index(value)
     except TypeError as error:
@@ -133,6 +221,10 @@ cdef Py_ssize_t _as_count(object value) except *:
 
 
 cdef double _as_double(object value, str name) except *:
+    if type(value) is float:
+        return value
+    if type(value) is int:
+        return float(value)
     if isinstance(value, bool) or not isinstance(value, Real):
         raise TypeError(f"{name} must be a real number")
     return float(value)
@@ -143,6 +235,12 @@ cdef GeneratorCore* _module() except *:
     with nogil:
         result = core_module_generator()
     return result
+
+
+cdef inline void _prepare_module_scalar() except *:
+    if core_module_needs_prepare():
+        with nogil:
+            core_module_prepare()
 
 
 cdef object _signed_dispatch(
@@ -542,44 +640,100 @@ cdef class Generator:
                 self._generator.unlock()
 
     def percent_true(self, percent=50.0, *, count=None):
-        return _bool_generator_result(self._generator, 0, _as_double(percent, "percent"), count)
+        cdef double checked = _as_double(percent, "percent")
+        cdef bint scalar
+        if count is not None:
+            return _bool_generator_result(self._generator, 0, checked, count)
+        with nogil:
+            scalar = core_generator_percent_true(self._generator[0], checked)
+        return bool(scalar)
 
     def bernoulli_variate(self, probability=0.5, *, count=None):
-        return _bool_generator_result(
-            self._generator, 1, _as_double(probability, "probability"), count
-        )
+        cdef double checked = _as_double(probability, "probability")
+        cdef bint scalar
+        if count is not None:
+            return _bool_generator_result(self._generator, 1, checked, count)
+        with nogil:
+            scalar = core_generator_bernoulli(self._generator[0], checked)
+        return bool(scalar)
 
     def random_below(self, limit, *, count=None):
-        return _unsigned_generator_result(self._generator, 0, 0, _below_high(limit), 0.0, count)
+        cdef uint64_t high = _below_high(limit)
+        cdef uint64_t scalar
+        if count is not None:
+            return _unsigned_generator_result(self._generator, 0, 0, high, 0.0, count)
+        with nogil:
+            scalar = core_generator_random_below(self._generator[0], high)
+        return scalar
 
     def random_index(self, size, *, count=None):
-        return _unsigned_generator_result(
-            self._generator, 1, _as_uint64(size, "size"), 0, 0.0, count
-        )
+        cdef uint64_t checked = _as_uint64(size, "size")
+        cdef uint64_t scalar
+        if count is not None:
+            return _unsigned_generator_result(self._generator, 1, checked, 0, 0.0, count)
+        with nogil:
+            scalar = core_generator_random_index(self._generator[0], checked)
+        return scalar
 
     def random_int(self, low, high, *, count=None):
-        return _signed_generator_result(self._generator, 0, _as_int64(low, "low"),
-                                        _as_int64(high, "high"), 0, count)
+        cdef int64_t checked_low = _as_int64(low, "low")
+        cdef int64_t checked_high = _as_int64(high, "high")
+        cdef int64_t scalar
+        if count is not None:
+            return _signed_generator_result(
+                self._generator, 0, checked_low, checked_high, 0, count
+            )
+        with nogil:
+            scalar = core_generator_random_int(self._generator[0], checked_low, checked_high)
+        return scalar
 
     def random_uint(self, low, high, *, count=None):
         return _unsigned_generator_result(self._generator, 0, _as_uint64(low, "low"),
                                           _as_uint64(high, "high"), 0.0, count)
 
     def random_range(self, start, stop=None, step=1, *, count=None):
+        cdef int64_t checked_start
+        cdef int64_t checked_stop
+        cdef int64_t checked_step
+        cdef int64_t scalar
         if stop is None:
             stop = start
             start = 0
-        return _signed_generator_result(self._generator, 1, _as_int64(start, "start"),
-                                        _as_int64(stop, "stop"), _as_int64(step, "step"), count)
+        checked_start = _as_int64(start, "start")
+        checked_stop = _as_int64(stop, "stop")
+        checked_step = _as_int64(step, "step")
+        if count is not None:
+            return _signed_generator_result(
+                self._generator, 1, checked_start, checked_stop, checked_step, count
+            )
+        with nogil:
+            scalar = core_generator_random_range(
+                self._generator[0], checked_start, checked_stop, checked_step
+            )
+        return scalar
 
     def d(self, sides=20, *, count=None):
-        return _unsigned_generator_result(
-            self._generator, 2, _as_uint64(sides, "sides"), 0, 0.0, count
-        )
+        cdef uint64_t checked = _as_uint64(sides, "sides")
+        cdef uint64_t scalar
+        if count is not None:
+            return _unsigned_generator_result(self._generator, 2, checked, 0, 0.0, count)
+        with nogil:
+            scalar = core_generator_roll_die(self._generator[0], checked)
+        return scalar
 
     def dice(self, rolls=1, sides=20, *, count=None):
-        return _unsigned_generator_result(self._generator, 3, _as_uint64(rolls, "rolls"),
-                                          _as_uint64(sides, "sides"), 0.0, count)
+        cdef uint64_t checked_rolls = _as_uint64(rolls, "rolls")
+        cdef uint64_t checked_sides = _as_uint64(sides, "sides")
+        cdef uint64_t scalar
+        if count is not None:
+            return _unsigned_generator_result(
+                self._generator, 3, checked_rolls, checked_sides, 0.0, count
+            )
+        with nogil:
+            scalar = core_generator_roll_dice(
+                self._generator[0], checked_rolls, checked_sides
+            )
+        return scalar
 
     def ability_dice(self, rolls=4, *, count=None):
         return _unsigned_generator_result(
@@ -610,12 +764,31 @@ cdef class Generator:
         return scalar
 
     def random_float(self, low=0.0, high=1.0, *, count=None):
-        return _float_generator_result(self._generator, 1, _as_double(low, "low"),
-                                       _as_double(high, "high"), 0.0, count)
+        cdef double checked_low = _as_double(low, "low")
+        cdef double checked_high = _as_double(high, "high")
+        cdef double scalar
+        if count is not None:
+            return _float_generator_result(
+                self._generator, 1, checked_low, checked_high, 0.0, count
+            )
+        with nogil:
+            scalar = core_generator_random_float(self._generator[0], checked_low, checked_high)
+        return scalar
 
     def triangular(self, low, high, mode, *, count=None):
-        return _float_generator_result(self._generator, 2, _as_double(low, "low"),
-                                       _as_double(high, "high"), _as_double(mode, "mode"), count)
+        cdef double checked_low = _as_double(low, "low")
+        cdef double checked_high = _as_double(high, "high")
+        cdef double checked_mode = _as_double(mode, "mode")
+        cdef double scalar
+        if count is not None:
+            return _float_generator_result(
+                self._generator, 2, checked_low, checked_high, checked_mode, count
+            )
+        with nogil:
+            scalar = core_generator_triangular(
+                self._generator[0], checked_low, checked_high, checked_mode
+            )
+        return scalar
 
     def beta_variate(self, alpha, beta, *, count=None):
         return _float_generator_result(self._generator, 3, _as_double(alpha, "alpha"),
@@ -649,9 +822,13 @@ cdef class Generator:
         )
 
     def exponential_variate(self, rate, *, count=None):
-        return _float_generator_result(
-            self._generator, 6, _as_double(rate, "rate"), 0.0, 0.0, count
-        )
+        cdef double checked = _as_double(rate, "rate")
+        cdef double scalar
+        if count is not None:
+            return _float_generator_result(self._generator, 6, checked, 0.0, 0.0, count)
+        with nogil:
+            scalar = core_generator_exponential(self._generator[0], checked)
+        return scalar
 
     def gamma_variate(self, shape, scale, *, count=None):
         return _float_generator_result(self._generator, 7, _as_double(shape, "shape"),
@@ -662,8 +839,18 @@ cdef class Generator:
                                        _as_double(scale, "scale"), 0.0, count)
 
     def normal_variate(self, mean, std_dev, *, count=None):
-        return _float_generator_result(self._generator, 9, _as_double(mean, "mean"),
-                                       _as_double(std_dev, "std_dev"), 0.0, count)
+        cdef double checked_mean = _as_double(mean, "mean")
+        cdef double checked_deviation = _as_double(std_dev, "std_dev")
+        cdef double scalar
+        if count is not None:
+            return _float_generator_result(
+                self._generator, 9, checked_mean, checked_deviation, 0.0, count
+            )
+        with nogil:
+            scalar = core_generator_normal(
+                self._generator[0], checked_mean, checked_deviation
+            )
+        return scalar
 
     def log_normal_variate(self, log_mean, log_deviation, *, count=None):
         return _float_generator_result(self._generator, 10, _as_double(log_mean, "log_mean"),
@@ -785,23 +972,54 @@ def _benchmark_shuffle_fisher_yates(data):
 
 
 def percent_true(percent=50.0, *, count=None):
-    return _bool_result(_module(), 0, _as_double(percent, "percent"), count)
+    cdef double checked = _as_double(percent, "percent")
+    cdef bint scalar
+    if count is not None:
+        return _bool_result(_module(), 0, checked, count)
+    _prepare_module_scalar()
+    scalar = core_module_percent_true(checked)
+    return bool(scalar)
 
 
 def bernoulli_variate(probability=0.5, *, count=None):
-    return _bool_result(_module(), 1, _as_double(probability, "probability"), count)
+    cdef double checked = _as_double(probability, "probability")
+    cdef bint scalar
+    if count is not None:
+        return _bool_result(_module(), 1, checked, count)
+    _prepare_module_scalar()
+    scalar = core_module_bernoulli(checked)
+    return bool(scalar)
 
 
 def random_below(limit, *, count=None):
-    return _unsigned_result(_module(), 0, 0, _below_high(limit), 0.0, count)
+    cdef uint64_t high = _below_high(limit)
+    cdef uint64_t scalar
+    if count is not None:
+        return _unsigned_result(_module(), 0, 0, high, 0.0, count)
+    _prepare_module_scalar()
+    scalar = core_module_random_below(high)
+    return scalar
 
 
 def random_index(size, *, count=None):
-    return _unsigned_result(_module(), 1, _as_uint64(size, "size"), 0, 0.0, count)
+    cdef uint64_t checked = _as_uint64(size, "size")
+    cdef uint64_t scalar
+    if count is not None:
+        return _unsigned_result(_module(), 1, checked, 0, 0.0, count)
+    _prepare_module_scalar()
+    scalar = core_module_random_index(checked)
+    return scalar
 
 
 def random_int(low, high, *, count=None):
-    return _signed_result(_module(), 0, _as_int64(low, "low"), _as_int64(high, "high"), 0, count)
+    cdef int64_t checked_low = _as_int64(low, "low")
+    cdef int64_t checked_high = _as_int64(high, "high")
+    cdef int64_t scalar
+    if count is not None:
+        return _signed_result(_module(), 0, checked_low, checked_high, 0, count)
+    _prepare_module_scalar()
+    scalar = core_module_random_int(checked_low, checked_high)
+    return scalar
 
 
 def random_uint(low, high, *, count=None):
@@ -810,20 +1028,44 @@ def random_uint(low, high, *, count=None):
 
 
 def random_range(start, stop=None, step=1, *, count=None):
+    cdef int64_t checked_start
+    cdef int64_t checked_stop
+    cdef int64_t checked_step
+    cdef int64_t scalar
     if stop is None:
         stop = start
         start = 0
-    return _signed_result(_module(), 1, _as_int64(start, "start"),
-                          _as_int64(stop, "stop"), _as_int64(step, "step"), count)
+    checked_start = _as_int64(start, "start")
+    checked_stop = _as_int64(stop, "stop")
+    checked_step = _as_int64(step, "step")
+    if count is not None:
+        return _signed_result(_module(), 1, checked_start, checked_stop, checked_step, count)
+    _prepare_module_scalar()
+    scalar = core_module_random_range(checked_start, checked_stop, checked_step)
+    return scalar
 
 
 def d(sides=20, *, count=None):
-    return _unsigned_result(_module(), 2, _as_uint64(sides, "sides"), 0, 0.0, count)
+    cdef uint64_t checked = _as_uint64(sides, "sides")
+    cdef uint64_t scalar
+    if count is not None:
+        return _unsigned_result(_module(), 2, checked, 0, 0.0, count)
+    _prepare_module_scalar()
+    scalar = core_module_roll_die(checked)
+    return scalar
 
 
 def dice(rolls=1, sides=20, *, count=None):
-    return _unsigned_result(_module(), 3, _as_uint64(rolls, "rolls"),
-                            _as_uint64(sides, "sides"), 0.0, count)
+    cdef uint64_t checked_rolls = _as_uint64(rolls, "rolls")
+    cdef uint64_t checked_sides = _as_uint64(sides, "sides")
+    cdef uint64_t scalar
+    if count is not None:
+        return _unsigned_result(
+            _module(), 3, checked_rolls, checked_sides, 0.0, count
+        )
+    _prepare_module_scalar()
+    scalar = core_module_roll_dice(checked_rolls, checked_sides)
+    return scalar
 
 
 def ability_dice(rolls=4, *, count=None):
@@ -852,13 +1094,28 @@ def canonical(*, count=None):
 
 
 def random_float(low=0.0, high=1.0, *, count=None):
-    return _float_result(_module(), 1, _as_double(low, "low"),
-                         _as_double(high, "high"), 0.0, count)
+    cdef double checked_low = _as_double(low, "low")
+    cdef double checked_high = _as_double(high, "high")
+    cdef double scalar
+    if count is not None:
+        return _float_result(_module(), 1, checked_low, checked_high, 0.0, count)
+    _prepare_module_scalar()
+    scalar = core_module_random_float(checked_low, checked_high)
+    return scalar
 
 
 def triangular(low, high, mode, *, count=None):
-    return _float_result(_module(), 2, _as_double(low, "low"),
-                         _as_double(high, "high"), _as_double(mode, "mode"), count)
+    cdef double checked_low = _as_double(low, "low")
+    cdef double checked_high = _as_double(high, "high")
+    cdef double checked_mode = _as_double(mode, "mode")
+    cdef double scalar
+    if count is not None:
+        return _float_result(
+            _module(), 2, checked_low, checked_high, checked_mode, count
+        )
+    _prepare_module_scalar()
+    scalar = core_module_triangular(checked_low, checked_high, checked_mode)
+    return scalar
 
 
 def beta_variate(alpha, beta, *, count=None):
@@ -894,7 +1151,13 @@ def poisson_variate(mean, *, count=None):
 
 
 def exponential_variate(rate, *, count=None):
-    return _float_result(_module(), 6, _as_double(rate, "rate"), 0.0, 0.0, count)
+    cdef double checked = _as_double(rate, "rate")
+    cdef double scalar
+    if count is not None:
+        return _float_result(_module(), 6, checked, 0.0, 0.0, count)
+    _prepare_module_scalar()
+    scalar = core_module_exponential(checked)
+    return scalar
 
 
 def gamma_variate(shape, scale, *, count=None):
@@ -908,8 +1171,16 @@ def weibull_variate(shape, scale, *, count=None):
 
 
 def normal_variate(mean, std_dev, *, count=None):
-    return _float_result(_module(), 9, _as_double(mean, "mean"),
-                         _as_double(std_dev, "std_dev"), 0.0, count)
+    cdef double checked_mean = _as_double(mean, "mean")
+    cdef double checked_deviation = _as_double(std_dev, "std_dev")
+    cdef double scalar
+    if count is not None:
+        return _float_result(
+            _module(), 9, checked_mean, checked_deviation, 0.0, count
+        )
+    _prepare_module_scalar()
+    scalar = core_module_normal(checked_mean, checked_deviation)
+    return scalar
 
 
 def log_normal_variate(log_mean, log_deviation, *, count=None):

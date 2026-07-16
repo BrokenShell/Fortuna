@@ -32,6 +32,10 @@ Fortuna 6 is a clean, intentionally breaking reconstruction.
 - `canonical` uses dedicated scalar and bulk paths that preserve its seeded
   sequence while avoiding generic validation, dispatch, and per-value engine
   preparation.
+- Priority scalar APIs use dedicated native paths instead of paying the generic
+  bulk dispatcher and validation cost for each individual draw.
+- Uniform value selection has direct exact-tuple and native-generator paths
+  while preserving snapshot semantics for mutable inputs.
 
 ### Removed
 

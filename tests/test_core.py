@@ -15,10 +15,19 @@ def test_version_and_seed_zero_are_deterministic():
 @pytest.mark.parametrize(
     ("method", "args"),
     [
+        ("percent_true", (37.5,)),
+        ("bernoulli_variate", (0.375,)),
+        ("random_below", (101,)),
+        ("random_index", (101,)),
         ("random_int", (-10, 10)),
         ("random_uint", (0, 100)),
         ("random_range", (-20, 30, 3)),
+        ("d", (20,)),
+        ("dice", (3, 6)),
         ("canonical", ()),
+        ("random_float", (-2.5, 7.25)),
+        ("triangular", (-2.5, 7.25, 1.0)),
+        ("exponential_variate", (2.5,)),
         ("normal_variate", (3.0, 2.0)),
         ("front_triangular", (17,)),
         ("quantum_monty", (17,)),
@@ -30,6 +39,106 @@ def test_bulk_is_scalar_equivalent(method, args):
     assert getattr(bulk, method)(*args, count=64) == [
         getattr(scalar, method)(*args) for _ in range(64)
     ]
+
+
+@pytest.mark.parametrize(
+    ("function", "args"),
+    [
+        (Fortuna.percent_true, (37.5,)),
+        (Fortuna.bernoulli_variate, (0.375,)),
+        (Fortuna.random_below, (101,)),
+        (Fortuna.random_index, (101,)),
+        (Fortuna.random_int, (-10, 10)),
+        (Fortuna.random_range, (-20, 30, 3)),
+        (Fortuna.d, (20,)),
+        (Fortuna.dice, (3, 6)),
+        (Fortuna.random_float, (-2.5, 7.25)),
+        (Fortuna.triangular, (-2.5, 7.25, 1.0)),
+        (Fortuna.exponential_variate, (2.5,)),
+        (Fortuna.normal_variate, (3.0, 2.0)),
+    ],
+)
+def test_specialized_module_scalar_is_bulk_equivalent(function, args):
+    Fortuna.seed(8128)
+    expected = function(*args, count=64)
+    Fortuna.seed(8128)
+    assert [function(*args) for _ in range(64)] == expected
+
+
+@pytest.mark.parametrize(
+    ("method", "args", "expected"),
+    [
+        ("random_below", (1000,), [555, 385, 940, 353, 102, 1, 227, 650]),
+        ("random_index", (1000,), [555, 385, 940, 353, 102, 1, 227, 650]),
+        ("random_int", (-1000, 1000), [-153, 623, 983, 138, -242, 705, 778, -313]),
+        (
+            "random_range",
+            (-1000, 1000, 3),
+            [-460, -133, 947, 413, -727, 113, 332, -940],
+        ),
+    ],
+)
+def test_specialized_bounded_sequences_are_stable(method, args, expected):
+    assert getattr(Fortuna.Generator(8128), method)(*args, count=8) == expected
+    Fortuna.seed(8128)
+    assert getattr(Fortuna, method)(*args, count=8) == expected
+
+
+@pytest.mark.parametrize(
+    ("method", "args"),
+    [
+        ("percent_true", (-1.0,)),
+        ("bernoulli_variate", (1.5,)),
+        ("random_below", (0,)),
+        ("random_index", (0,)),
+        ("random_int", (10, 1)),
+        ("random_range", (0, 10, 0)),
+        ("d", (0,)),
+        ("dice", (2**63, 3)),
+        ("random_float", (2.0, 1.0)),
+        ("triangular", (0.0, 1.0, 2.0)),
+        ("exponential_variate", (0.0,)),
+        ("normal_variate", (0.0, -1.0)),
+    ],
+)
+def test_invalid_specialized_generator_scalar_does_not_advance(method, args):
+    tested = Fortuna.Generator(99)
+    control = Fortuna.Generator(99)
+    with pytest.raises((ValueError, OverflowError)):
+        getattr(tested, method)(*args)
+    assert tested.random_uint(0, 2**64 - 1) == control.random_uint(0, 2**64 - 1)
+
+
+@pytest.mark.parametrize(
+    ("function", "args"),
+    [
+        (Fortuna.random_index, (0,)),
+        (Fortuna.random_int, (10, 1)),
+        (Fortuna.random_float, (2.0, 1.0)),
+        (Fortuna.triangular, (0.0, 1.0, 2.0)),
+    ],
+)
+def test_invalid_specialized_module_scalar_does_not_advance(function, args):
+    Fortuna.seed(99)
+    control = Fortuna.Generator(99)
+    with pytest.raises(ValueError):
+        function(*args)
+    assert Fortuna.random_uint(0, 2**64 - 1) == control.random_uint(0, 2**64 - 1)
+
+
+@pytest.mark.parametrize("owner", [Fortuna, Fortuna.Generator(99)])
+@pytest.mark.parametrize(
+    ("method", "args"),
+    [
+        ("random_index", (0,)),
+        ("random_int", (10, 1)),
+        ("random_float", (2.0, 1.0)),
+        ("triangular", (0.0, 1.0, 2.0)),
+    ],
+)
+def test_bulk_count_error_precedes_specialized_parameter_error(owner, method, args):
+    with pytest.raises(ValueError, match="count must be nonnegative"):
+        getattr(owner, method)(*args, count=-1)
 
 
 def test_canonical_sequence_is_stable():

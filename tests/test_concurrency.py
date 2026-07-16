@@ -70,6 +70,23 @@ def test_shared_generator_serializes_specialized_canonical_bulk_operations():
     assert sorted(actual_chunks) == sorted(expected_chunks)
 
 
+def test_shared_generator_serializes_specialized_scalar_operations():
+    draws = 2_000
+    workers = 4
+    shared = Fortuna.Generator(67890)
+    control = Fortuna.Generator(67890)
+    expected = sorted(control.random_below(2**64, count=draws * workers))
+
+    def draw_chunk():
+        return [shared.random_below(2**64) for _ in range(draws)]
+
+    with ThreadPoolExecutor(max_workers=workers) as executor:
+        chunks = list(executor.map(lambda _: draw_chunk(), range(workers)))
+    actual = sorted(value for chunk in chunks for value in chunk)
+    assert actual == expected
+    assert shared.random_below(2**64) == control.random_below(2**64)
+
+
 def test_count_conversion_can_reenter_the_same_generator():
     generator = Fortuna.Generator(912)
     control = Fortuna.Generator(912)
@@ -81,6 +98,24 @@ def test_count_conversion_can_reenter_the_same_generator():
 
     assert generator.random_uint(0, 10, count=ReentrantCount()) == []
     assert generator.random_uint(0, 2**64 - 1) == control.random_uint(0, 2**64 - 1)
+
+
+def test_specialized_argument_conversion_can_reenter_the_same_generator():
+    generator = Fortuna.Generator(913)
+    control = Fortuna.Generator(913)
+
+    class ReentrantSize:
+        def __index__(self):
+            assert generator.random_uint(0, 2**64 - 1) == control.random_uint(0, 2**64 - 1)
+            return 100
+
+    class ReentrantFloat(float):
+        def __float__(self):
+            assert generator.random_uint(0, 2**64 - 1) == control.random_uint(0, 2**64 - 1)
+            return super().__float__()
+
+    assert generator.random_index(ReentrantSize()) == control.random_index(100)
+    assert generator.random_float(ReentrantFloat(-1.0), 1.0) == control.random_float(-1.0, 1.0)
 
 
 @pytest.mark.skipif(
@@ -164,6 +199,37 @@ def test_specialized_canonical_reseeds_module_and_entropy_generator_after_fork()
     assert Fortuna.canonical() == inherited_value
     assert child_module != inherited_value
     assert child_entropy != entropy_generator.canonical()
+
+
+@pytest.mark.skipif(
+    "fork" not in multiprocessing.get_all_start_methods(), reason="fork unavailable"
+)
+def test_specialized_scalar_reseeds_module_and_entropy_generator_after_fork():
+    Fortuna.seed(606)
+    control = Fortuna.Generator(606)
+    assert Fortuna.random_int(-(2**63), 2**63 - 1) == control.random_int(-(2**63), 2**63 - 1)
+    inherited_value = control.random_int(-(2**63), 2**63 - 1)
+    entropy_generator = Fortuna.from_entropy()
+
+    read_fd, write_fd = os.pipe()
+    process_id = os.fork()
+    if process_id == 0:  # pragma: no cover - assertions occur in parent
+        os.close(read_fd)
+        values = (
+            Fortuna.random_int(-(2**63), 2**63 - 1),
+            entropy_generator.random_int(-(2**63), 2**63 - 1),
+        )
+        os.write(write_fd, f"{values[0]},{values[1]}".encode("ascii"))
+        os.close(write_fd)
+        os._exit(0)
+    os.close(write_fd)
+    child_module, child_entropy = map(int, os.read(read_fd, 256).decode("ascii").split(","))
+    os.close(read_fd)
+    os.waitpid(process_id, 0)
+
+    assert Fortuna.random_int(-(2**63), 2**63 - 1) == inherited_value
+    assert child_module != inherited_value
+    assert child_entropy != entropy_generator.random_int(-(2**63), 2**63 - 1)
 
 
 @pytest.mark.skipif(

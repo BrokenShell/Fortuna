@@ -1,10 +1,14 @@
 from __future__ import annotations
 
 import math
+import threading
 from collections import deque
+from collections.abc import Sequence
+from concurrent.futures import ThreadPoolExecutor
 
 import pytest
 
+from Fortuna import _core
 from Fortuna._selectors import (
     CumulativeWeightedChoice,
     FlexCat,
@@ -101,6 +105,43 @@ def test_index_selector_routes_every_profile(profile, method):
     assert generator.calls == [(method, 7)]
 
 
+def test_index_selector_binds_profile_method_after_first_draw():
+    class LookupCountingGenerator:
+        def __init__(self):
+            self.lookups = 0
+
+        @property
+        def random_index(self):
+            self.lookups += 1
+
+            def draw(size, *, count=None):
+                return 0 if count is None else [0] * count
+
+            return draw
+
+    generator = LookupCountingGenerator()
+    selector = IndexSelector(generator=generator)
+    assert generator.lookups == 0
+    assert selector(2) == 0
+    assert selector(2, count=2) == [0, 0]
+    assert generator.lookups == 1
+
+
+def test_index_selector_rebinds_after_public_configuration_changes():
+    first = FakeGenerator(indices=(0,))
+    second = FakeGenerator(indices=(1,))
+    selector = IndexSelector(generator=first)
+
+    assert selector(2) == 0
+    selector.generator = second
+    assert selector(2) == 1
+    selector.profile = IndexProfile.BACK_TRIANGULAR
+    assert selector(2) == 0
+
+    assert first.calls == [("random_index", 2)]
+    assert second.calls == [("random_index", 2), ("back_triangular", 2)]
+
+
 def test_index_selector_bulk_and_validation():
     generator = FakeGenerator(indices=(2, 1, 0))
     selector = IndexSelector(generator=generator)
@@ -192,6 +233,181 @@ def test_random_value_uses_uniform_index_and_rejects_empty_data():
     assert generator.calls == [("random_index", 3)]
     with pytest.raises(ValueError, match="data must not be empty"):
         random_value((), generator=generator)
+
+
+def test_random_value_singleton_still_consumes_an_engine_draw():
+    generator = FakeGenerator(indices=(0,))
+    assert random_value(("only",), generator=generator) == "only"
+    assert generator.calls == [("random_index", 1)]
+
+
+def test_native_random_value_singleton_still_advances_the_engine():
+    tested = _core.Generator(44)
+    control = _core.Generator(44)
+    assert random_value(("only",), generator=tested) == "only"
+    control.random_index(1)
+    assert tested.random_uint(0, 2**64 - 1) == control.random_uint(0, 2**64 - 1)
+
+
+def test_random_value_module_path_calls_core_directly(monkeypatch):
+    calls = []
+
+    def random_index(size):
+        calls.append(size)
+        return 1
+
+    monkeypatch.setattr(_core, "random_index", random_index)
+    assert random_value(("a", "b")) == "b"
+    assert calls == [2]
+
+
+def test_random_value_snapshots_lists_before_module_draw(monkeypatch):
+    values = ["a", "b"]
+
+    def mutating_random_index(size):
+        assert size == 2
+        values.clear()
+        return 1
+
+    monkeypatch.setattr(_core, "random_index", mutating_random_index)
+    assert random_value(values) == "b"
+    assert values == []
+
+
+def test_random_value_materializes_sequence_subclasses_before_drawing():
+    class MutableSequenceView(Sequence):
+        def __init__(self, values):
+            self.values = values
+
+        def __len__(self):
+            return len(self.values)
+
+        def __getitem__(self, index):
+            return self.values[index]
+
+        def __iter__(self):
+            return iter(self.values)
+
+    values = MutableSequenceView(["a", "b"])
+
+    class MutatingGenerator(FakeGenerator):
+        def random_index(self, size, *, count=None):
+            values.values[1] = "changed"
+            return super().random_index(size, count=count)
+
+    generator = MutatingGenerator(indices=(1,))
+    assert random_value(values, generator=generator) == "b"
+    assert generator.calls == [("random_index", 2)]
+
+
+def test_random_value_custom_generator_uses_random_index_not_random_value():
+    class CustomGenerator(FakeGenerator):
+        def random_value(self, data):
+            raise AssertionError("custom generators must use the injection fallback")
+
+    generator = CustomGenerator(indices=(1,))
+    assert random_value(("a", "b"), generator=generator) == "b"
+    assert generator.calls == [("random_index", 2)]
+
+
+def test_random_value_snapshots_lists_before_custom_generator_callbacks():
+    values = ["a", "b"]
+
+    class MutatingGenerator(FakeGenerator):
+        def random_index(self, size, *, count=None):
+            values.clear()
+            return super().random_index(size, count=count)
+
+    generator = MutatingGenerator(indices=(1,))
+    assert random_value(values, generator=generator) == "b"
+    assert values == []
+    assert generator.calls == [("random_index", 2)]
+
+
+def test_random_value_native_generator_subclass_uses_override_fallback():
+    class GeneratorSubclass(_core.Generator):
+        def __init__(self, seed):
+            self.calls = []
+
+        def random_index(self, size, *, count=None):
+            self.calls.append((size, count))
+            return 1
+
+        def random_value(self, data):
+            raise AssertionError("native subclasses must retain override behavior")
+
+    generator = GeneratorSubclass(1)
+    assert random_value(("a", "b"), generator=generator) == "b"
+    assert generator.calls == [(2, None)]
+
+
+def test_random_value_materializes_a_general_iterable_once():
+    consumed = []
+
+    def values():
+        for value in ("a", "b", "c"):
+            consumed.append(value)
+            yield value
+
+    generator = FakeGenerator(indices=(2,))
+    assert random_value(values(), generator=generator) == "c"
+    assert consumed == ["a", "b", "c"]
+
+
+@pytest.mark.parametrize("explicit", [False, True])
+@pytest.mark.parametrize("failure", ["empty", "raised"])
+def test_failed_random_value_materialization_does_not_advance_engine(explicit, failure):
+    seed = 1234
+    generator = _core.Generator(seed) if explicit else None
+    control = _core.Generator(seed)
+    if not explicit:
+        _core.seed(seed)
+
+    if failure == "empty":
+        data = iter(())
+        error = ValueError
+    else:
+
+        def broken():
+            yield "first"
+            raise RuntimeError("broken iterable")
+
+        data = broken()
+        error = RuntimeError
+
+    with pytest.raises(error):
+        random_value(data, generator=generator)
+
+    tested_value = (
+        generator.random_uint(0, 2**64 - 1)
+        if generator is not None
+        else _core.random_uint(0, 2**64 - 1)
+    )
+    assert tested_value == control.random_uint(0, 2**64 - 1)
+
+
+def test_cached_module_index_selector_retains_thread_local_stream_ownership():
+    selector = IndexSelector()
+    _core.seed(77)
+    control = _core.Generator(77)
+    assert selector(1000) == control.random_index(1000)
+    barrier = threading.Barrier(3)
+
+    def draw_in_thread():
+        _core.seed(8128)
+        barrier.wait()
+        values = [selector(1000) for _ in range(32)]
+        barrier.wait()
+        return values
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        futures = [executor.submit(draw_in_thread) for _ in range(2)]
+        barrier.wait()
+        barrier.wait()
+        sequences = [future.result() for future in futures]
+
+    assert sequences[0] == sequences[1]
+    assert selector(1000) == control.random_index(1000)
 
 
 def test_shuffle_custom_generator_fallback_is_fisher_yates_and_returns_none():

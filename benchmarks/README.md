@@ -119,3 +119,8 @@ same Storm generator, module ownership model, and lock policy. It resets the
 generator and creates a fresh list outside every timed sample; each timed batch
 then repeatedly shuffles that list. The loops differ only in their bounded-index
 order and swap traversal.
+
+Fortuna selects Knuth-B and optimizes for larger shuffle workloads. That is the
+range where the forward traversal has produced the clearest repeatable win; the
+benchmark suite keeps both native loops visible so the choice can be revisited
+instead of becoming folklore.
