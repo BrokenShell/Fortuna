@@ -610,32 +610,42 @@ cdef void _shuffle_knuth_b(GeneratorCore* generator, object data, bint synchroni
     cdef Py_ssize_t last
     cdef Py_ssize_t position
     cdef Py_ssize_t other
+    cdef vector[size_t] others
     if not isinstance(data, MutableSequence):
         raise TypeError("data must be a mutable sequence")
     last = len(data) - 1
     if last <= 0:
         return
+    try:
+        others.resize(last)
+    except RuntimeError as error:
+        raise MemoryError("shuffle index schedule is too large") from error
     if synchronize:
         with nogil:
             generator.lock()
         try:
-            # Entropy-managed generators may need process-local reseeding after
-            # fork. Do that outside the GIL before the Python-object swap loop.
             with nogil:
                 generator.prepare()
-            for position in range(last - 1, -1, -1):
-                other = <Py_ssize_t>core_unsigned(
-                    generator[0], 0, <uint64_t>position, <uint64_t>last, 0.0
-                )
-                data[position], data[other] = data[other], data[position]
+                for position in range(last - 1, -1, -1):
+                    others[position] = <size_t>core_unsigned(
+                        generator[0], 0, <uint64_t>position, <uint64_t>last, 0.0
+                    )
         finally:
             with nogil:
                 generator.unlock()
-        return
+    else:
+        with nogil:
+            for position in range(last - 1, -1, -1):
+                others[position] = <size_t>core_unsigned(
+                    generator[0], 0, <uint64_t>position, <uint64_t>last, 0.0
+                )
+
+    # Consume the complete shuffle's entropy atomically, then release the
+    # generator lock before invoking arbitrary MutableSequence callbacks. If a
+    # callback raises, the sequence may be partially shuffled and the engine
+    # has still consumed all ``last`` bounded draws.
     for position in range(last - 1, -1, -1):
-        other = <Py_ssize_t>core_unsigned(
-            generator[0], 0, <uint64_t>position, <uint64_t>last, 0.0
-        )
+        other = <Py_ssize_t>others[position]
         data[position], data[other] = data[other], data[position]
 
 
@@ -1183,6 +1193,12 @@ cdef class Generator:
         return data[self.random_index(len(data))]
 
     def shuffle(self, data):
+        """Shuffle in place after atomically consuming the complete index schedule.
+
+        Mutable-sequence callbacks run without the generator lock. If one
+        raises, the sequence may be partially shuffled and the full schedule's
+        entropy has still been consumed.
+        """
         _shuffle_knuth_b(self._generator, data, True)
 
     def sample(self, population, k):
@@ -1222,6 +1238,7 @@ def for_stream(root_seed, stream_id):
 
 
 def shuffle(data):
+    """Shuffle in place after consuming the complete index schedule."""
     _shuffle_knuth_b(_module(), data, False)
 
 

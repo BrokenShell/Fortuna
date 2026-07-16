@@ -1,4 +1,9 @@
 import math
+import subprocess
+import sys
+import threading
+from collections.abc import MutableSequence
+from concurrent.futures import ThreadPoolExecutor, TimeoutError
 
 import pytest
 
@@ -262,14 +267,137 @@ def test_generator_collection_operations():
 
 def test_knuth_b_shuffle_is_deterministic_for_module_and_generator():
     expected = [5, 8, 1, 7, 3, 4, 6, 9, 0, 2]
+    expected_next = 295_456_441_680_805_878
     generator_values = list(range(10))
-    Fortuna.Generator(101).shuffle(generator_values)
+    generator = Fortuna.Generator(101)
+    generator.shuffle(generator_values)
     assert generator_values == expected
+    assert generator.random_uint(0, 2**64 - 1) == expected_next
 
     module_values = list(range(10))
     Fortuna.seed(101)
     Fortuna.shuffle(module_values)
     assert module_values == expected
+    assert Fortuna.random_uint(0, 2**64 - 1) == expected_next
+
+
+@pytest.mark.parametrize("values", [[], [0]])
+def test_degenerate_shuffle_consumes_no_entropy(values):
+    generator = Fortuna.Generator(101)
+    control = Fortuna.Generator(101)
+    generator.shuffle(values)
+    assert generator.random_uint(0, 2**64 - 1) == control.random_uint(0, 2**64 - 1)
+
+    Fortuna.seed(101)
+    Fortuna.shuffle(values)
+    actual = Fortuna.random_uint(0, 2**64 - 1)
+    Fortuna.seed(101)
+    assert actual == Fortuna.random_uint(0, 2**64 - 1)
+
+
+def test_generator_shuffle_releases_lock_before_sequence_callbacks():
+    entered = threading.Event()
+    release = threading.Event()
+
+    class BlockingList(list):
+        def __getitem__(self, index):
+            if not entered.is_set():
+                entered.set()
+                assert release.wait(timeout=5)
+            return super().__getitem__(index)
+
+    generator = Fortuna.Generator(8128)
+    control = Fortuna.Generator(8128)
+    values = BlockingList(range(10))
+    for position in range(8, -1, -1):
+        control.random_uint(position, 9)
+    expected = control.random_uint(0, 2**64 - 1)
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        shuffle_future = executor.submit(generator.shuffle, values)
+        assert entered.wait(timeout=2)
+        draw_future = executor.submit(generator.random_uint, 0, 2**64 - 1)
+        try:
+            actual = draw_future.result(timeout=1)
+        except TimeoutError:
+            release.set()
+            shuffle_future.result(timeout=2)
+            draw_future.result(timeout=2)
+            pytest.fail("Generator.shuffle held its native lock during a sequence callback")
+        finally:
+            release.set()
+        shuffle_future.result(timeout=2)
+
+    assert actual == expected
+    assert sorted(values) == list(range(10))
+
+
+def test_generator_shuffle_sequence_callback_can_reenter_generator_without_deadlock():
+    script = """
+from Fortuna import Generator
+
+class ReentrantList(list):
+    def __init__(self, values, generator):
+        super().__init__(values)
+        self.generator = generator
+        self.calls = 0
+
+    def __getitem__(self, index):
+        self.calls += 1
+        self.generator.random_uint(0, 2**64 - 1)
+        return super().__getitem__(index)
+
+generator = Generator(8128)
+values = ReentrantList(range(10), generator)
+generator.shuffle(values)
+assert values.calls > 0
+assert sorted(values) == list(range(10))
+"""
+    result = subprocess.run(
+        [sys.executable, "-c", script],
+        capture_output=True,
+        check=False,
+        text=True,
+        timeout=5,
+    )
+    assert result.returncode == 0, result.stderr
+
+
+def test_shuffle_callback_error_consumes_complete_index_schedule_and_releases_lock():
+    class ExplodingList(list):
+        def __getitem__(self, index):
+            raise RuntimeError("sequence callback failed")
+
+    generator = Fortuna.Generator(8128)
+    control = Fortuna.Generator(8128)
+    for position in range(8, -1, -1):
+        control.random_uint(position, 9)
+
+    with pytest.raises(RuntimeError, match="sequence callback failed"):
+        generator.shuffle(ExplodingList(range(10)))
+
+    assert generator.random_uint(0, 2**64 - 1) == control.random_uint(0, 2**64 - 1)
+
+
+def test_shuffle_reports_oversized_index_schedule_as_memory_error():
+    class VirtualSequence(MutableSequence):
+        def __len__(self):
+            return sys.maxsize
+
+        def __getitem__(self, index):
+            raise AssertionError("oversized shuffle must fail before sequence access")
+
+        def __setitem__(self, index, value):
+            raise AssertionError("oversized shuffle must fail before sequence access")
+
+        def __delitem__(self, index):
+            raise NotImplementedError
+
+        def insert(self, index, value):
+            raise NotImplementedError
+
+    with pytest.raises(MemoryError, match="shuffle index schedule is too large"):
+        Fortuna.Generator(8128).shuffle(VirtualSequence())
 
 
 @pytest.mark.parametrize(
