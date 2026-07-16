@@ -16,5 +16,4 @@ benchmark-results/
 dist/
 .wheel-check/
 .venv/
-venv/
 *.egg-info/
