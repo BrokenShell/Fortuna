@@ -43,8 +43,10 @@ independent = Fortuna.from_entropy()
 ```
 
 `seed(value)` deterministically seeds only the calling thread's module default,
-including `seed(0)`. Draws that share an explicit generator across threads are
-serialized; scheduling still determines which thread receives each draw. A
+including `seed(0)`. Built-in native methods that share one `Generator` across
+threads are serialized, including methods inherited unchanged by a subclass;
+scheduling still determines which thread receives each draw. Subclasses own
+synchronization for their overrides. A
 `Generator(seed)` or `for_stream(root_seed, stream_id)` inherited through
 `fork` deliberately keeps its copied deterministic state; derive a distinct
 stream for each worker when workers must not repeat one another. A generator

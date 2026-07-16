@@ -45,11 +45,40 @@ inherits a copy at the same position. Worker code should derive a distinct
 stream per worker when repetition is not intended. `Generator.from_entropy()`
 and generators later passed to `reseed_from_entropy()` are entropy-managed;
 they detect a changed process identity and reseed lazily before the child's
-next draw. Calls sharing one explicit generator across threads are serialized,
-though assignment of draws to threads remains scheduling-dependent. Do not fork
+next draw. Built-in native methods sharing one `Generator` are serialized,
+including methods inherited unchanged by a subclass, though assignment of
+draws to threads remains scheduling-dependent. Generator subclasses and custom
+generator-like objects own synchronization for their overrides. Do not fork
 while another thread is actively using a shared explicit generator because the
 child could inherit its native mutex in a locked state. Keep the concurrency
 and process tests aligned with this contract.
+
+## API hardening contracts
+
+Optimization must preserve draw schedules, validation boundaries, and callback
+behavior, not just result ranges. In particular:
+
+- `random_index` accepts the C++ `std::size_t` domain, which may extend beyond
+  Python's `sys.maxsize`.
+- Singleton `random_value` and `sample(..., 1)` consume one bounded draw;
+  `shuffle` on zero or one element consumes none.
+- The native `Generator.shuffle` path, including an unchanged inherited method,
+  consumes its full index schedule under one lock before mutable-sequence
+  callbacks. Callback failure may leave partial mutation, but the full schedule
+  remains consumed.
+- Indexes and weighted draws returned by injected custom behavior must be
+  validated. Do not extend native trust to subclasses or monkeypatched methods.
+- `Generator` class factories preserve `cls`, and `QuantumMonty` initializes
+  its truffle strategy lazily.
+- `FlexCat` validates selector ownership and configuration and materializes all
+  categories before randomized selector construction begins. Failures after
+  selector construction starts do not roll back already consumed randomness.
+- Stateful selectors and value engines are not promised thread-safe. A native
+  generator lock protects its engine, not surrounding Python selection state.
+
+Regression tests should assert the next draw where a change could silently
+alter a seeded sequence, and should exercise invalid injected results before a
+fast path is treated as trusted.
 
 ## Lint and test
 

@@ -25,9 +25,11 @@ generator = Fortuna.for_stream(root_seed, worker_id)
 
 Generators created with `from_entropy()` or later reseeded with
 `reseed_from_entropy()` are entropy-managed and lazily reseed after detecting a
-forked child. Calls sharing one explicit generator across threads are serialized,
-but their assignment to threads is scheduling-dependent. Do not fork while
-another thread is actively using that shared generator.
+forked child. Built-in native methods sharing one `Generator` are serialized,
+including methods inherited unchanged by a subclass, but their assignment to
+threads is scheduling-dependent. Subclasses and custom generators own
+synchronization for their overrides. Do not fork while another thread is
+actively using that shared generator.
 
 Exact cross-platform stream stability applies to Fortuna/Storm-owned bounded
 algorithms and stream derivation. Standard-library distribution transforms,

@@ -18,8 +18,11 @@ generator; use `secrets` for passwords, tokens, keys, and other security work.
 | `for_stream(root_seed, stream_id)` | Deterministically derive an explicit `Generator` from an unsigned 64-bit root seed and an `int`, `str`, or `bytes` stream identifier. Identifier types are distinct. |
 
 The equivalent constructors are also available as `Generator.from_entropy()`
-and `Generator.for_stream(root_seed, stream_id)`. An explicit generator also
-provides `generator.seed(value=0)` and `generator.reseed_from_entropy()`.
+and `Generator.for_stream(root_seed, stream_id)`. When invoked on a `Generator`
+subclass, both class factories construct and return that subclass through
+`cls(...)`; a subclass constructor must return an instance of `cls`. An explicit
+generator also provides `generator.seed(value=0)` and
+`generator.reseed_from_entropy()`.
 
 Module-level generation functions use a Fortuna-owned thread-local generator.
 The initial state in each thread comes from process-local entropy. After
@@ -29,9 +32,11 @@ draw. A deterministically seeded explicit generator intentionally retains its
 copied state after `fork`; use `for_stream` to assign a distinct deterministic
 stream to each worker.
 
-Calls that share one explicit `Generator` across threads are serialized. This
-prevents concurrent engine mutation, but the order in which threads receive
-draws depends on scheduling. Use one derived generator per worker when result
+Built-in native methods on one `Generator` instance are serialized, including
+methods inherited unchanged by a subclass. This prevents concurrent engine
+mutation, but the order in which threads receive draws depends on scheduling.
+A subclass or custom generator is responsible for synchronizing its overrides.
+Use one derived generator per worker when result
 assignment must be reproducible. Do not fork while another thread is actively
 using a shared explicit generator: the child could inherit its native mutex in
 a locked state.
@@ -74,7 +79,7 @@ validated before the engine advances.
 | `percent_true(percent=50.0, *, count=None)` | Boolean with the given probability expressed in `[0, 100]`. |
 | `bernoulli_variate(probability=0.5, *, count=None)` | Boolean with success probability in `[0, 1]`. |
 | `random_below(limit, *, count=None)` | Uniform integer in `[0, limit)`; `1 <= limit <= 2**64`, including the complete unsigned 64-bit result domain at the upper limit. |
-| `random_index(size, *, count=None)` | Uniform valid index in `[0, size)`; `size` must be positive and fit the platform size domain. |
+| `random_index(size, *, count=None)` | Uniform integer in `[0, size)`; `1 <= size <= SIZE_MAX`, where `SIZE_MAX` is the platform C++ `std::size_t` maximum. |
 | `random_int(low, high, *, count=None)` | Uniform signed 64-bit integer in the inclusive interval `[low, high]`. |
 | `random_uint(low, high, *, count=None)` | Uniform unsigned 64-bit integer in the inclusive interval `[low, high]`. |
 | `random_range(start, stop=None, step=1, *, count=None)` | Uniform member of the nonempty integer range described by Python `range` arguments. Inputs must fit the signed 64-bit domain. |
@@ -86,9 +91,12 @@ validated before the engine advances.
 | `plus_or_minus_normal(radius=1, *, count=None)` | Signed integer in `[-radius, radius]`, normally concentrated near zero. |
 
 `random_below` and `random_index` describe the same ordinary index interval,
-but they have different intent: `random_below` is an unsigned-integer primitive
-that can cover all `2**64` possible unsigned 64-bit values, while
-`random_index` is constrained to values representable as Python sequence sizes.
+but they have different native domains. `random_below` accepts limits through
+`2**64`, covering all unsigned 64-bit results at that upper limit.
+`random_index` accepts sizes through C++ `SIZE_MAX`: on a 64-bit build that is
+`2**64 - 1`, not Python's typically smaller `sys.maxsize`. Collection helpers
+naturally pass Python collection lengths, but the numeric primitive itself is
+not restricted to Python's signed sequence-length domain.
 
 ### Floating-point generation
 
@@ -190,6 +198,20 @@ Explicit generators provide corresponding
 `generator.sample(population, k)` methods. These always use that generator and
 do not accept a separate `generator=` argument.
 
+Sequence advancement is deliberate at degenerate sizes. Selecting from a
+singleton with `random_value`, or sampling its sole value with `k=1`, consumes
+one bounded draw. Sampling with `k=0` consumes none. Shuffling a sequence of
+length zero or one consumes no draw.
+
+Fortuna's native `Generator.shuffle` implementation consumes its complete
+swap-index schedule atomically under the generator lock, then releases the lock
+before invoking mutable-sequence callbacks. This includes the implementation
+when inherited unchanged by a subclass and permits callback re-entry without
+deadlock. If a callback raises, the sequence may be partially mutated and the
+complete schedule has still been consumed. Custom generator-like objects
+without their own `shuffle` use the Python Fisher-Yates fallback; every
+injected index is validated before use.
+
 ## Index selectors
 
 `IndexProfile` is a string enum containing the canonical profile names:
@@ -208,8 +230,13 @@ indexes = selector(100, count=50)
 same_indexes = selector.take(50, 100)
 ```
 
-It validates that every produced index is in `[0, size)`. An explicit
-`generator` routes all draws through that engine.
+It validates that every produced index is in `[0, size)`. Custom generators,
+`Generator` subclass overrides, and monkeypatched module draw functions remain
+untrusted: scalar results must be integer indexes, while bulk results must be a
+list of the requested length containing only valid indexes. An explicit
+`generator` routes all draws through that engine. The same index validation
+applies when `random_value` or `sample` uses a custom generator or a
+`Generator` subclass override.
 
 ## Value engines
 
@@ -221,12 +248,20 @@ callables it returns are then invoked without arguments.
 
 | API | Construction and behavior |
 | --- | --- |
-| `RandomValue(collection, selector=IndexProfile.UNIFORM, *, resolve_callables=True, generator=None)` | Select from a materialized nonempty iterable. `selector` may be a profile, canonical profile string, `IndexSelector`, or custom index callable. |
+| `RandomValue(collection, selector=IndexProfile.UNIFORM, *, resolve_callables=True, generator=None)` | Select from a materialized nonempty iterable. A profile or canonical string creates an owned `IndexSelector`. A supplied `IndexSelector` or custom callable is retained as the draw owner and therefore cannot be combined with `generator=`. |
 | `TruffleShuffle(collection, *, resolve_callables=True, generator=None)` | Shuffle once, then rotate a nonempty collection by randomized short distances before each selection. |
-| `QuantumMonty(collection, *, resolve_callables=True, generator=None)` | Select values through an equal mixture of the nine base positional profiles. Calling the object uses that mixture; `dispatch(profile)` exposes a named strategy, and `cycle()` and `truffle_shuffle()` expose its stateful alternatives. |
-| `FlexCat(matrix_data, key_selector=IndexProfile.FRONT_TRIANGULAR, value_selector=TruffleShuffle, *, resolve_callables=True, generator=None)` | Build independent selectors for mapping keys and their nonempty value collections. Calling with no category selects a key; `flex(cat_key)` selects directly from that category. |
-| `RelativeWeightedChoice(weighted_table, *, resolve_callables=True, generator=None)` | Select from `(weight, value)` pairs using finite nonnegative relative weights. At least one weight must be positive and the finite total must be representable. |
-| `CumulativeWeightedChoice(weighted_table, *, resolve_callables=True, generator=None)` | Select from `(threshold, value)` pairs whose finite thresholds are positive and strictly increasing. |
+| `QuantumMonty(collection, *, resolve_callables=True, generator=None)` | Select values through an equal mixture of the nine base positional profiles. Calling the object uses that mixture; `dispatch(profile)` exposes a named strategy, and `cycle()` and `truffle_shuffle()` expose its stateful alternatives. The internal `TruffleShuffle` is constructed lazily on the first `truffle_shuffle()` call, so construction, profile selection, and cycling do not pay its shuffle cost or advance the engine for it. |
+| `FlexCat(matrix_data, key_selector=IndexProfile.FRONT_TRIANGULAR, value_selector=TruffleShuffle, *, resolve_callables=True, generator=None)` | Build independent selectors for mapping keys and their nonempty value collections. Calling with no category selects a key; `flex(cat_key)` selects directly from that category. Selector ownership and configuration are validated and every category is materialized before randomized selector construction begins. As with `RandomValue`, a supplied `IndexSelector` or custom callable cannot be combined with `generator=`. |
+| `RelativeWeightedChoice(weighted_table, *, resolve_callables=True, generator=None)` | Select from `(weight, value)` pairs using finite nonnegative relative weights. At least one weight must be positive and the finite total must be representable. Draws supplied by custom generators, subclass overrides, or monkeypatched module functions must be finite real numbers in `[0, total)`. |
+| `CumulativeWeightedChoice(weighted_table, *, resolve_callables=True, generator=None)` | Select from `(threshold, value)` pairs whose finite thresholds are positive and strictly increasing. Injected draws must be finite real numbers in `[0, final_threshold)`. |
+
+The generator binding exposed by a value engine is read-only. `IndexSelector`
+caches its selected draw method, and value engines may maintain cycles,
+rotations, or other mutable selection state. These instances are not promised
+to be thread-safe. Supplying one exact native `Generator` serializes that
+generator's engine calls only; it does not make the surrounding selector state
+atomic. Use one selector/value-engine instance per worker or provide external
+synchronization when sharing one.
 
 See the [Fortuna 5 to 6 migration guide](migration-5-to-6.md) for renamed and
 removed interfaces.
