@@ -802,7 +802,7 @@ cdef uint64_t _stream_seed(object root_seed, object stream_id) except *:
 
 
 cdef class Generator:
-    """Owned random engine with deterministic and entropy construction modes."""
+    """Generator(seed=0)\n--\n\nOwned random engine with deterministic and entropy construction modes."""
 
     cdef GeneratorCore* _generator
 

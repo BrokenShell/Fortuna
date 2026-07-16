@@ -1,3 +1,4 @@
+import inspect
 import math
 import subprocess
 import sys
@@ -15,6 +16,15 @@ def test_version_and_seed_zero_are_deterministic():
     first = Fortuna.Generator(0)
     second = Fortuna.Generator(0)
     assert first.random_uint(0, 2**64 - 1, count=32) == second.random_uint(0, 2**64 - 1, count=32)
+
+
+def test_generator_constructor_exposes_its_runtime_signature():
+    assert Fortuna.Generator.__text_signature__ == "(seed=0)"
+    assert str(inspect.signature(Fortuna.Generator)) == "(seed=0)"
+    assert (
+        Fortuna.Generator.__doc__
+        == "Owned random engine with deterministic and entropy construction modes."
+    )
 
 
 @pytest.mark.parametrize(
