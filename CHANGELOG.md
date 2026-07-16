@@ -21,6 +21,10 @@ engines a smaller, faster, more direct API.
   of splitting the concept across relative and cumulative classes.
 - Callable resolution remains an internal value-engine behavior with cycle and
   depth guards; it is no longer a separate public helper.
+- Prepared value engines now inline their hot selection and callable-resolution
+  paths. Uniform, cyclic, triangular, Truffle, and weighted pulls avoid generic
+  helper dispatch while preserving injected-generator validation and draw
+  schedules.
 
 ### Removed
 

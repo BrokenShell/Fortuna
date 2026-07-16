@@ -99,25 +99,6 @@ _NATIVE_BACK_TRIANGULAR = _core.back_triangular
 _NATIVE_FRONT_POISSON = _core._front_poisson
 
 
-def _profile_index(
-    method_name: str,
-    native_method: Callable[[int], int],
-    size: int,
-    generator: Any | None,
-) -> int:
-    if generator is None:
-        method = getattr(_core, method_name)
-        value = method(size)
-        if method is native_method:
-            return value
-    else:
-        method = getattr(generator, method_name)
-        value = method(size)
-        if type(generator) is _core.Generator:
-            return value
-    return _validated_index(value, size)
-
-
 def random_value(
     data: Iterable[_T], *, generator: _core.Generator | _IndexGenerator | None = None
 ) -> _T:
@@ -207,18 +188,6 @@ class _ValueEngine(Generic[_T]):
 
         def __call__(self, *args: Any, **kwargs: Any) -> _T: ...
 
-    def _resolve(self, value: _T, *args: Any, **kwargs: Any) -> _T:
-        if self.resolve_callables is False or not callable(value):
-            return value
-        return cast(
-            _T,
-            _resolve_callable(
-                value,
-                *args,
-                **kwargs,
-            ),
-        )
-
     def take(self, count: int, *args: Any, **kwargs: Any) -> list[_T]:
         checked_count = _integer(count, name="count", minimum=0)
         return [self(*args, **kwargs) for _ in range(checked_count)]
@@ -294,7 +263,10 @@ class TruffleShuffle(_ValueEngine[_T]):
         else:
             distance = 1 + _validated_index(value, self.rotate_size)
         self.data.rotate(distance)
-        return self._resolve(self.data[-1], *args, **kwargs)
+        selected = self.data[-1]
+        if self.resolve_callables and callable(selected):
+            return cast(_T, _resolve_callable(selected, *args, **kwargs))
+        return selected
 
 
 class RandomValue(_ValueEngine[_T]):
@@ -335,16 +307,6 @@ class RandomValue(_ValueEngine[_T]):
         self._cycle = iter_cycle(self.data)
         self._truffle: TruffleShuffle[_T] | None = None
 
-    def _profile_value(
-        self,
-        method_name: str,
-        native_method: Callable[[int], int],
-        *args: Any,
-        **kwargs: Any,
-    ) -> _T:
-        index = _profile_index(method_name, native_method, self.size, self.generator)
-        return self._resolve(self.data[index], *args, **kwargs)
-
     def uniform(self, *args: Any, **kwargs: Any) -> _T:
         generator = self._generator
         if generator is None:
@@ -357,12 +319,17 @@ class RandomValue(_ValueEngine[_T]):
             value = generator.random_value(self.data)
         else:
             value = self.data[_validated_index(generator.random_index(self.size), self.size)]
-        return self._resolve(value, *args, **kwargs)
+        if self.resolve_callables and callable(value):
+            return cast(_T, _resolve_callable(value, *args, **kwargs))
+        return value
 
     __call__ = uniform
 
     def cycle(self, *args: Any, **kwargs: Any) -> _T:
-        return self._resolve(next(self._cycle), *args, **kwargs)
+        value = next(self._cycle)
+        if self.resolve_callables and callable(value):
+            return cast(_T, _resolve_callable(value, *args, **kwargs))
+        return value
 
     def truffle_shuffle(self, *args: Any, **kwargs: Any) -> _T:
         selector = self._truffle
@@ -370,19 +337,60 @@ class RandomValue(_ValueEngine[_T]):
             selector = TruffleShuffle(
                 self.data,
                 resolve_callables=self.resolve_callables,
-                generator=self.generator,
+                generator=self._generator,
             )
             self._truffle = selector
         return selector(*args, **kwargs)
 
+    # Keep the three profile paths explicit. A shared string-dispatch helper
+    # adds another Python call and getattr to every prepared selection.
     def front_triangular(self, *args: Any, **kwargs: Any) -> _T:
-        return self._profile_value("front_triangular", _NATIVE_FRONT_TRIANGULAR, *args, **kwargs)
+        generator = self._generator
+        if generator is None:
+            method = _core.front_triangular
+            index = method(self.size)
+            if method is not _NATIVE_FRONT_TRIANGULAR:
+                index = _validated_index(index, self.size)
+        elif type(generator) is _core.Generator:
+            index = generator.front_triangular(self.size)
+        else:
+            index = _validated_index(generator.front_triangular(self.size), self.size)
+        value = self.data[index]
+        if self.resolve_callables and callable(value):
+            return cast(_T, _resolve_callable(value, *args, **kwargs))
+        return value
 
     def center_triangular(self, *args: Any, **kwargs: Any) -> _T:
-        return self._profile_value("center_triangular", _NATIVE_CENTER_TRIANGULAR, *args, **kwargs)
+        generator = self._generator
+        if generator is None:
+            method = _core.center_triangular
+            index = method(self.size)
+            if method is not _NATIVE_CENTER_TRIANGULAR:
+                index = _validated_index(index, self.size)
+        elif type(generator) is _core.Generator:
+            index = generator.center_triangular(self.size)
+        else:
+            index = _validated_index(generator.center_triangular(self.size), self.size)
+        value = self.data[index]
+        if self.resolve_callables and callable(value):
+            return cast(_T, _resolve_callable(value, *args, **kwargs))
+        return value
 
     def back_triangular(self, *args: Any, **kwargs: Any) -> _T:
-        return self._profile_value("back_triangular", _NATIVE_BACK_TRIANGULAR, *args, **kwargs)
+        generator = self._generator
+        if generator is None:
+            method = _core.back_triangular
+            index = method(self.size)
+            if method is not _NATIVE_BACK_TRIANGULAR:
+                index = _validated_index(index, self.size)
+        elif type(generator) is _core.Generator:
+            index = generator.back_triangular(self.size)
+        else:
+            index = _validated_index(generator.back_triangular(self.size), self.size)
+        value = self.data[index]
+        if self.resolve_callables and callable(value):
+            return cast(_T, _resolve_callable(value, *args, **kwargs))
+        return value
 
 
 def _weighted_pairs(weighted_table: Iterable[tuple[_Weight, _T]]) -> list[tuple[float, _T]]:
@@ -465,7 +473,7 @@ class WeightedChoice(_ValueEngine[_T]):
         self.total = cumulative
 
     def __call__(self, *args: Any, **kwargs: Any) -> _T:
-        source = self.generator
+        source = self._generator
         if source is None:
             draw_method = _core.random_float
             trusted_native = draw_method is _NATIVE_RANDOM_FLOAT
@@ -477,5 +485,10 @@ class WeightedChoice(_ValueEngine[_T]):
             draw = _validated_weighted_draw(draw, self.total)
         for cumulative_weight, value in self.data:
             if draw < cumulative_weight:
-                return self._resolve(value, *args, **kwargs)
-        return self._resolve(self.data[-1][1], *args, **kwargs)
+                selected = value
+                break
+        else:
+            selected = self.data[-1][1]
+        if self.resolve_callables and callable(selected):
+            return cast(_T, _resolve_callable(selected, *args, **kwargs))
+        return selected

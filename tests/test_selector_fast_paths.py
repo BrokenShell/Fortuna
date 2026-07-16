@@ -37,7 +37,12 @@ def test_random_value_triangular_paths_preserve_native_schedule(method):
 
 @pytest.mark.parametrize(
     ("method", "result"),
-    [("random_index", SIZE), ("front_triangular", -1), ("center_triangular", False)],
+    [
+        ("random_index", SIZE),
+        ("front_triangular", -1),
+        ("center_triangular", False),
+        ("back_triangular", SIZE),
+    ],
 )
 def test_random_value_validates_monkeypatched_module_indexes(monkeypatch, method, result):
     selector = RandomValue(range(SIZE), resolve_callables=False)
@@ -45,6 +50,19 @@ def test_random_value_validates_monkeypatched_module_indexes(monkeypatch, method
 
     with pytest.raises((TypeError, ValueError)):
         getattr(selector, "uniform" if method == "random_index" else method)()
+
+
+@pytest.mark.parametrize(
+    "method",
+    ["front_triangular", "center_triangular", "back_triangular"],
+)
+def test_random_value_triangular_paths_preserve_callable_resolution(method):
+    selector = RandomValue(
+        (lambda value: value + 1,),
+        generator=Fortuna.Generator(SEED),
+    )
+
+    assert getattr(selector, method)(4) == 5
 
 
 def test_truffle_shuffle_matches_native_shuffle_and_rotation_schedule():
