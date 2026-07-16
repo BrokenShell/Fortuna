@@ -40,7 +40,7 @@ def _git(*args: str) -> str | None:
             text=True,
             timeout=2,
         )
-    except (OSError, subprocess.SubprocessError):
+    except OSError, subprocess.SubprocessError:
         return None
     return completed.stdout.strip()
 
@@ -78,7 +78,7 @@ def _sha256(path: Path) -> str:
 def _load_json(path: Path) -> Any:
     try:
         return json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
+    except OSError, json.JSONDecodeError:
         return None
 
 
@@ -167,7 +167,7 @@ def _cpu_model() -> str | None:
                 for line in stream:
                     if line.lower().startswith("model name"):
                         return line.split(":", 1)[1].strip()
-    except (OSError, IndexError, subprocess.SubprocessError):
+    except OSError, IndexError, subprocess.SubprocessError:
         return None
     return platform.processor() or None
 

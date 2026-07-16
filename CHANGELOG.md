@@ -7,7 +7,7 @@ Fortuna 6 is a clean, intentionally breaking reconstruction.
 ### Added
 
 - MIT licensing.
-- Python 3.11 through 3.14 support.
+- Python 3.14 support.
 - Fortuna-owned `Generator` instances and deterministic stream derivation.
 - Process-local entropy defaults with thread isolation and fork recovery.
 - Serialized access to shared explicit generators.

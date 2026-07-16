@@ -24,7 +24,7 @@ jobs:
       - uses: astral-sh/setup-uv@11f9893b081a58869d3b5fccaea48c9e9e46f990 # v8.3.2
         with:
           enable-cache: true
-          python-version: "3.14"
+          python-version: "3.14.6"
       - run: uv sync --frozen --group dev --no-build-isolation-package Fortuna --reinstall-package Fortuna
       - run: uv run --frozen ruff check .
       - run: uv run --frozen ruff format --check .
@@ -38,21 +38,11 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            python: "3.11"
-          - os: ubuntu-latest
-            python: "3.12"
-          - os: ubuntu-latest
-            python: "3.13"
-          - os: ubuntu-latest
-            python: "3.14"
+            python: "3.14.6"
           - os: macos-latest
-            python: "3.11"
-          - os: macos-latest
-            python: "3.14"
+            python: "3.14.6"
           - os: windows-latest
-            python: "3.11"
-          - os: windows-latest
-            python: "3.14"
+            python: "3.14.6"
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
         with:
@@ -74,7 +64,7 @@ jobs:
       - uses: astral-sh/setup-uv@11f9893b081a58869d3b5fccaea48c9e9e46f990 # v8.3.2
         with:
           enable-cache: true
-          python-version: "3.14"
+          python-version: "3.14.6"
       - run: uv sync --frozen --group dev --no-build-isolation-package Fortuna --reinstall-package Fortuna
       - run: uv run --frozen pytest -m statistical
 
@@ -88,7 +78,7 @@ jobs:
       - uses: astral-sh/setup-uv@11f9893b081a58869d3b5fccaea48c9e9e46f990 # v8.3.2
         with:
           enable-cache: true
-          python-version: "3.14"
+          python-version: "3.14.6"
       - run: uv sync --frozen --group dev --no-build-isolation-package Fortuna --reinstall-package Fortuna
       - name: Exercise the harness without enforcing timing
         run: >-
@@ -109,14 +99,14 @@ jobs:
       - uses: astral-sh/setup-uv@11f9893b081a58869d3b5fccaea48c9e9e46f990 # v8.3.2
         with:
           enable-cache: true
-          python-version: "3.14"
+          python-version: "3.14.6"
       - run: uv build --no-sources
       - name: Verify the built wheel in an isolated environment
         shell: bash
         run: |
           wheel="$(find dist -maxdepth 1 -name '*.whl' -print -quit)"
           test -n "$wheel"
-          uv venv --python 3.14 .wheel-check
+          uv venv --python 3.14.6 .wheel-check
           uv pip install --python .wheel-check/bin/python "$wheel"
           .wheel-check/bin/python -c "from importlib.metadata import version; from pathlib import Path; import Fortuna; root = Path(Fortuna.__file__).parent; assert version('Fortuna') == Fortuna.__version__ == '6.0.0'; assert Fortuna.storm_version() == '5.0.1'; assert (root / '_core.pyi').is_file() and (root / 'py.typed').is_file(); a = Fortuna.Generator(0); b = Fortuna.Generator(0); assert [a.random_int(-10, 10) for _ in range(8)] == [b.random_int(-10, 10) for _ in range(8)]"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7

@@ -5,9 +5,8 @@ deterministic streams, honest positional profiles, and native bulk generation.
 Fortuna's native shuffle uses Knuth-B, optimized for large workloads while
 remaining competitive at ordinary sizes.
 
-Fortuna 6 is a clean break from the historical API. It supports Python 3.11
-through 3.14, vendors the immutable Storm 5.0.1 header, and is licensed under
-MIT.
+Fortuna 6 is a clean break from the historical API. It supports Python 3.14,
+vendors the immutable Storm 5.0.1 header, and is licensed under MIT.
 
 > Fortuna 6.0.0 is under active development and has not been published to PyPI.
 

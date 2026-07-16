@@ -100,10 +100,9 @@ The test surfaces have distinct jobs:
 - Benchmarks measure performance only. They cannot prove correctness or
   distribution quality and ordinary CI never fails on timing differences.
 
-The supported Python matrix is 3.11 through 3.14. CI runs every supported Python
-version on Ubuntu and the oldest/newest versions on macOS and Windows. This
-keeps the routine matrix useful without multiplying all native builds. The wheel
-workflow covers every approved interpreter and native target.
+Python 3.14 is the supported interpreter series. CI exercises it on Ubuntu,
+macOS, and Windows, and the wheel workflow covers every approved native target.
+Local development pins the current approved patch release in `.python-version`.
 
 ## Benchmarks
 
@@ -132,7 +131,7 @@ Do not treat a successful build as installation proof. Install the wheel into a
 fresh environment and import it without the source checkout on `sys.path`:
 
 ```console
-uv venv --python 3.14 .wheel-check
+uv venv --python 3.14.6 .wheel-check
 uv pip install --python .wheel-check/bin/python dist/*.whl
 cd /tmp
 /path/to/Fortuna/.wheel-check/bin/python -c \
@@ -144,8 +143,7 @@ module import, version metadata, vendored Storm version, and a small determinist
 seeded call. The CI build job performs the isolated import check for the native
 Linux wheel.
 
-The release-wheel workflow uses cibuildwheel to create CPython 3.11-3.14 wheels
-for:
+The release-wheel workflow uses cibuildwheel to create CPython 3.14 wheels for:
 
 - macOS arm64 and x86_64;
 - manylinux x86_64 and aarch64;
