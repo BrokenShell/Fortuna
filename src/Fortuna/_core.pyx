@@ -14,6 +14,9 @@ from cpython.object cimport PyObject
 from libcpp.vector cimport vector
 
 
+DEF SMALL_EXACT_LIST_SHUFFLE_LIMIT = 256
+
+
 cdef extern from "Python.h":
     PyObject* raw_float_from_double "PyFloat_FromDouble"(double) except NULL
     void raw_list_set_item "PyList_SET_ITEM"(PyObject*, Py_ssize_t, PyObject*)
@@ -660,15 +663,55 @@ cdef object _bool_generator_result(
             generator.unlock()
 
 
+cdef void _shuffle_small_exact_list(
+    GeneratorCore* generator,
+    list data,
+    Py_ssize_t last,
+    bint synchronize,
+) except *:
+    """Shuffle a small exact list without allocating an index schedule.
+
+    Exact lists cannot invoke user callbacks from indexed access or assignment,
+    so it is safe to keep an explicit generator locked while drawing and
+    applying the Knuth-B swaps. MutableSequence subclasses continue through the
+    schedule-first path below, which releases the lock before their callbacks.
+    """
+    cdef Py_ssize_t position
+    cdef Py_ssize_t other
+    if synchronize:
+        with nogil:
+            generator.lock()
+        try:
+            with nogil:
+                generator.prepare()
+            for position in range(last - 1, -1, -1):
+                other = <Py_ssize_t>core_unsigned(
+                    generator[0], 0, <uint64_t>position, <uint64_t>last, 0.0
+                )
+                data[position], data[other] = data[other], data[position]
+        finally:
+            with nogil:
+                generator.unlock()
+        return
+    for position in range(last - 1, -1, -1):
+        other = <Py_ssize_t>core_unsigned(
+            generator[0], 0, <uint64_t>position, <uint64_t>last, 0.0
+        )
+        data[position], data[other] = data[other], data[position]
+
+
 cdef void _shuffle_knuth_b(GeneratorCore* generator, object data, bint synchronize) except *:
     cdef Py_ssize_t last
     cdef Py_ssize_t position
     cdef Py_ssize_t other
     cdef vector[size_t] others
-    if not isinstance(data, MutableSequence):
+    if type(data) is not list and not isinstance(data, MutableSequence):
         raise TypeError("data must be a mutable sequence")
     last = len(data) - 1
     if last <= 0:
+        return
+    if type(data) is list and last < SMALL_EXACT_LIST_SHUFFLE_LIMIT:
+        _shuffle_small_exact_list(generator, data, last, synchronize)
         return
     try:
         others.resize(last)

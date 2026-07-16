@@ -380,6 +380,30 @@ def test_knuth_b_shuffle_is_deterministic_for_module_and_generator():
     assert Fortuna.random_uint(0, 2**64 - 1) == expected_next
 
 
+@pytest.mark.parametrize("size", [2, 10, 100, 256, 257])
+def test_exact_list_shuffle_fast_path_preserves_knuth_b_schedule_and_state(size):
+    seed = 0xF07A_6000 + size
+    expected = list(range(size))
+    control = Fortuna.Generator(seed)
+    last = size - 1
+    for position in range(last - 1, -1, -1):
+        other = control.random_uint(position, last)
+        expected[position], expected[other] = expected[other], expected[position]
+    expected_next = control.random_uint(0, 2**64 - 1)
+
+    generator_values = list(range(size))
+    generator = Fortuna.Generator(seed)
+    generator.shuffle(generator_values)
+    assert generator_values == expected
+    assert generator.random_uint(0, 2**64 - 1) == expected_next
+
+    module_values = list(range(size))
+    Fortuna.seed(seed)
+    Fortuna.shuffle(module_values)
+    assert module_values == expected
+    assert Fortuna.random_uint(0, 2**64 - 1) == expected_next
+
+
 @pytest.mark.parametrize("values", [[], [0]])
 def test_degenerate_shuffle_consumes_no_entropy(values):
     generator = Fortuna.Generator(101)
