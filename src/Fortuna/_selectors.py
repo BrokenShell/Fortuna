@@ -121,7 +121,7 @@ def random_value(
     if generator is None and (data_type is tuple or data_type is list):
         method = _core.random_index
         if method is _NATIVE_RANDOM_INDEX:
-            exact_data = cast(tuple[_T, ...] | list[_T], data)
+            exact_data: tuple[_T, ...] | list[_T] = data  # type: ignore[assignment]
             return _core._random_value_materialized(exact_data)
     values: tuple[_T, ...] = data if data_type is tuple else tuple(data)  # type: ignore[assignment]
     size = len(values)
