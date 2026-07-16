@@ -236,9 +236,14 @@ inline auto random_int(GeneratorCore& generator, const std::int64_t low,
     return Storm::uniform_integer(generator.engine(), low, high);
 }
 
+inline auto random_uint_engine(Storm::engine_type& engine, const std::uint64_t low,
+                               const std::uint64_t high) -> std::uint64_t {
+    return Storm::uniform_unsigned(engine, low, high);
+}
+
 inline auto random_uint(GeneratorCore& generator, const std::uint64_t low,
                         const std::uint64_t high) -> std::uint64_t {
-    return Storm::uniform_unsigned(generator.engine(), low, high);
+    return random_uint_engine(generator.engine(), low, high);
 }
 
 inline auto random_index(GeneratorCore& generator, const std::size_t size) -> std::size_t {
@@ -259,8 +264,13 @@ inline auto roll_dice(GeneratorCore& generator, const std::size_t rolls,
     return Storm::roll_dice(generator.engine(), rolls, sides);
 }
 
+inline auto ability_dice_engine(Storm::engine_type& engine, const std::size_t count)
+    -> std::uint64_t {
+    return Storm::ability_dice(engine, count);
+}
+
 inline auto ability_dice(GeneratorCore& generator, const std::size_t count) -> std::uint64_t {
-    return Storm::ability_dice(generator.engine(), count);
+    return ability_dice_engine(generator.engine(), count);
 }
 
 inline auto percent_true(GeneratorCore& generator, const double percent) -> bool {
@@ -431,13 +441,14 @@ inline auto vonmises(GeneratorCore& generator, const double mu, const double kap
     }
 }
 
-inline auto plus_or_minus(GeneratorCore& generator, const std::int64_t radius) -> std::int64_t {
-    return Storm::uniform_integer(generator.engine(), -radius, radius);
+inline auto plus_or_minus_engine(Storm::engine_type& engine, const std::int64_t radius)
+    -> std::int64_t {
+    return Storm::uniform_integer(engine, -radius, radius);
 }
 
-inline auto plus_or_minus_triangular(GeneratorCore& generator, const std::int64_t radius)
+inline auto plus_or_minus_triangular_engine(Storm::engine_type& engine,
+                                            const std::int64_t radius)
     -> std::int64_t {
-    auto& engine = generator.engine();
     const auto limit = static_cast<std::uint64_t>(radius);
     const auto left = Storm::uniform_unsigned(engine, 0, limit);
     const auto right = Storm::uniform_unsigned(engine, 0, limit);
@@ -447,14 +458,13 @@ inline auto plus_or_minus_triangular(GeneratorCore& generator, const std::int64_
     return -static_cast<std::int64_t>(right - left);
 }
 
-inline auto plus_or_minus_normal(GeneratorCore& generator, const std::int64_t radius)
+inline auto plus_or_minus_normal_engine(Storm::engine_type& engine, const std::int64_t radius)
     -> std::int64_t {
     if (radius == 0) {
         return 0;
     }
     std::normal_distribution<double> distribution{
         0.0, static_cast<double>(radius) / std::numbers::pi};
-    auto& engine = generator.engine();
     for (;;) {
         const double rounded = std::round(distribution(engine));
         if (rounded < -0x1.0p63 || rounded >= 0x1.0p63) {
@@ -467,38 +477,53 @@ inline auto plus_or_minus_normal(GeneratorCore& generator, const std::int64_t ra
     }
 }
 
-inline auto front_triangular(GeneratorCore& generator, const std::size_t size) -> std::size_t {
-    auto& engine = generator.engine();
+inline auto plus_or_minus(GeneratorCore& generator, const std::int64_t radius) -> std::int64_t {
+    return plus_or_minus_engine(generator.engine(), radius);
+}
+
+inline auto plus_or_minus_triangular(GeneratorCore& generator, const std::int64_t radius)
+    -> std::int64_t {
+    return plus_or_minus_triangular_engine(generator.engine(), radius);
+}
+
+inline auto plus_or_minus_normal(GeneratorCore& generator, const std::int64_t radius)
+    -> std::int64_t {
+    return plus_or_minus_normal_engine(generator.engine(), radius);
+}
+
+inline auto front_triangular_engine(Storm::engine_type& engine, const std::size_t size)
+    -> std::size_t {
     return std::min(Storm::uniform_index(engine, size), Storm::uniform_index(engine, size));
 }
 
-inline auto back_triangular(GeneratorCore& generator, const std::size_t size) -> std::size_t {
-    auto& engine = generator.engine();
+inline auto back_triangular_engine(Storm::engine_type& engine, const std::size_t size)
+    -> std::size_t {
     return std::max(Storm::uniform_index(engine, size), Storm::uniform_index(engine, size));
 }
 
-inline auto center_triangular(GeneratorCore& generator, const std::size_t size) -> std::size_t {
-    auto& engine = generator.engine();
+inline auto center_triangular_engine(Storm::engine_type& engine, const std::size_t size)
+    -> std::size_t {
     const auto left = Storm::uniform_index(engine, size);
     const auto right = Storm::uniform_index(engine, size);
     return (left & right) + ((left ^ right) >> 1U);
 }
 
-inline auto mixed_triangular(GeneratorCore& generator, const std::size_t size) -> std::size_t {
-    switch (Storm::uniform_index(generator.engine(), 3)) {
+inline auto mixed_triangular_engine(Storm::engine_type& engine, const std::size_t size)
+    -> std::size_t {
+    switch (Storm::uniform_index(engine, 3)) {
         case 0:
-            return front_triangular(generator, size);
+            return front_triangular_engine(engine, size);
         case 1:
-            return center_triangular(generator, size);
+            return center_triangular_engine(engine, size);
         default:
-            return back_triangular(generator, size);
+            return back_triangular_engine(engine, size);
     }
 }
 
-inline auto front_exponential(GeneratorCore& generator, const std::size_t size) -> std::size_t {
+inline auto front_exponential_engine(Storm::engine_type& engine, const std::size_t size)
+    -> std::size_t {
     std::exponential_distribution<double> distribution{
         10.0 / static_cast<double>(size)};
-    auto& engine = generator.engine();
     for (;;) {
         const double sample = std::floor(distribution(engine));
         if (sample >= 0.0 && sample < static_cast<double>(size)) {
@@ -507,18 +532,19 @@ inline auto front_exponential(GeneratorCore& generator, const std::size_t size) 
     }
 }
 
-inline auto back_exponential(GeneratorCore& generator, const std::size_t size) -> std::size_t {
-    return size - front_exponential(generator, size) - 1U;
+inline auto back_exponential_engine(Storm::engine_type& engine, const std::size_t size)
+    -> std::size_t {
+    return size - front_exponential_engine(engine, size) - 1U;
 }
 
-inline auto center_normal(GeneratorCore& generator, const std::size_t size) -> std::size_t {
+inline auto center_normal_engine(Storm::engine_type& engine, const std::size_t size)
+    -> std::size_t {
     if (size == 1) {
         return 0;
     }
     std::normal_distribution<double> distribution{
         (static_cast<double>(size) - 1.0) / 2.0,
         static_cast<double>(size) / 10.0};
-    auto& engine = generator.engine();
     for (;;) {
         const double sample = std::round(distribution(engine));
         if (sample >= 0.0 && sample < static_cast<double>(size)) {
@@ -527,22 +553,22 @@ inline auto center_normal(GeneratorCore& generator, const std::size_t size) -> s
     }
 }
 
-inline auto mixed_exponential_normal(GeneratorCore& generator, const std::size_t size)
+inline auto mixed_exponential_normal_engine(Storm::engine_type& engine, const std::size_t size)
     -> std::size_t {
-    switch (Storm::uniform_index(generator.engine(), 3)) {
+    switch (Storm::uniform_index(engine, 3)) {
         case 0:
-            return front_exponential(generator, size);
+            return front_exponential_engine(engine, size);
         case 1:
-            return center_normal(generator, size);
+            return center_normal_engine(engine, size);
         default:
-            return back_exponential(generator, size);
+            return back_exponential_engine(engine, size);
     }
 }
 
-inline auto front_poisson(GeneratorCore& generator, const std::size_t size) -> std::size_t {
+inline auto front_poisson_engine(Storm::engine_type& engine, const std::size_t size)
+    -> std::size_t {
     std::poisson_distribution<std::uint64_t> distribution{
         static_cast<double>(size) / 4.0};
-    auto& engine = generator.engine();
     for (;;) {
         const auto sample = distribution(engine);
         if (sample < static_cast<std::uint64_t>(size)) {
@@ -551,36 +577,88 @@ inline auto front_poisson(GeneratorCore& generator, const std::size_t size) -> s
     }
 }
 
-inline auto back_poisson(GeneratorCore& generator, const std::size_t size) -> std::size_t {
-    return size - front_poisson(generator, size) - 1U;
+inline auto back_poisson_engine(Storm::engine_type& engine, const std::size_t size)
+    -> std::size_t {
+    return size - front_poisson_engine(engine, size) - 1U;
+}
+
+inline auto edge_poisson_engine(Storm::engine_type& engine, const std::size_t size)
+    -> std::size_t {
+    return Storm::uniform_index(engine, 2) == 0 ? front_poisson_engine(engine, size)
+                                                : back_poisson_engine(engine, size);
+}
+
+inline auto quantum_monty_engine(Storm::engine_type& engine, const std::size_t size)
+    -> std::size_t {
+    switch (Storm::uniform_index(engine, 9)) {
+        case 0:
+            return front_triangular_engine(engine, size);
+        case 1:
+            return center_triangular_engine(engine, size);
+        case 2:
+            return back_triangular_engine(engine, size);
+        case 3:
+            return front_exponential_engine(engine, size);
+        case 4:
+            return center_normal_engine(engine, size);
+        case 5:
+            return back_exponential_engine(engine, size);
+        case 6:
+            return front_poisson_engine(engine, size);
+        case 7:
+            return edge_poisson_engine(engine, size);
+        default:
+            return back_poisson_engine(engine, size);
+    }
+}
+
+inline auto front_triangular(GeneratorCore& generator, const std::size_t size) -> std::size_t {
+    return front_triangular_engine(generator.engine(), size);
+}
+
+inline auto center_triangular(GeneratorCore& generator, const std::size_t size) -> std::size_t {
+    return center_triangular_engine(generator.engine(), size);
+}
+
+inline auto back_triangular(GeneratorCore& generator, const std::size_t size) -> std::size_t {
+    return back_triangular_engine(generator.engine(), size);
+}
+
+inline auto mixed_triangular(GeneratorCore& generator, const std::size_t size) -> std::size_t {
+    return mixed_triangular_engine(generator.engine(), size);
+}
+
+inline auto front_exponential(GeneratorCore& generator, const std::size_t size) -> std::size_t {
+    return front_exponential_engine(generator.engine(), size);
+}
+
+inline auto center_normal(GeneratorCore& generator, const std::size_t size) -> std::size_t {
+    return center_normal_engine(generator.engine(), size);
+}
+
+inline auto back_exponential(GeneratorCore& generator, const std::size_t size) -> std::size_t {
+    return back_exponential_engine(generator.engine(), size);
+}
+
+inline auto mixed_exponential_normal(GeneratorCore& generator, const std::size_t size)
+    -> std::size_t {
+    return mixed_exponential_normal_engine(generator.engine(), size);
+}
+
+inline auto front_poisson(GeneratorCore& generator, const std::size_t size) -> std::size_t {
+    return front_poisson_engine(generator.engine(), size);
 }
 
 inline auto edge_poisson(GeneratorCore& generator, const std::size_t size) -> std::size_t {
-    return Storm::uniform_index(generator.engine(), 2) == 0 ? front_poisson(generator, size)
-                                                             : back_poisson(generator, size);
+    return edge_poisson_engine(generator.engine(), size);
+}
+
+inline auto back_poisson(GeneratorCore& generator, const std::size_t size) -> std::size_t {
+    return back_poisson_engine(generator.engine(), size);
 }
 
 inline auto quantum_monty(GeneratorCore& generator, const std::size_t size) -> std::size_t {
-    switch (Storm::uniform_index(generator.engine(), 9)) {
-        case 0:
-            return front_triangular(generator, size);
-        case 1:
-            return center_triangular(generator, size);
-        case 2:
-            return back_triangular(generator, size);
-        case 3:
-            return front_exponential(generator, size);
-        case 4:
-            return center_normal(generator, size);
-        case 5:
-            return back_exponential(generator, size);
-        case 6:
-            return front_poisson(generator, size);
-        case 7:
-            return edge_poisson(generator, size);
-        default:
-            return back_poisson(generator, size);
-    }
+    return quantum_monty_engine(generator.engine(), size);
 }
 
 inline auto checked_size(const std::uint64_t value) -> std::size_t {
@@ -1064,6 +1142,102 @@ inline auto generator_roll_dice(GeneratorCore& generator, const std::uint64_t ro
     validate_unsigned(3, rolls, sides, 0.0);
     return roll_dice(generator, checked_size(rolls), checked_size(sides));
 }
+
+inline auto module_random_uint_prepared(const std::uint64_t low, const std::uint64_t high)
+    -> std::uint64_t {
+    validate_unsigned(0, low, high, 0.0);
+    return random_uint_engine(module_prepared_engine(), low, high);
+}
+
+inline auto generator_random_uint(GeneratorCore& generator, const std::uint64_t low,
+                                  const std::uint64_t high) -> std::uint64_t {
+    const GeneratorLockGuard guard{generator};
+    validate_unsigned(0, low, high, 0.0);
+    return random_uint_engine(generator.engine(), low, high);
+}
+
+inline auto module_ability_dice_prepared(const std::uint64_t rolls) -> std::uint64_t {
+    validate_unsigned(4, rolls, 0, 0.0);
+    return ability_dice_engine(module_prepared_engine(), checked_size(rolls));
+}
+
+inline auto generator_ability_dice(GeneratorCore& generator, const std::uint64_t rolls)
+    -> std::uint64_t {
+    const GeneratorLockGuard guard{generator};
+    validate_unsigned(4, rolls, 0, 0.0);
+    return ability_dice_engine(generator.engine(), checked_size(rolls));
+}
+
+inline auto module_plus_or_minus_prepared(const std::int64_t radius) -> std::int64_t {
+    validate_signed(2, radius, 0, 0);
+    return plus_or_minus_engine(module_prepared_engine(), radius);
+}
+
+inline auto generator_plus_or_minus(GeneratorCore& generator, const std::int64_t radius)
+    -> std::int64_t {
+    const GeneratorLockGuard guard{generator};
+    validate_signed(2, radius, 0, 0);
+    return plus_or_minus_engine(generator.engine(), radius);
+}
+
+inline auto module_plus_or_minus_triangular_prepared(const std::int64_t radius)
+    -> std::int64_t {
+    validate_signed(3, radius, 0, 0);
+    return plus_or_minus_triangular_engine(module_prepared_engine(), radius);
+}
+
+inline auto generator_plus_or_minus_triangular(GeneratorCore& generator,
+                                               const std::int64_t radius) -> std::int64_t {
+    const GeneratorLockGuard guard{generator};
+    validate_signed(3, radius, 0, 0);
+    return plus_or_minus_triangular_engine(generator.engine(), radius);
+}
+
+inline auto module_plus_or_minus_normal_prepared(const std::int64_t radius) -> std::int64_t {
+    validate_signed(4, radius, 0, 0);
+    return plus_or_minus_normal_engine(module_prepared_engine(), radius);
+}
+
+inline auto generator_plus_or_minus_normal(GeneratorCore& generator,
+                                           const std::int64_t radius) -> std::int64_t {
+    const GeneratorLockGuard guard{generator};
+    validate_signed(4, radius, 0, 0);
+    return plus_or_minus_normal_engine(generator.engine(), radius);
+}
+
+inline auto validated_profile_size(const std::uint64_t size) -> std::size_t {
+    validate_unsigned(9, size, 0, 0.0);
+    return checked_size(size);
+}
+
+#define FORTUNA_PROFILE_SCALAR_ENTRY(name)                                                \
+    inline auto module_##name##_prepared(const std::uint64_t size) -> std::uint64_t {     \
+        const auto checked = validated_profile_size(size);                                \
+        auto& engine = module_prepared_engine();                                           \
+        return static_cast<std::uint64_t>(name##_engine(engine, checked));                 \
+    }                                                                                     \
+    inline auto generator_##name(GeneratorCore& generator, const std::uint64_t size)      \
+        -> std::uint64_t {                                                                 \
+        const GeneratorLockGuard guard{generator};                                         \
+        const auto checked = validated_profile_size(size);                                 \
+        auto& engine = generator.engine();                                                  \
+        return static_cast<std::uint64_t>(name##_engine(engine, checked));                 \
+    }
+
+FORTUNA_PROFILE_SCALAR_ENTRY(front_triangular)
+FORTUNA_PROFILE_SCALAR_ENTRY(center_triangular)
+FORTUNA_PROFILE_SCALAR_ENTRY(back_triangular)
+FORTUNA_PROFILE_SCALAR_ENTRY(mixed_triangular)
+FORTUNA_PROFILE_SCALAR_ENTRY(front_exponential)
+FORTUNA_PROFILE_SCALAR_ENTRY(center_normal)
+FORTUNA_PROFILE_SCALAR_ENTRY(back_exponential)
+FORTUNA_PROFILE_SCALAR_ENTRY(mixed_exponential_normal)
+FORTUNA_PROFILE_SCALAR_ENTRY(front_poisson)
+FORTUNA_PROFILE_SCALAR_ENTRY(edge_poisson)
+FORTUNA_PROFILE_SCALAR_ENTRY(back_poisson)
+FORTUNA_PROFILE_SCALAR_ENTRY(quantum_monty)
+
+#undef FORTUNA_PROFILE_SCALAR_ENTRY
 
 inline auto module_random_float_prepared(const double low, const double high) -> double {
     validate_float(1, low, high, 0.0);
