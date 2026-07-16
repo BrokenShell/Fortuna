@@ -328,6 +328,22 @@ cdef Py_ssize_t _as_count(object value) except *:
     return result
 
 
+cdef Py_ssize_t _validated_generated_index(object value, Py_ssize_t size) except *:
+    cdef object index
+    if isinstance(value, bool):
+        raise TypeError("generated index must be an integer, not bool")
+    if type(value) is int:
+        index = value
+    else:
+        try:
+            index = operator.index(value)
+        except TypeError as error:
+            raise TypeError("generated index must be an integer") from error
+    if not 0 <= index < size:
+        raise ValueError(f"generated index {index} is outside [0, {size})")
+    return index
+
+
 cdef double _as_double(object value, str name) except *:
     if type(value) is float:
         return value
@@ -774,14 +790,21 @@ cdef class Generator:
 
     @classmethod
     def from_entropy(cls):
-        cdef Generator result = Generator(0)
+        cdef object constructed = cls(0)
+        cdef Generator result
+        if not isinstance(constructed, cls):
+            raise TypeError("Generator subclass constructor must return an instance of cls")
+        result = constructed
         with nogil:
             result._generator.reseed_from_entropy()
         return result
 
     @classmethod
     def for_stream(cls, root_seed, stream_id):
-        return Generator(_stream_seed(root_seed, stream_id))
+        result = cls(_stream_seed(root_seed, stream_id))
+        if not isinstance(result, cls):
+            raise TypeError("Generator subclass constructor must return an instance of cls")
+        return result
 
     def seed(self, value=0):
         cdef uint64_t checked = _as_uint64(value, "seed")
@@ -1187,10 +1210,16 @@ cdef class Generator:
         return scalar
 
     def random_value(self, data):
+        cdef Py_ssize_t size
+        cdef object index
         data = tuple(data)
-        if not data:
+        size = len(data)
+        if not size:
             raise ValueError("data must not be empty")
-        return data[self.random_index(len(data))]
+        index = self.random_index(size)
+        if type(self) is Generator:
+            return data[index]
+        return data[_validated_generated_index(index, size)]
 
     def shuffle(self, data):
         """Shuffle in place after atomically consuming the complete index schedule.
@@ -1211,7 +1240,10 @@ cdef class Generator:
         if type(self) is Generator:
             return _sample_generator_materialized(self._generator, working, checked_k)
         for position in range(checked_k):
-            other = position + self.random_index(len(working) - position)
+            other = position + _validated_generated_index(
+                self.random_index(len(working) - position),
+                len(working) - position,
+            )
             working[position], working[other] = working[other], working[position]
         return working[:checked_k]
 
