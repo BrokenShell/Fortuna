@@ -29,6 +29,7 @@ def test_selector_suite_names_are_unique_and_cover_each_api_family():
     assert all(case.suite == "selectors" for case in cases)
     assert all(case.workload_payload["declared"] for case in cases)
     assert all(case.workload_payload["input"] is not None for case in cases)
+    assert len(cases) == 107
     for prefix in (
         "index-",
         "random-value-",
@@ -54,6 +55,7 @@ def test_selector_bulk_cases_report_per_value():
     bulk_cases = [case for case in selector_cases() if "bulk" in case.name]
 
     assert bulk_cases
+    assert len(bulk_cases) == 27
     assert all(case.unit == "value" for case in bulk_cases)
     assert all(case.values_per_call == 1_000 for case in bulk_cases)
 
@@ -93,6 +95,21 @@ def test_index_selector_covers_every_profile_with_module_and_generator_sources()
                     "profile": profile,
                 },
             }
+
+            bulk = cases[f"index-{benchmark_profile}-bulk-{source}-1000"].workload_payload
+            assert bulk["args"] == [100]
+            assert bulk["kwargs"] == {"count": 1_000}
+            assert bulk["seed"] == 0x5EED
+            assert bulk["input"] == workload["input"]
+
+    custom_bulk = cases["index-uniform-bulk-custom-1000"].workload_payload
+    assert custom_bulk["args"] == [100]
+    assert custom_bulk["kwargs"] == {"count": 1_000}
+    assert custom_bulk["seed"] is None
+    assert custom_bulk["input"]["selector"]["generator"] == {
+        "recipe": "random_index returns 0 or count zeros",
+        "type": "_ConstantIndexGenerator",
+    }
 
 
 def test_reused_and_construction_workloads_distinguish_calls_from_fixtures():
@@ -150,6 +167,32 @@ def test_collection_workloads_define_population_mutation_and_source_recipes():
     assert shuffle["args"] == [{"fixture": "mutable-values-10"}]
     assert shuffle["input"]["fixtures"][0]["recipe"] == "list(range(10))"
     assert shuffle["input"]["mutation"] == "in place across timed loop iterations"
+
+
+def test_sample_custom_generator_fallback_has_exact_workload_metadata():
+    workload = _cases_by_name()["sample-custom-generator-100-10"].workload_payload
+
+    assert workload["args"] == [{"fixture": "population-100"}, 10]
+    assert workload["kwargs"] == {"generator": {"fixture": "constant-index-generator"}}
+    assert workload["seed"] is None
+    assert workload["setup_variant"] == "custom generator fallback"
+    assert workload["input"] == {
+        "callable": "Fortuna.sample",
+        "fixtures": [
+            {
+                "id": "population-100",
+                "recipe": "tuple(range(100))",
+                "size": 100,
+                "type": "tuple",
+            }
+        ],
+        "source": {
+            "id": "constant-index-generator",
+            "recipe": "random_index(size) returns 0",
+            "seed": None,
+            "type": "_ConstantIndexGenerator",
+        },
+    }
 
 
 def test_resolve_workloads_record_values_kwargs_and_chain_depth():

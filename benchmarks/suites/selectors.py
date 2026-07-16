@@ -275,6 +275,9 @@ def _sample_setup(
     if source == "generator-method":
         generator = fortuna.Generator(SEED)
         return lambda: generator.sample(population, count)
+    if source == "custom-generator":
+        generator = _ConstantIndexGenerator()
+        return lambda: fortuna.sample(population, count, generator=generator)
     generator = random.Random(SEED)
     return lambda: generator.sample(population, count)
 
@@ -315,9 +318,17 @@ def selector_cases() -> list[BenchmarkCase]:
     ]
     index_workloads.extend(
         (
+            f"index-{profile.replace('_', '-')}-bulk-{source}-1000",
+            source,
+            profile,
+            1_000,
+        )
+        for profile in INDEX_PROFILES
+        for source in ("module", "generator")
+    )
+    index_workloads.extend(
+        (
             ("index-uniform-scalar-custom", "custom", "uniform", None),
-            ("index-front-triangular-bulk-module-1000", "module", "front_triangular", 1_000),
-            ("index-uniform-bulk-generator-1000", "generator", "uniform", 1_000),
             ("index-uniform-bulk-custom-1000", "custom", "uniform", 1_000),
         )
     )
@@ -616,6 +627,38 @@ def selector_cases() -> list[BenchmarkCase]:
                     setup_variant="reused seeded source",
                 )
             )
+    custom_sample_population = _range_fixture(
+        "population-100",
+        size=100,
+        container="tuple",
+    )
+    cases.append(
+        _case(
+            "sample-custom-generator-100-10",
+            fortuna,
+            error,
+            lambda module: _sample_setup(
+                module,
+                size=100,
+                count=10,
+                source="custom-generator",
+            ),
+            workload_args=(_fixture_reference("population-100"), 10),
+            workload_kwargs={"generator": {"fixture": "constant-index-generator"}},
+            workload_input={
+                "callable": "Fortuna.sample",
+                "source": {
+                    "id": "constant-index-generator",
+                    "type": "_ConstantIndexGenerator",
+                    "recipe": "random_index(size) returns 0",
+                    "seed": None,
+                },
+                "fixtures": [custom_sample_population],
+            },
+            setup_variant="custom generator fallback",
+            seed=None,
+        )
+    )
     for size in (0, 1, 10, 100):
         values_id = f"mutable-values-{size}"
         values = _range_fixture(values_id, size=size, container="list")
