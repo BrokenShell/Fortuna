@@ -210,6 +210,95 @@ def test_zero_count_and_count_validation():
         Fortuna.random_int(0, 1, count=True)
 
 
+@pytest.mark.parametrize("owner_kind", ["module", "generator"])
+@pytest.mark.parametrize(
+    ("method", "args", "message"),
+    [
+        ("random_int", (-(2**63) - 1, 0), "low must be in the signed 64-bit range"),
+        ("random_int", (0, 2**63), "high must be in the signed 64-bit range"),
+        ("random_range", (0, 2**63), "stop must be in the signed 64-bit range"),
+        ("random_uint", (0, 2**64), "high must be in the unsigned 64-bit range"),
+        ("random_index", (2**64,), "size must be in the unsigned 64-bit range"),
+    ],
+)
+def test_integer_overflow_names_the_parameter_without_advancing(owner_kind, method, args, message):
+    seed = 0xF07A_6004
+    control = Fortuna.Generator(seed)
+    if owner_kind == "module":
+        Fortuna.seed(seed)
+        owner = Fortuna
+    else:
+        owner = Fortuna.Generator(seed)
+
+    with pytest.raises(OverflowError, match=message):
+        getattr(owner, method)(*args)
+
+    assert owner.random_uint(0, 2**64 - 1) == control.random_uint(0, 2**64 - 1)
+
+
+@pytest.mark.parametrize("owner_kind", ["module", "generator"])
+def test_count_overflow_is_parameter_specific_and_does_not_advance(owner_kind):
+    seed = 0xF07A_6005
+    control = Fortuna.Generator(seed)
+    if owner_kind == "module":
+        Fortuna.seed(seed)
+        owner = Fortuna
+    else:
+        owner = Fortuna.Generator(seed)
+
+    with pytest.raises(OverflowError, match="count exceeds the platform size limit"):
+        owner.random_int(0, 1, count=2**64)
+
+    assert owner.random_uint(0, 2**64 - 1) == control.random_uint(0, 2**64 - 1)
+
+
+def test_integer_overflow_precedence_remains_coercion_then_count_then_domain():
+    generator = Fortuna.Generator(0xF07A_6006)
+
+    with pytest.raises(OverflowError, match="low must be in the signed 64-bit range"):
+        generator.random_int(-(2**63) - 1, -2, count=-1)
+    with pytest.raises(OverflowError, match="count exceeds the platform size limit"):
+        generator.random_int(2, 1, count=2**64)
+
+
+def test_seed_overflow_names_seed_and_preserves_existing_state():
+    seed = 0xF07A_6007
+    generator = Fortuna.Generator(seed)
+    control = Fortuna.Generator(seed)
+
+    with pytest.raises(OverflowError, match="seed must be in the unsigned 64-bit range"):
+        generator.seed(2**64)
+    assert generator.random_uint(0, 2**64 - 1) == control.random_uint(0, 2**64 - 1)
+
+    Fortuna.seed(seed)
+    control = Fortuna.Generator(seed)
+    with pytest.raises(OverflowError, match="seed must be in the unsigned 64-bit range"):
+        Fortuna.seed(2**64)
+    assert Fortuna.random_uint(0, 2**64 - 1) == control.random_uint(0, 2**64 - 1)
+
+
+def test_index_protocol_overflow_uses_the_same_parameter_specific_errors():
+    class HugeSigned:
+        def __index__(self):
+            return 2**63
+
+    class HugeUnsigned:
+        def __index__(self):
+            return 2**64
+
+    class HugeCount:
+        def __index__(self):
+            return 2**64
+
+    generator = Fortuna.Generator(1)
+    with pytest.raises(OverflowError, match="high must be in the signed 64-bit range"):
+        generator.random_int(0, HugeSigned())
+    with pytest.raises(OverflowError, match="size must be in the unsigned 64-bit range"):
+        generator.random_index(HugeUnsigned())
+    with pytest.raises(OverflowError, match="count exceeds the platform size limit"):
+        generator.canonical(count=HugeCount())
+
+
 def test_stream_derivation_is_stable_and_type_domain_separated():
     values = []
     for stream_id in (7, "7", b"7", -7, "worker-3"):

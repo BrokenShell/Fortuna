@@ -17,6 +17,15 @@ from libcpp.vector cimport vector
 cdef extern from "Python.h":
     PyObject* raw_float_from_double "PyFloat_FromDouble"(double) except NULL
     void raw_list_set_item "PyList_SET_ITEM"(PyObject*, Py_ssize_t, PyObject*)
+    long long raw_long_as_long_long_and_overflow "PyLong_AsLongLongAndOverflow"(
+        PyObject*, int*
+    )
+    unsigned long long raw_long_as_unsigned_long_long "PyLong_AsUnsignedLongLong"(
+        PyObject*
+    )
+    Py_ssize_t raw_long_as_ssize_t "PyLong_AsSsize_t"(PyObject*)
+    PyObject* raw_error_occurred "PyErr_Occurred"()
+    void raw_error_clear "PyErr_Clear"()
 
 
 cdef extern from "src/Fortuna/cpp/fortuna_core.hpp" namespace "FortunaCore":
@@ -255,16 +264,21 @@ cdef extern from "src/Fortuna/cpp/fortuna_core.hpp" namespace "FortunaCore":
 cdef int64_t _as_int64(object value, str name) except *:
     cdef object integer
     cdef int64_t result
+    cdef int overflow = 0
     if isinstance(value, bool):
         raise TypeError(f"{name} must be an integer, not bool")
     if type(value) is int:
-        result = value
+        result = <int64_t>raw_long_as_long_long_and_overflow(<PyObject*>value, &overflow)
+        if overflow:
+            raise OverflowError(f"{name} must be in the signed 64-bit range") from None
         return result
     try:
         integer = operator.index(value)
     except TypeError as error:
         raise TypeError(f"{name} must be an integer") from error
-    result = integer
+    result = <int64_t>raw_long_as_long_long_and_overflow(<PyObject*>integer, &overflow)
+    if overflow:
+        raise OverflowError(f"{name} must be in the signed 64-bit range") from None
     return result
 
 
@@ -276,7 +290,10 @@ cdef uint64_t _as_uint64(object value, str name) except *:
     if type(value) is int:
         if value < 0:
             raise ValueError(f"{name} must be nonnegative")
-        result = value
+        result = <uint64_t>raw_long_as_unsigned_long_long(<PyObject*>value)
+        if result == <uint64_t>-1 and raw_error_occurred() != NULL:
+            raw_error_clear()
+            raise OverflowError(f"{name} must be in the unsigned 64-bit range") from None
         return result
     try:
         integer = operator.index(value)
@@ -284,7 +301,10 @@ cdef uint64_t _as_uint64(object value, str name) except *:
         raise TypeError(f"{name} must be an integer") from error
     if integer < 0:
         raise ValueError(f"{name} must be nonnegative")
-    result = integer
+    result = <uint64_t>raw_long_as_unsigned_long_long(<PyObject*>integer)
+    if result == <uint64_t>-1 and raw_error_occurred() != NULL:
+        raw_error_clear()
+        raise OverflowError(f"{name} must be in the unsigned 64-bit range") from None
     return result
 
 
@@ -316,7 +336,10 @@ cdef Py_ssize_t _as_count(object value) except *:
     if type(value) is int:
         if value < 0:
             raise ValueError("count must be nonnegative")
-        result = value
+        result = raw_long_as_ssize_t(<PyObject*>value)
+        if result == -1 and raw_error_occurred() != NULL:
+            raw_error_clear()
+            raise OverflowError("count exceeds the platform size limit") from None
         return result
     try:
         integer = operator.index(value)
@@ -324,7 +347,10 @@ cdef Py_ssize_t _as_count(object value) except *:
         raise TypeError("count must be an integer") from error
     if integer < 0:
         raise ValueError("count must be nonnegative")
-    result = integer
+    result = raw_long_as_ssize_t(<PyObject*>integer)
+    if result == -1 and raw_error_occurred() != NULL:
+        raw_error_clear()
+        raise OverflowError("count exceeds the platform size limit") from None
     return result
 
 
