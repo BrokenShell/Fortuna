@@ -568,6 +568,84 @@ def test_relative_weighted_choice_accepts_real_weights_and_boundaries():
     assert choice.take(4) == ["a", "b", "c", "c"]
 
 
+@pytest.mark.parametrize("draw", [True, False, "0.5", object()])
+def test_weighted_choice_rejects_non_real_injected_draws(draw):
+    choice = RelativeWeightedChoice(((1, "value"),), generator=FakeGenerator(floats=(draw,)))
+
+    with pytest.raises(TypeError, match="generated weighted draw must be a real number"):
+        choice()
+
+
+@pytest.mark.parametrize("draw", [math.nan, math.inf, -math.inf])
+def test_weighted_choice_rejects_nonfinite_injected_draws(draw):
+    choice = RelativeWeightedChoice(((1, "value"),), generator=FakeGenerator(floats=(draw,)))
+
+    with pytest.raises(ValueError, match="generated weighted draw must be finite"):
+        choice()
+
+
+@pytest.mark.parametrize("draw", [-1.0, -math.ulp(0.0), 1.0, math.nextafter(1.0, math.inf)])
+def test_weighted_choice_rejects_out_of_range_injected_draws(draw):
+    choice = RelativeWeightedChoice(((1, "value"),), generator=FakeGenerator(floats=(draw,)))
+
+    with pytest.raises(ValueError, match=r"generated weighted draw must be in \[0, 1.0\)"):
+        choice()
+
+
+def test_weighted_choice_converts_custom_real_injected_draws():
+    class RedirectedFloat(float):
+        def __float__(self):
+            return 0.75
+
+    generator = FakeGenerator(floats=(RedirectedFloat(0.0),))
+    choice = RelativeWeightedChoice(((0.5, "first"), (0.5, "second")), generator=generator)
+
+    assert choice() == "second"
+
+
+def test_weighted_choice_rejects_failed_custom_real_conversion():
+    class UnrepresentableFloat(float):
+        def __float__(self):
+            raise OverflowError("custom conversion failed")
+
+    choice = RelativeWeightedChoice(
+        ((1, "value"),),
+        generator=FakeGenerator(floats=(UnrepresentableFloat(0.0),)),
+    )
+
+    with pytest.raises(ValueError, match="must be representable as a finite float"):
+        choice()
+
+
+def test_weighted_choice_accepts_injected_draw_boundaries():
+    total = 1.0
+    generator = FakeGenerator(floats=(-0.0, math.nextafter(total, 0.0)))
+    choice = RelativeWeightedChoice(((0.5, "first"), (0.5, "second")), generator=generator)
+
+    assert choice.take(2) == ["first", "second"]
+
+
+def test_invalid_weighted_draw_consumes_exactly_one_draw():
+    generator = FakeGenerator(floats=(-1.0, 0.75))
+    choice = RelativeWeightedChoice(((0.5, "first"), (0.5, "second")), generator=generator)
+
+    with pytest.raises(ValueError, match="generated weighted draw"):
+        choice()
+    assert choice() == "second"
+    assert generator.calls == [
+        ("random_float", 0.0, 1.0),
+        ("random_float", 0.0, 1.0),
+    ]
+
+
+def test_weighted_choice_validates_monkeypatched_module_draw(monkeypatch):
+    monkeypatch.setattr(_core, "random_float", lambda low, high: math.nan)
+    choice = RelativeWeightedChoice(((1, "value"),))
+
+    with pytest.raises(ValueError, match="generated weighted draw must be finite"):
+        choice()
+
+
 @pytest.mark.parametrize(
     "table",
     [

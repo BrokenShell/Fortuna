@@ -175,6 +175,7 @@ _PROFILE_METHODS = {
 _NATIVE_PROFILE_METHODS = {
     profile: getattr(_core, method_name) for profile, method_name in _PROFILE_METHODS.items()
 }
+_NATIVE_RANDOM_FLOAT = _core.random_float
 
 
 def _coerce_profile(profile: IndexProfile | str) -> IndexProfile:
@@ -601,11 +602,36 @@ def _weighted_pairs(weighted_table: Iterable[Any]) -> list[tuple[float, Any]]:
     return result
 
 
+def _validated_weighted_draw(value: Any, total: float) -> float:
+    if isinstance(value, bool) or not isinstance(value, Real):
+        raise TypeError("generated weighted draw must be a real number")
+    try:
+        draw = float(value)
+    except (TypeError, ValueError, OverflowError) as error:
+        raise ValueError(
+            "generated weighted draw must be representable as a finite float"
+        ) from error
+    if not math.isfinite(draw):
+        raise ValueError("generated weighted draw must be finite")
+    if not 0.0 <= draw < total:
+        raise ValueError(f"generated weighted draw must be in [0, {total})")
+    return draw
+
+
 class _WeightedChoice(_ValueEngine):
     __slots__ = ("data", "total")
 
     def __call__(self, *args: Any, **kwargs: Any) -> Any:
-        draw = _draw(self.generator, "random_float", 0.0, self.total)
+        source = self.generator
+        if source is None:
+            draw_method = _core.random_float
+            trusted_native = draw_method is _NATIVE_RANDOM_FLOAT
+        else:
+            draw_method = source.random_float
+            trusted_native = type(source) is _core.Generator
+        draw = draw_method(0.0, self.total)
+        if not trusted_native:
+            draw = _validated_weighted_draw(draw, self.total)
         for cumulative_weight, value in self.data:
             if draw < cumulative_weight:
                 return self._resolve(value, *args, **kwargs)
