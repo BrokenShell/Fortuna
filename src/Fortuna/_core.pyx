@@ -383,6 +383,39 @@ cdef void _shuffle_knuth_b(GeneratorCore* generator, object data, bint synchroni
         data[position], data[other] = data[other], data[position]
 
 
+cdef void _shuffle_fisher_yates(
+    GeneratorCore* generator, object data, bint synchronize
+) except *:
+    cdef Py_ssize_t last
+    cdef Py_ssize_t position
+    cdef Py_ssize_t other
+    if not isinstance(data, MutableSequence):
+        raise TypeError("data must be a mutable sequence")
+    last = len(data) - 1
+    if last <= 0:
+        return
+    if synchronize:
+        with nogil:
+            generator.lock()
+        try:
+            with nogil:
+                generator.prepare()
+            for position in range(last, 0, -1):
+                other = <Py_ssize_t>core_unsigned(
+                    generator[0], 0, 0, <uint64_t>position, 0.0
+                )
+                data[position], data[other] = data[other], data[position]
+        finally:
+            with nogil:
+                generator.unlock()
+        return
+    for position in range(last, 0, -1):
+        other = <Py_ssize_t>core_unsigned(
+            generator[0], 0, 0, <uint64_t>position, 0.0
+        )
+        data[position], data[other] = data[other], data[position]
+
+
 cdef bytes _stream_payload(object stream_id):
     cdef bytes magnitude
     cdef bytes encoded
@@ -684,6 +717,16 @@ def for_stream(root_seed, stream_id):
 
 def shuffle(data):
     _shuffle_knuth_b(_module(), data, False)
+
+
+def _benchmark_shuffle_knuth_b(data):
+    """Internal benchmark hook; not part of Fortuna's public API."""
+    _shuffle_knuth_b(_module(), data, False)
+
+
+def _benchmark_shuffle_fisher_yates(data):
+    """Internal benchmark hook; not part of Fortuna's public API."""
+    _shuffle_fisher_yates(_module(), data, False)
 
 
 def percent_true(percent=50.0, *, count=None):

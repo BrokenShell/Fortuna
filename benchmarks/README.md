@@ -12,6 +12,7 @@ From the repository root:
 ```console
 uv run python -m benchmarks
 uv run python -m benchmarks --suite fortuna-scalar
+uv run python -m benchmarks --suite shuffle-algorithms
 uv run python -m benchmarks --case '*shuffle*'
 uv run python -m benchmarks --list
 ```
@@ -111,3 +112,10 @@ Benchmarks must not:
 - silently discard errors;
 - include input construction in a measurement unintentionally;
 - paste stale result transcripts into project documentation.
+
+The `shuffle-algorithms` suite is an internal native-loop comparison. It runs
+Knuth-B and reverse Fisher-Yates through same-shaped Cython entry points, the
+same Storm generator, module ownership model, and lock policy. It resets the
+generator and creates a fresh list outside every timed sample; each timed batch
+then repeatedly shuffles that list. The loops differ only in their bounded-index
+order and swap traversal.

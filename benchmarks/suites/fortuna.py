@@ -85,6 +85,55 @@ def fortuna_scalar_cases() -> list[BenchmarkCase]:
     return cases
 
 
+def shuffle_algorithm_cases() -> list[BenchmarkCase]:
+    """Compare native shuffle loops without changing Fortuna's public API."""
+
+    fortuna, error = _load_fortuna()
+    benchmark_functions: dict[str, Callable[..., Any]] = {}
+    if fortuna is not None:
+        core = importlib.import_module("Fortuna._core")
+        for algorithm in ("knuth_b", "fisher_yates"):
+            function = getattr(core, f"_benchmark_shuffle_{algorithm}", None)
+            if callable(function):
+                benchmark_functions[algorithm] = function
+            else:
+                error = f"Fortuna._core._benchmark_shuffle_{algorithm} is unavailable"
+
+    cases: list[BenchmarkCase] = []
+    for size in (10, 100, 1_000, 10_000, 100_000, 1_000_000):
+        for label, algorithm in (("knuth-b", "knuth_b"), ("fisher-yates", "fisher_yates")):
+            function = benchmark_functions.get(algorithm)
+            if function is None:
+                cases.append(
+                    BenchmarkCase(
+                        "shuffle-algorithms",
+                        f"{label}-{size}",
+                        skip_reason=error,
+                    )
+                )
+                continue
+
+            def setup(
+                size: int = size,
+                function: Callable[..., Any] = function,
+            ):
+                # Resetting outside the timed interval gives both algorithms the
+                # same initial engine state for every independent sample.
+                assert fortuna is not None
+                fortuna.seed(0x5EED)
+                values = list(range(size))
+                return lambda: function(values)
+
+            cases.append(
+                BenchmarkCase(
+                    "shuffle-algorithms",
+                    f"{label}-{size}",
+                    setup=setup,
+                )
+            )
+    return cases
+
+
 def _module_bulk_case(
     module: Any | None,
     import_error: str | None,

@@ -147,6 +147,20 @@ def test_knuth_b_shuffle_is_deterministic_for_module_and_generator():
     assert module_values == expected
 
 
+@pytest.mark.parametrize(
+    "function",
+    [
+        Fortuna._core._benchmark_shuffle_knuth_b,
+        Fortuna._core._benchmark_shuffle_fisher_yates,
+    ],
+)
+def test_internal_shuffle_benchmark_variants_preserve_contents(function):
+    values = list(range(100))
+    Fortuna.seed(0x5EED)
+    function(values)
+    assert sorted(values) == list(range(100))
+
+
 def test_generator_random_value_materializes_iterables():
     generator = Fortuna.Generator(1)
     assert generator.random_value(value for value in ("only",)) == "only"
