@@ -118,12 +118,20 @@ def random_value(
         return generator.random_value(data)
 
     data_type = type(data)
+    if generator is None and (data_type is tuple or data_type is list):
+        method = _core.random_index
+        if method is _NATIVE_RANDOM_INDEX:
+            exact_data = cast(tuple[_T, ...] | list[_T], data)
+            return _core._random_value_materialized(exact_data)
     values: tuple[_T, ...] = data if data_type is tuple else tuple(data)  # type: ignore[assignment]
     size = len(values)
     if not size:
         raise ValueError("data must not be empty")
     if generator is None:
-        index = _core.random_index(size)
+        method = _core.random_index
+        if method is _NATIVE_RANDOM_INDEX:
+            return _core._random_value_materialized(values)
+        index = method(size)
     else:
         index = IndexSelector._validated_index(generator.random_index(size), size)
     return values[index]
@@ -213,6 +221,7 @@ _NATIVE_PROFILE_METHODS = {
     profile: getattr(_core, method_name) for profile, method_name in _PROFILE_METHODS.items()
 }
 _NATIVE_RANDOM_FLOAT = _core.random_float
+_NATIVE_RANDOM_INDEX = _NATIVE_PROFILE_METHODS[IndexProfile.UNIFORM]
 _NATIVE_FRONT_POISSON = _NATIVE_PROFILE_METHODS[IndexProfile.FRONT_POISSON]
 _NATIVE_QUANTUM_MONTY = _NATIVE_PROFILE_METHODS[IndexProfile.QUANTUM_MONTY]
 _QUANTUM_MONTY_DISPATCH = {
@@ -498,6 +507,22 @@ class RandomValue(_ValueEngine[_T]):
         return index
 
     def __call__(self, *args: Any, **kwargs: Any) -> _T:
+        selector = self.selector
+        if type(selector) is IndexSelector and selector.profile is IndexProfile.UNIFORM:
+            generator = selector.generator
+            if generator is None:
+                method = _core.random_index
+                bound_method = selector._draw_method
+                if method is _NATIVE_RANDOM_INDEX and (
+                    bound_method is None or bound_method is method
+                ):
+                    return self._resolve(
+                        _core._random_value_materialized(self.data),
+                        *args,
+                        **kwargs,
+                    )
+            elif type(generator) is _core.Generator:
+                return self._resolve(generator.random_value(self.data), *args, **kwargs)
         return self._resolve(self.data[self._index()], *args, **kwargs)
 
 

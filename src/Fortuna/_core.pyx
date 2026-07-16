@@ -1410,13 +1410,16 @@ cdef class Generator:
     def random_value(self, data):
         cdef Py_ssize_t size
         cdef object index
+        cdef uint64_t scalar
         data = tuple(data)
         size = len(data)
         if not size:
             raise ValueError("data must not be empty")
-        index = self.random_index(size)
         if type(self) is Generator:
-            return data[index]
+            with nogil:
+                scalar = core_generator_random_index(self._generator[0], size)
+            return data[scalar]
+        index = self.random_index(size)
         return data[_validated_generated_index(index, size)]
 
     def shuffle(self, data):
@@ -1484,6 +1487,25 @@ def _benchmark_shuffle_fisher_yates(data):
 
 def _sample_materialized(list working, Py_ssize_t checked_k):
     return _sample_module_materialized(working, checked_k)
+
+
+def _random_value_materialized(data):
+    """Select from an exact nonempty tuple/list through the module engine."""
+    cdef tuple tuple_data
+    cdef Py_ssize_t size
+    cdef uint64_t index
+    if type(data) is tuple:
+        tuple_data = data
+    elif type(data) is list:
+        tuple_data = tuple(data)
+    else:
+        raise TypeError("data must be an exact tuple or list")
+    size = len(tuple_data)
+    if not size:
+        raise ValueError("data must not be empty")
+    _prepare_module_scalar()
+    index = core_module_random_index(size)
+    return tuple_data[index]
 
 
 def percent_true(percent=50.0, *, count=None):

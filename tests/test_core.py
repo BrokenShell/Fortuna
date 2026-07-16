@@ -544,6 +544,32 @@ def test_generator_random_value_materializes_iterables():
         generator.random_value(iter(()))
 
 
+@pytest.mark.parametrize("container", [tuple, list])
+def test_module_random_value_materialized_exact_containers_preserve_sequence(container):
+    values = container(range(17))
+    Fortuna.seed(8128)
+    control = Fortuna.Generator(8128)
+
+    assert [Fortuna._core._random_value_materialized(values) for _ in range(16)] == [
+        values[control.random_index(len(values))] for _ in range(16)
+    ]
+    assert Fortuna.random_uint(0, 2**64 - 1) == control.random_uint(0, 2**64 - 1)
+
+
+@pytest.mark.parametrize("values", [(), []])
+def test_module_random_value_materialized_rejects_empty_containers(values):
+    with pytest.raises(ValueError, match="data must not be empty"):
+        Fortuna._core._random_value_materialized(values)
+
+
+def test_module_random_value_materialized_rejects_nonexact_containers():
+    class TupleSubclass(tuple):
+        pass
+
+    with pytest.raises(TypeError, match="exact tuple or list"):
+        Fortuna._core._random_value_materialized(TupleSubclass((1,)))
+
+
 def test_invalid_shuffle_does_not_advance_generator():
     generator = Fortuna.Generator(55)
     control = Fortuna.Generator(55)

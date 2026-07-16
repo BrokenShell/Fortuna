@@ -29,7 +29,7 @@ def test_selector_suite_names_are_unique_and_cover_each_api_family():
     assert all(case.suite == "selectors" for case in cases)
     assert all(case.workload_payload["declared"] for case in cases)
     assert all(case.workload_payload["input"] is not None for case in cases)
-    assert len(cases) == 107
+    assert len(cases) == 108
     for prefix in (
         "index-",
         "random-value-",
@@ -135,6 +135,10 @@ def test_reused_and_construction_workloads_distinguish_calls_from_fixtures():
         workload = cases[name].workload_payload
         assert workload["args"][0]["fixture"]
         assert workload["input"]["fixtures"][0]["recipe"]
+
+    function = cases["random-value-function-100"].workload_payload
+    assert function["args"] == [{"fixture": "values-100"}]
+    assert function["input"]["callable"] == "random_value"
 
 
 def test_quantum_and_flex_workloads_record_real_dispatch_arguments():

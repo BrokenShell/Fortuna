@@ -9,7 +9,14 @@ from typing import Any
 import pytest
 
 from Fortuna import _core
-from Fortuna._selectors import IndexProfile, IndexSelector, QuantumMonty, TruffleShuffle, sample
+from Fortuna._selectors import (
+    IndexProfile,
+    IndexSelector,
+    QuantumMonty,
+    RandomValue,
+    TruffleShuffle,
+    sample,
+)
 
 PROFILE_METHODS = {
     IndexProfile.UNIFORM: "random_index",
@@ -90,6 +97,63 @@ def test_quantum_monty_value_engine_fused_path_preserves_sequence_and_next_draw(
 
     assert selector.take(COUNT) == [control.quantum_monty(SIZE) for _ in range(COUNT)]
     assert next_draw() == control.random_uint(0, UINT64_MAX)
+
+
+@pytest.mark.parametrize("source", ["module", "generator"])
+def test_random_value_engine_native_path_preserves_sequence_and_next_draw(source):
+    control = _core.Generator(SEED)
+    values = tuple(range(SIZE))
+    if source == "module":
+        _core.seed(SEED)
+        selector = RandomValue(values, resolve_callables=False)
+        next_draw: Callable[[], int] = _next_module_draw
+    else:
+        generator = _core.Generator(SEED)
+        selector = RandomValue(
+            values,
+            resolve_callables=False,
+            generator=generator,
+        )
+
+        def next_draw():
+            return generator.random_uint(0, UINT64_MAX)
+
+    assert selector.take(COUNT) == [control.random_value(values) for _ in range(COUNT)]
+    assert next_draw() == control.random_uint(0, UINT64_MAX)
+
+
+@pytest.mark.parametrize(
+    ("result", "error", "message"),
+    [
+        (False, TypeError, "generated index must be an integer, not bool"),
+        (SIZE, ValueError, rf"outside \[0, {SIZE}\)"),
+    ],
+)
+def test_random_value_engine_validates_monkeypatched_module_endpoint(
+    monkeypatch, result, error, message
+):
+    monkeypatch.setattr(_core, "random_index", lambda size: result)
+    selector = RandomValue(range(SIZE), resolve_callables=False)
+
+    with pytest.raises(error, match=message):
+        selector()
+
+
+def test_random_value_engine_retains_cached_module_draw_binding(monkeypatch):
+    native = _core.random_index
+    calls = []
+
+    def random_index(size):
+        calls.append(size)
+        return 1
+
+    monkeypatch.setattr(_core, "random_index", random_index)
+    selector = RandomValue(("first", "second"), resolve_callables=False)
+    assert selector.selector(2) == 1
+    monkeypatch.setattr(_core, "random_index", native)
+
+    assert selector() == "second"
+    assert calls == [2, 2]
 
 
 @pytest.mark.parametrize(

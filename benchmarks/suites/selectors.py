@@ -177,6 +177,11 @@ def _random_value_construction_setup(fortuna: Any) -> Callable[[], Any]:
     return lambda: fortuna.RandomValue(VALUES_100)
 
 
+def _random_value_function_setup(fortuna: Any) -> Callable[[], Any]:
+    fortuna.seed(SEED)
+    return lambda: fortuna.random_value(VALUES_100)
+
+
 def _truffle_call_setup(fortuna: Any) -> Callable[[], Any]:
     fortuna.seed(SEED)
     selector = fortuna.TruffleShuffle(VALUES_100)
@@ -407,6 +412,20 @@ def selector_cases() -> list[BenchmarkCase]:
                 setup_variant="reused RandomValue",
             )
         )
+    cases.append(
+        _case(
+            "random-value-function-100",
+            fortuna,
+            error,
+            _random_value_function_setup,
+            workload_args=(_fixture_reference("values-100"),),
+            workload_input={
+                "callable": "random_value",
+                "fixtures": [VALUES_100_FIXTURE],
+            },
+            setup_variant="module-level function",
+        )
+    )
     cases.append(
         _case(
             "random-value-construction-100",
