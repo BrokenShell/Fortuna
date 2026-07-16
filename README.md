@@ -58,12 +58,13 @@ interpreter and initializes its own state.
 Do not fork while another thread is actively using a shared explicit generator;
 the child could inherit that generator's native mutex in a locked state.
 
-Fortuna's bounded integer, index, range, dice, canonical, stream-derivation, and
-bounded-draw algorithms are stable across supported platforms throughout the
-Fortuna 6 line. Functions and profiles implemented with the C++ standard
-library's distribution classes are repeatable within the same toolchain and
-standard library build, but their exact seeded sequences may differ between
-libc++, libstdc++, and Microsoft's standard library.
+Fortuna's bounded integer, index, range, dice, canonical, bounded-triangular
+profile, stream-derivation, and collection draw-schedule algorithms are stable
+across supported platforms throughout the Fortuna 6 line. Other floating-point
+transforms—including custom triangular, Pareto, and von Mises transforms—and
+profiles or distributions built on them are repeatable within one platform and
+toolchain build, but their exact seeded sequences are not a cross-platform
+contract.
 
 ## Scalar and bulk generation
 

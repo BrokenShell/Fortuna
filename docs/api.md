@@ -175,11 +175,12 @@ exponential/normal, and Poisson profiles.
 | `back_poisson(size, *, count=None)` | Poisson-shaped back bias. |
 | `quantum_monty(size, *, count=None)` | Equal strategy mixture of the nine base profiles. |
 
-Exact seeded sequences for Fortuna/Storm-owned bounded algorithms are stable
-throughout the Fortuna 6 line. Profiles and distributions implemented with C++
-standard-library distributions are deterministic within one toolchain build,
-but exact sequences may differ across libc++, libstdc++, and Microsoft's
-standard library.
+Exact seeded sequences for Fortuna/Storm-owned bounded integer algorithms and
+the bounded-only triangular profiles are stable throughout the Fortuna 6 line.
+Other floating-point transforms—including custom triangular, Pareto, and von
+Mises transforms—and profiles or distributions built on them are deterministic
+within one platform and toolchain build, but their exact seeded sequences are
+not a cross-platform contract.
 
 ## Collection helpers
 

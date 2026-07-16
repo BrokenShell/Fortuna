@@ -32,9 +32,10 @@ synchronization for their overrides. Do not fork while another thread is
 actively using that shared generator.
 
 Exact cross-platform stream stability applies to Fortuna/Storm-owned bounded
-algorithms and stream derivation. Standard-library distribution transforms,
-including profiles built from them, can produce different exact sequences under
-libc++, libstdc++, and Microsoft's standard library even with the same seed.
+integer algorithms, bounded-only triangular profiles, collection draw
+schedules, and stream derivation. Other floating-point transforms—including
+custom triangular, Pareto, and von Mises transforms—and profiles or
+distributions built on them are not exact cross-platform sequence contracts.
 
 ## Renamed positional profiles
 
