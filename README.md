@@ -8,7 +8,7 @@ remaining competitive at ordinary sizes.
 Fortuna 6 is a clean break from the historical API. It supports Python 3.14,
 vendors the immutable Storm 5.0.1 header, and is licensed under MIT.
 
-> Fortuna 6.0.1 is under active development and has not been published to PyPI.
+> Fortuna 6.0.2 is under active development and has not been published to PyPI.
 
 > **Security:** Fortuna uses MT19937-64 and is not a cryptographically secure
 > random number generator. Do not use it for passwords, tokens, keys, secrets,
@@ -78,6 +78,33 @@ values = Fortuna.random_int(-10, 10, count=100_000)
 Bulk generation performs the sampling loop natively without holding the Python
 GIL and returns a list. `count=0` returns an empty list; negative counts are an
 error.
+
+## Prepared value generation
+
+`RandomValue` keeps the ergonomic prepared-callable pattern while making a bare
+call mean the unsurprising thing: uniform selection.
+
+```python
+loot = Fortuna.RandomValue(["copper", "potion", "wand"])
+
+uniform_drop = loot()
+front_loaded_drop = loot.front_triangular()
+next_in_order = loot.cycle()
+
+# Methods are ordinary bound callables when a generator is passed around.
+loot_gen = loot.front_triangular
+another_drop = loot_gen()
+```
+
+The retained strategies are `uniform`, `cycle`, `truffle_shuffle`,
+`front_triangular`, `center_triangular`, and `back_triangular`; `take` performs
+repeated uniform draws through the object. `TruffleShuffle` remains available
+directly for wide, generally uniform selection with reduced localized repeats.
+`WeightedChoice` handles relative `(weight, value)` pairs.
+
+Fortuna 6.0.2 intentionally removes the former `QuantumMonty` name and the
+larger selector framework without compatibility aliases. The useful
+`QuantumMonty` ergonomics now belong to the more direct `RandomValue` name.
 
 ## Development commands
 

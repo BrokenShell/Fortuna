@@ -37,33 +37,60 @@ schedules, and stream derivation. Other floating-point transforms—including
 custom triangular, Pareto, and von Mises transforms—and profiles or
 distributions built on them are not exact cross-platform sequence contracts.
 
-## Renamed positional profiles
+## Retained positional profiles
 
 | Fortuna 5 | Fortuna 6 |
 | --- | --- |
 | `front_linear` | `front_triangular` |
 | `middle_linear` | `center_triangular` |
 | `back_linear` | `back_triangular` |
-| `quantum_linear` | `mixed_triangular` |
-| `front_gauss` | `front_exponential` |
-| `middle_gauss` | `center_normal` |
-| `back_gauss` | `back_exponential` |
-| `quantum_gauss` | `mixed_exponential_normal` |
-| `middle_poisson` | `edge_poisson` |
 
-`quantum_poisson` was distributionally redundant and has been removed.
-`quantum_monty` remains as an equal strategy mixture of the nine front,
-center/edge, and back triangular, exponential/normal, and Poisson profiles.
+These are the only public positional index profiles in Fortuna 6.0.2. The
+mixed, exponential/normal, Poisson, and quantum profile families were removed
+instead of being carried forward under aliases. The standard probability
+distribution primitives, including `normal_variate`, `exponential_variate`,
+and `poisson_variate`, remain public.
 
 ## Other renames
 
 | Fortuna 5 | Fortuna 6 |
 | --- | --- |
-| `flatten` | `resolve` |
-| `flat=` | `resolve_callables=` |
 | `plus_or_minus_linear` | `plus_or_minus_triangular` |
 | `plus_or_minus_gauss` | `plus_or_minus_normal` |
 | `version` | `__version__` |
+
+The former `flatten`/`resolve` helper is not public in 6.0.2. Callable value
+resolution remains an option on `RandomValue`, `TruffleShuffle`, and
+`WeightedChoice` through `resolve_callables=`.
+
+## Prepared value engines
+
+`RandomValue` now owns the small, useful prepared-selector interface formerly
+associated with `QuantumMonty`:
+
+```python
+loot = Fortuna.RandomValue(["copper", "potion", "wand"])
+
+uniform = loot()                  # bare call is uniform
+front_loaded = loot.front_triangular()
+ordered = loot.cycle()
+
+loot_gen = loot.front_triangular  # retain a strategy as a callable
+another = loot_gen()
+```
+
+The complete retained strategy set is `uniform`, `cycle`, `truffle_shuffle`,
+`front_triangular`, `center_triangular`, and `back_triangular`. The object also
+provides `take`; its default repeated strategy is uniform. `QuantumMonty` is
+removed without an alias.
+
+`WeightedChoice` accepts relative `(weight, value)` pairs and replaces
+`RelativeWeightedChoice`. Cumulative-threshold tables and
+`CumulativeWeightedChoice` have no replacement:
+
+```python
+rarity = Fortuna.WeightedChoice([(80, "common"), (18, "rare"), (2, "legendary")])
+```
 
 ## Negative integer continuations
 
@@ -89,14 +116,24 @@ interval and no index into a sequence of size zero.
 The following concepts do not have compatibility replacements:
 
 - Signed dice and reordered ranges.
-- `ZeroCool`; use `IndexProfile` and `IndexSelector`.
+- `random_uint`; use `random_below(2**64)` for a full-domain unsigned draw, or
+  the bounded API whose interval contract matches the actual use case.
+- `ZeroCool`, `IndexProfile`, and `IndexSelector`.
 - `DistributionRange` and `FloatDistributionRange`.
 - `MultiChoice`.
 - `TruffleShuffle2` and the `truffle_shuffle` function factory.
 - `knuth_a` and `fisher_yates`; use `shuffle`.
 - Numeric limit and clamp helpers.
-- The public `WeightedChoice` base and `cumulative_weighted_choice` function.
+- `FlexCat`; compose ordinary mappings and retained value engines where needed.
+- `QuantumMonty`; use `RandomValue` and an explicit retained strategy.
+- Public `resolve`, `RelativeWeightedChoice`, `CumulativeWeightedChoice`, and
+  `cumulative_weighted_choice`.
+- Mixed, exponential/normal, Poisson, and quantum positional profiles.
 - MonkeyScope integration and `Fortuna[scope]`.
+
+Fortuna does not export compatibility aliases for these names. This is a hard
+API cut intended to leave the retained functionality with a smaller, clearer
+surface.
 
 ## Validation
 

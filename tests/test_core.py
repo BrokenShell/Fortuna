@@ -15,7 +15,7 @@ def test_version_and_seed_zero_are_deterministic():
     assert Fortuna.storm_version() == "5.0.1"
     first = Fortuna.Generator(0)
     second = Fortuna.Generator(0)
-    assert first.random_uint(0, 2**64 - 1, count=32) == second.random_uint(0, 2**64 - 1, count=32)
+    assert first.random_below(2**64, count=32) == second.random_below(2**64, count=32)
 
 
 def test_generator_constructor_exposes_its_runtime_signature():
@@ -35,7 +35,6 @@ def test_generator_constructor_exposes_its_runtime_signature():
         ("random_below", (101,)),
         ("random_index", (101,)),
         ("random_int", (-10, 10)),
-        ("random_uint", (0, 100)),
         ("random_range", (-20, 30, 3)),
         ("d", (20,)),
         ("dice", (3, 6)),
@@ -45,7 +44,6 @@ def test_generator_constructor_exposes_its_runtime_signature():
         ("exponential_variate", (2.5,)),
         ("normal_variate", (3.0, 2.0)),
         ("front_triangular", (17,)),
-        ("quantum_monty", (17,)),
     ],
 )
 def test_bulk_is_scalar_equivalent(method, args):
@@ -121,7 +119,7 @@ def test_invalid_specialized_generator_scalar_does_not_advance(method, args):
     control = Fortuna.Generator(99)
     with pytest.raises((ValueError, OverflowError)):
         getattr(tested, method)(*args)
-    assert tested.random_uint(0, 2**64 - 1) == control.random_uint(0, 2**64 - 1)
+    assert tested.random_below(2**64) == control.random_below(2**64)
 
 
 @pytest.mark.parametrize(
@@ -139,7 +137,7 @@ def test_invalid_specialized_module_scalar_does_not_advance(function, args):
     control = Fortuna.Generator(99)
     with pytest.raises(ValueError):
         function(*args)
-    assert Fortuna.random_uint(0, 2**64 - 1) == control.random_uint(0, 2**64 - 1)
+    assert Fortuna.random_below(2**64) == control.random_below(2**64)
 
 
 @pytest.mark.parametrize("owner", [Fortuna, Fortuna.Generator(99)])
@@ -179,7 +177,6 @@ def test_integer_boundaries_do_not_round_through_float():
     maximum = 2**63 - 1
     assert generator.random_int(minimum, minimum) == minimum
     assert generator.random_int(maximum, maximum) == maximum
-    assert generator.random_uint(2**64 - 1, 2**64 - 1) == 2**64 - 1
     assert all(
         value in {2**53 - 1, 2**53, 2**53 + 1}
         for value in generator.random_int(2**53 - 1, 2**53 + 1, count=128)
@@ -208,7 +205,6 @@ def test_python_style_directed_random_range():
         ("random_int", (10, 1)),
         ("random_range", (0, 10, 0)),
         ("normal_variate", (0.0, -1.0)),
-        ("front_poisson", (0,)),
     ],
 )
 def test_count_zero_still_validates_without_advancing(method, args):
@@ -216,7 +212,7 @@ def test_count_zero_still_validates_without_advancing(method, args):
     control = Fortuna.Generator(99)
     with pytest.raises((ValueError, OverflowError)):
         getattr(tested, method)(*args, count=0)
-    assert tested.random_uint(0, 2**64 - 1) == control.random_uint(0, 2**64 - 1)
+    assert tested.random_below(2**64) == control.random_below(2**64)
 
 
 def test_zero_count_and_count_validation():
@@ -234,7 +230,6 @@ def test_zero_count_and_count_validation():
         ("random_int", (-(2**63) - 1, 0), "low must be in the signed 64-bit range"),
         ("random_int", (0, 2**63), "high must be in the signed 64-bit range"),
         ("random_range", (0, 2**63), "stop must be in the signed 64-bit range"),
-        ("random_uint", (0, 2**64), "high must be in the unsigned 64-bit range"),
         ("random_index", (2**64,), "size must be in the unsigned 64-bit range"),
     ],
 )
@@ -250,7 +245,7 @@ def test_integer_overflow_names_the_parameter_without_advancing(owner_kind, meth
     with pytest.raises(OverflowError, match=message):
         getattr(owner, method)(*args)
 
-    assert owner.random_uint(0, 2**64 - 1) == control.random_uint(0, 2**64 - 1)
+    assert owner.random_below(2**64) == control.random_below(2**64)
 
 
 @pytest.mark.parametrize("owner_kind", ["module", "generator"])
@@ -266,7 +261,7 @@ def test_count_overflow_is_parameter_specific_and_does_not_advance(owner_kind):
     with pytest.raises(OverflowError, match="count exceeds the platform size limit"):
         owner.random_int(0, 1, count=2**64)
 
-    assert owner.random_uint(0, 2**64 - 1) == control.random_uint(0, 2**64 - 1)
+    assert owner.random_below(2**64) == control.random_below(2**64)
 
 
 def test_integer_overflow_precedence_remains_coercion_then_count_then_domain():
@@ -285,13 +280,13 @@ def test_seed_overflow_names_seed_and_preserves_existing_state():
 
     with pytest.raises(OverflowError, match="seed must be in the unsigned 64-bit range"):
         generator.seed(2**64)
-    assert generator.random_uint(0, 2**64 - 1) == control.random_uint(0, 2**64 - 1)
+    assert generator.random_below(2**64) == control.random_below(2**64)
 
     Fortuna.seed(seed)
     control = Fortuna.Generator(seed)
     with pytest.raises(OverflowError, match="seed must be in the unsigned 64-bit range"):
         Fortuna.seed(2**64)
-    assert Fortuna.random_uint(0, 2**64 - 1) == control.random_uint(0, 2**64 - 1)
+    assert Fortuna.random_below(2**64) == control.random_below(2**64)
 
 
 def test_index_protocol_overflow_uses_the_same_parameter_specific_errors():
@@ -321,8 +316,8 @@ def test_stream_derivation_is_stable_and_type_domain_separated():
     for stream_id in (7, "7", b"7", -7, "worker-3"):
         first = Fortuna.for_stream(42, stream_id)
         second = Fortuna.Generator.for_stream(42, stream_id)
-        assert first.random_uint(0, 2**64 - 1) == second.random_uint(0, 2**64 - 1)
-        values.append(Fortuna.for_stream(42, stream_id).random_uint(0, 2**64 - 1))
+        assert first.random_below(2**64) == second.random_below(2**64)
+        values.append(Fortuna.for_stream(42, stream_id).random_below(2**64))
     assert len(set(values)) == len(values)
     assert values == [
         1_196_009_599_846_878_293,
@@ -378,13 +373,13 @@ def test_knuth_b_shuffle_is_deterministic_for_module_and_generator():
     generator = Fortuna.Generator(101)
     generator.shuffle(generator_values)
     assert generator_values == expected
-    assert generator.random_uint(0, 2**64 - 1) == expected_next
+    assert generator.random_below(2**64) == expected_next
 
     module_values = list(range(10))
     Fortuna.seed(101)
     Fortuna.shuffle(module_values)
     assert module_values == expected
-    assert Fortuna.random_uint(0, 2**64 - 1) == expected_next
+    assert Fortuna.random_below(2**64) == expected_next
 
 
 @pytest.mark.parametrize("size", [2, 10, 100, 256, 257])
@@ -394,21 +389,21 @@ def test_exact_list_shuffle_fast_path_preserves_knuth_b_schedule_and_state(size)
     control = Fortuna.Generator(seed)
     last = size - 1
     for position in range(last - 1, -1, -1):
-        other = control.random_uint(position, last)
+        other = position + control.random_index(last - position + 1)
         expected[position], expected[other] = expected[other], expected[position]
-    expected_next = control.random_uint(0, 2**64 - 1)
+    expected_next = control.random_below(2**64)
 
     generator_values = list(range(size))
     generator = Fortuna.Generator(seed)
     generator.shuffle(generator_values)
     assert generator_values == expected
-    assert generator.random_uint(0, 2**64 - 1) == expected_next
+    assert generator.random_below(2**64) == expected_next
 
     module_values = list(range(size))
     Fortuna.seed(seed)
     Fortuna.shuffle(module_values)
     assert module_values == expected
-    assert Fortuna.random_uint(0, 2**64 - 1) == expected_next
+    assert Fortuna.random_below(2**64) == expected_next
 
 
 @pytest.mark.parametrize("values", [[], [0]])
@@ -416,13 +411,13 @@ def test_degenerate_shuffle_consumes_no_entropy(values):
     generator = Fortuna.Generator(101)
     control = Fortuna.Generator(101)
     generator.shuffle(values)
-    assert generator.random_uint(0, 2**64 - 1) == control.random_uint(0, 2**64 - 1)
+    assert generator.random_below(2**64) == control.random_below(2**64)
 
     Fortuna.seed(101)
     Fortuna.shuffle(values)
-    actual = Fortuna.random_uint(0, 2**64 - 1)
+    actual = Fortuna.random_below(2**64)
     Fortuna.seed(101)
-    assert actual == Fortuna.random_uint(0, 2**64 - 1)
+    assert actual == Fortuna.random_below(2**64)
 
 
 def test_generator_shuffle_releases_lock_before_sequence_callbacks():
@@ -440,13 +435,13 @@ def test_generator_shuffle_releases_lock_before_sequence_callbacks():
     control = Fortuna.Generator(8128)
     values = BlockingList(range(10))
     for position in range(8, -1, -1):
-        control.random_uint(position, 9)
-    expected = control.random_uint(0, 2**64 - 1)
+        control.random_index(10 - position)
+    expected = control.random_below(2**64)
 
     with ThreadPoolExecutor(max_workers=2) as executor:
         shuffle_future = executor.submit(generator.shuffle, values)
         assert entered.wait(timeout=2)
-        draw_future = executor.submit(generator.random_uint, 0, 2**64 - 1)
+        draw_future = executor.submit(generator.random_below, 2**64)
         try:
             actual = draw_future.result(timeout=1)
         except TimeoutError:
@@ -474,7 +469,7 @@ class ReentrantList(list):
 
     def __getitem__(self, index):
         self.calls += 1
-        self.generator.random_uint(0, 2**64 - 1)
+        self.generator.random_below(2**64)
         return super().__getitem__(index)
 
 generator = Generator(8128)
@@ -501,12 +496,12 @@ def test_shuffle_callback_error_consumes_complete_index_schedule_and_releases_lo
     generator = Fortuna.Generator(8128)
     control = Fortuna.Generator(8128)
     for position in range(8, -1, -1):
-        control.random_uint(position, 9)
+        control.random_index(10 - position)
 
     with pytest.raises(RuntimeError, match="sequence callback failed"):
         generator.shuffle(ExplodingList(range(10)))
 
-    assert generator.random_uint(0, 2**64 - 1) == control.random_uint(0, 2**64 - 1)
+    assert generator.random_below(2**64) == control.random_below(2**64)
 
 
 def test_shuffle_reports_oversized_index_schedule_as_memory_error():
@@ -560,7 +555,7 @@ def test_module_random_value_materialized_exact_containers_preserve_sequence(con
     assert [Fortuna._core._random_value_materialized(values) for _ in range(16)] == [
         values[control.random_index(len(values))] for _ in range(16)
     ]
-    assert Fortuna.random_uint(0, 2**64 - 1) == control.random_uint(0, 2**64 - 1)
+    assert Fortuna.random_below(2**64) == control.random_below(2**64)
 
 
 @pytest.mark.parametrize("values", [(), []])
@@ -582,7 +577,7 @@ def test_invalid_shuffle_does_not_advance_generator():
     control = Fortuna.Generator(55)
     with pytest.raises(TypeError, match="mutable sequence"):
         generator.shuffle((1, 2, 3))
-    assert generator.random_uint(0, 2**64 - 1) == control.random_uint(0, 2**64 - 1)
+    assert generator.random_below(2**64) == control.random_below(2**64)
 
 
 def test_random_below_supports_the_full_uint64_domain():

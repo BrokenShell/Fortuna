@@ -1,6 +1,40 @@
 # Changelog
 
-## 6.0.1 - Unreleased
+## 6.0.2 - Unreleased
+
+Fortuna 6.0.2 removes low-value experiments and gives the surviving value
+engines a smaller, faster, more direct API.
+
+### Added
+
+- A single relative-weight `WeightedChoice` value engine.
+- Focused benchmark coverage for every retained `RandomValue` strategy.
+
+### Changed
+
+- A bare `RandomValue(items)()` now performs uniform selection. The object also
+  exposes bound `uniform`, `cycle`, `truffle_shuffle`, `front_triangular`,
+  `center_triangular`, and `back_triangular` methods.
+- `RandomValue` now carries the useful prepared-selector implementation and
+  ergonomics formerly associated with `QuantumMonty`.
+- Relative weighted selection is exposed directly as `WeightedChoice` instead
+  of splitting the concept across relative and cumulative classes.
+- Callable resolution remains an internal value-engine behavior with cycle and
+  depth guards; it is no longer a separate public helper.
+
+### Removed
+
+- The public `random_uint` API. `random_below(2**64)` remains the full unsigned
+  64-bit draw.
+- `QuantumMonty`, `FlexCat`, `IndexProfile`, and `IndexSelector`.
+- `RelativeWeightedChoice` and `CumulativeWeightedChoice`; relative tables use
+  `WeightedChoice`, while cumulative-threshold tables have no replacement.
+- All positional profiles except `front_triangular`, `center_triangular`, and
+  `back_triangular`, including the former mixed, exponential/normal, Poisson,
+  and quantum recipes.
+- Compatibility aliases for the removed selector and profile APIs.
+
+## 6.0.1
 
 Fortuna 6 is a clean, intentionally breaking reconstruction.
 

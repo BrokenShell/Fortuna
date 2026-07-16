@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from benchmarks.suites import all_cases, suite_names
-from benchmarks.suites.selectors import INDEX_PROFILES, selector_cases
+from benchmarks.suites.selectors import RANDOM_VALUE_METHODS, selector_cases
 
 
 def _cases_by_name():
@@ -29,18 +29,13 @@ def test_selector_suite_names_are_unique_and_cover_each_api_family():
     assert all(case.suite == "selectors" for case in cases)
     assert all(case.workload_payload["declared"] for case in cases)
     assert all(case.workload_payload["input"] is not None for case in cases)
-    assert len(cases) == 108
+    assert len(cases) == 45
     for prefix in (
-        "index-",
         "random-value-",
         "truffle-",
-        "quantum-",
-        "flex-",
-        "weighted-relative-",
-        "weighted-cumulative-",
+        "weighted-choice-",
         "sample-",
         "shuffle-",
-        "resolve-",
     ):
         assert any(name.startswith(prefix) for name in names)
 
@@ -51,75 +46,67 @@ def test_selector_suite_operations_prepare_and_run_once():
         case.prepare()()
 
 
-def test_selector_bulk_cases_report_per_value():
-    bulk_cases = [case for case in selector_cases() if "bulk" in case.name]
-
-    assert bulk_cases
-    assert len(bulk_cases) == 27
-    assert all(case.unit == "value" for case in bulk_cases)
-    assert all(case.values_per_call == 1_000 for case in bulk_cases)
-
-
-def test_index_selector_workloads_match_timed_calls_and_rng_ownership():
-    cases = _cases_by_name()
-    scalar = cases["index-uniform-scalar-module"].workload_payload
-    bulk = cases["index-front-triangular-bulk-module-1000"].workload_payload
-    custom = cases["index-uniform-scalar-custom"].workload_payload
-
-    assert scalar["args"] == [100]
-    assert scalar["kwargs"] == {}
-    assert bulk["args"] == [100]
-    assert bulk["kwargs"] == {"count": 1_000}
-    assert custom["seed"] is None
-    assert custom["input"]["selector"]["generator"]["type"] == "_ConstantIndexGenerator"
-
-
-def test_index_selector_covers_every_profile_with_module_and_generator_sources():
+def test_random_value_covers_each_strategy_and_rng_owner():
     cases = _cases_by_name()
 
-    for profile in INDEX_PROFILES:
-        benchmark_profile = profile.replace("_", "-")
+    for method in RANDOM_VALUE_METHODS:
+        benchmark_method = method.replace("_", "-")
         for source, source_type in (
             ("module", "Fortuna module-global engine"),
             ("generator", "Fortuna.Generator"),
         ):
-            workload = cases[f"index-{benchmark_profile}-scalar-{source}"].workload_payload
+            workload = cases[f"random-value-{benchmark_method}-{source}-100"].workload_payload
 
-            assert workload["args"] == [100]
+            assert workload["args"] == []
             assert workload["kwargs"] == {}
             assert workload["seed"] == 0x5EED
-            assert workload["input"] == {
-                "callable": "IndexSelector.__call__",
-                "selector": {
-                    "generator": {"seed": 0x5EED, "type": source_type},
-                    "profile": profile,
-                },
+            assert workload["input"]["callable"] == f"RandomValue.{method}"
+            assert workload["input"]["constructor"]["generator"] == {
+                "seed": 0x5EED,
+                "type": source_type,
             }
+            assert workload["input"]["fixtures"] == [
+                {
+                    "id": "values-100",
+                    "recipe": "tuple(range(100))",
+                    "size": 100,
+                    "type": "tuple",
+                }
+            ]
 
-            bulk = cases[f"index-{benchmark_profile}-bulk-{source}-1000"].workload_payload
-            assert bulk["args"] == [100]
-            assert bulk["kwargs"] == {"count": 1_000}
-            assert bulk["seed"] == 0x5EED
-            assert bulk["input"] == workload["input"]
 
-    custom_bulk = cases["index-uniform-bulk-custom-1000"].workload_payload
-    assert custom_bulk["args"] == [100]
-    assert custom_bulk["kwargs"] == {"count": 1_000}
-    assert custom_bulk["seed"] is None
-    assert custom_bulk["input"]["selector"]["generator"] == {
-        "recipe": "random_index returns 0 or count zeros",
-        "type": "_ConstantIndexGenerator",
-    }
+def test_random_value_call_and_resolution_cases_are_explicit():
+    cases = _cases_by_name()
+    plain = cases["random-value-call-uniform-module-100"].workload_payload
+    resolved = cases["random-value-callable-resolution-module-100"].workload_payload
+    disabled = cases["random-value-callable-resolution-disabled-module-100"].workload_payload
+
+    assert plain["input"]["callable"] == "RandomValue.__call__"
+    assert plain["input"]["constructor"]["resolve_callables"] is True
+    assert resolved["input"]["constructor"]["values"]["type"] == "tuple[callable, ...]"
+    assert resolved["input"]["constructor"]["resolve_callables"] is True
+    assert disabled["input"]["constructor"]["resolve_callables"] is False
+
+
+def test_random_value_take_cases_report_per_value():
+    cases = _cases_by_name()
+
+    for count in (10, 1_000):
+        case = cases[f"random-value-take-{count}"]
+
+        assert case.unit == "value"
+        assert case.values_per_call == count
+        assert case.workload_payload["args"] == [count]
+        assert case.workload_payload["input"]["callable"] == "RandomValue.take"
 
 
 def test_reused_and_construction_workloads_distinguish_calls_from_fixtures():
     cases = _cases_by_name()
 
     for name in (
-        "random-value-noncallable",
+        "random-value-uniform-module-100",
         "truffle-call-100",
-        "quantum-named-100",
-        "weighted-relative-call-100",
+        "weighted-choice-call-100",
     ):
         workload = cases[name].workload_payload
         assert workload["args"] == []
@@ -129,8 +116,7 @@ def test_reused_and_construction_workloads_distinguish_calls_from_fixtures():
     for name in (
         "random-value-construction-100",
         "truffle-construction-100",
-        "quantum-construction-100",
-        "weighted-cumulative-construction-100",
+        "weighted-choice-construction-100",
     ):
         workload = cases[name].workload_payload
         assert workload["args"][0]["fixture"]
@@ -141,19 +127,17 @@ def test_reused_and_construction_workloads_distinguish_calls_from_fixtures():
     assert function["input"]["callable"] == "random_value"
 
 
-def test_quantum_and_flex_workloads_record_real_dispatch_arguments():
+def test_weighted_choice_workloads_preserve_relative_weight_scaling():
     cases = _cases_by_name()
 
-    assert cases["quantum-dispatch-string-100"].workload_payload["args"] == ["center_normal"]
-    assert cases["quantum-dispatch-enum-100"].workload_payload["args"] == [
-        {"enum": "IndexProfile.CENTER_NORMAL"}
-    ]
-    assert cases["flex-default-explicit-key-10x10"].workload_payload["args"] == [3]
-    assert cases["flex-default-random-key-10x10"].workload_payload["args"] == []
-    assert cases["flex-uniform-construction-10x10"].workload_payload["kwargs"] == {
-        "key_selector": "uniform",
-        "value_selector": "uniform",
-    }
+    for size in (4, 100, 1_000):
+        workload = cases[f"weighted-choice-call-{size}"].workload_payload
+        fixture = workload["input"]["fixtures"][0]
+
+        assert workload["input"]["callable"] == "WeightedChoice.__call__"
+        assert fixture["id"] == f"weighted-relative-{size}"
+        assert fixture["size"] == size
+        assert fixture["weight_model"] == "relative"
 
 
 def test_collection_workloads_define_population_mutation_and_source_recipes():
@@ -197,16 +181,3 @@ def test_sample_custom_generator_fallback_has_exact_workload_metadata():
             "type": "_ConstantIndexGenerator",
         },
     }
-
-
-def test_resolve_workloads_record_values_kwargs_and_chain_depth():
-    cases = _cases_by_name()
-    disabled = cases["resolve-disabled"].workload_payload
-    deep = cases["resolve-depth-100"].workload_payload
-
-    assert disabled["args"] == [{"fixture": "resolved-value-callable"}]
-    assert disabled["kwargs"] == {"resolve_callables": False}
-    assert deep["args"] == [{"fixture": "resolution-chain-100"}]
-    assert deep["kwargs"] == {}
-    assert deep["seed"] is None
-    assert deep["input"]["value"]["callable_hops"] == 100

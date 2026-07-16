@@ -13,7 +13,6 @@ API_CASES = (
     ("random_below", (1_000,)),
     ("random_index", (1_000,)),
     ("random_int", (-1_000, 1_000)),
-    ("random_uint", (0, 1_000)),
     ("random_range", (-1_000, 1_000, 3)),
     ("d", (20,)),
     ("dice", (3, 6)),
@@ -43,15 +42,6 @@ API_CASES = (
     ("front_triangular", (100,)),
     ("center_triangular", (100,)),
     ("back_triangular", (100,)),
-    ("mixed_triangular", (100,)),
-    ("front_exponential", (100,)),
-    ("center_normal", (100,)),
-    ("back_exponential", (100,)),
-    ("mixed_exponential_normal", (100,)),
-    ("front_poisson", (100,)),
-    ("edge_poisson", (100,)),
-    ("back_poisson", (100,)),
-    ("quantum_monty", (100,)),
 )
 
 
@@ -104,7 +94,7 @@ def test_zero_count_is_side_effect_free_for_every_count_api(method, arguments):
     control = Fortuna.Generator(99)
 
     assert getattr(tested, method)(*arguments, count=0) == []
-    assert tested.random_uint(0, 2**64 - 1) == control.random_uint(0, 2**64 - 1)
+    assert tested.random_below(2**64) == control.random_below(2**64)
 
 
 @pytest.mark.parametrize(("method", "arguments"), API_CASES, ids=[case[0] for case in API_CASES])
@@ -113,7 +103,7 @@ def test_module_zero_count_is_side_effect_free_for_every_count_api(method, argum
     control = Fortuna.Generator(99)
 
     assert getattr(Fortuna, method)(*arguments, count=0) == []
-    assert Fortuna.random_uint(0, 2**64 - 1) == control.random_uint(0, 2**64 - 1)
+    assert Fortuna.random_below(2**64) == control.random_below(2**64)
 
 
 @pytest.mark.parametrize(("method", "arguments"), API_CASES, ids=[case[0] for case in API_CASES])
@@ -130,7 +120,7 @@ def test_invalid_count_is_consistent_and_side_effect_free(method, arguments, cou
 
     with pytest.raises(error, match=message):
         getattr(tested, method)(*arguments, count=count)
-    assert tested.random_uint(0, 2**64 - 1) == control.random_uint(0, 2**64 - 1)
+    assert tested.random_below(2**64) == control.random_below(2**64)
 
 
 @pytest.mark.parametrize(("method", "arguments"), API_CASES, ids=[case[0] for case in API_CASES])
@@ -149,4 +139,4 @@ def test_module_invalid_count_is_consistent_and_side_effect_free(
 
     with pytest.raises(error, match=message):
         getattr(Fortuna, method)(*arguments, count=count)
-    assert Fortuna.random_uint(0, 2**64 - 1) == control.random_uint(0, 2**64 - 1)
+    assert Fortuna.random_below(2**64) == control.random_below(2**64)

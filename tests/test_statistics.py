@@ -249,31 +249,16 @@ def test_cauchy_distribution_matches_declared_quartiles() -> None:
         assert observed <= cauchy_quantile(probability + epsilon)
 
 
-@pytest.mark.parametrize(
-    ("front_name", "back_name"),
-    [
-        ("front_triangular", "back_triangular"),
-        ("front_exponential", "back_exponential"),
-        ("front_poisson", "back_poisson"),
-    ],
-)
-def test_front_and_back_profile_distributions_are_mirrors(
-    front_name: str,
-    back_name: str,
-) -> None:
+def test_front_and_back_triangular_profiles_are_mirrors() -> None:
     size = 101
     sample_size = 30_000
-    front = getattr(Fortuna.Generator(0xF07A_5001), front_name)(size, count=sample_size)
-    back = getattr(Fortuna.Generator(0xF07A_5002), back_name)(size, count=sample_size)
+    front = Fortuna.Generator(0xF07A_5001).front_triangular(size, count=sample_size)
+    back = Fortuna.Generator(0xF07A_5002).back_triangular(size, count=sample_size)
     mirrored_back = [size - 1 - value for value in back]
-    _assert_same_discrete_distribution(
-        front,
-        mirrored_back,
-        range(size),
-    )
+    _assert_same_discrete_distribution(front, mirrored_back, range(size))
 
 
-def test_profile_families_have_honest_positional_ordering_and_symmetry() -> None:
+def test_triangular_profiles_have_honest_positional_ordering() -> None:
     size = 101
     midpoint = (size - 1) / 2
     sample_size = 30_000
@@ -283,90 +268,6 @@ def test_profile_families_have_honest_positional_ordering_and_symmetry() -> None
         name: getattr(generator, name)(size, count=sample_size)
         for name in ("front_triangular", "center_triangular", "back_triangular")
     }
-    exponential_normal = {
-        name: getattr(generator, name)(size, count=sample_size)
-        for name in ("front_exponential", "center_normal", "back_exponential")
-    }
-    poisson = {
-        name: getattr(generator, name)(size, count=sample_size)
-        for name in ("front_poisson", "edge_poisson", "back_poisson")
-    }
-
     assert statistics.fmean(triangular["front_triangular"]) < midpoint
     _assert_bounded_mean(triangular["center_triangular"], midpoint, low=0, high=size - 1)
     assert statistics.fmean(triangular["back_triangular"]) > midpoint
-
-    assert statistics.fmean(exponential_normal["front_exponential"]) < midpoint
-    _assert_bounded_mean(exponential_normal["center_normal"], midpoint, low=0, high=size - 1)
-    assert statistics.fmean(exponential_normal["back_exponential"]) > midpoint
-
-    assert statistics.fmean(poisson["front_poisson"]) < midpoint
-    _assert_bounded_mean(poisson["edge_poisson"], midpoint, low=0, high=size - 1)
-    assert statistics.fmean(poisson["back_poisson"]) > midpoint
-
-    for mixed_name in ("mixed_triangular", "mixed_exponential_normal"):
-        mixed = getattr(generator, mixed_name)(size, count=sample_size)
-        _assert_bounded_mean(mixed, midpoint, low=0, high=size - 1)
-
-
-def test_edge_poisson_observably_uses_balanced_front_and_back_sides() -> None:
-    # An even size has no center index, so the symmetric front/back mixture must
-    # put exactly half its probability mass on either side of the split.
-    size = 100
-    sample_size = 40_000
-    samples = Fortuna.Generator(0xF07A_5003).edge_poisson(size, count=sample_size)
-    lower_half = sum(value < size // 2 for value in samples)
-    _assert_probability(lower_half, sample_size, 0.5)
-
-
-def _coarse_histogram(samples: Sequence[int], *, size: int, bins: int) -> list[int]:
-    counts = [0] * bins
-    for value in samples:
-        counts[min(value * bins // size, bins - 1)] += 1
-    return counts
-
-
-def test_quantum_monty_matches_equal_mixture_of_its_nine_base_strategies() -> None:
-    """Test QuantumMonty's observable aggregate rather than internal dispatch."""
-
-    size = 100
-    per_strategy = 5_000
-    profiles = (
-        "front_triangular",
-        "center_triangular",
-        "back_triangular",
-        "front_exponential",
-        "center_normal",
-        "back_exponential",
-        "front_poisson",
-        "edge_poisson",
-        "back_poisson",
-    )
-
-    expected_samples: list[int] = []
-    for index, profile in enumerate(profiles):
-        generator = Fortuna.Generator(0xF07A_6000 + index)
-        expected_samples.extend(getattr(generator, profile)(size, count=per_strategy))
-
-    sample_size = per_strategy * len(profiles)
-    observed_samples = Fortuna.Generator(0xF07A_6100).quantum_monty(
-        size,
-        count=sample_size,
-    )
-    assert all(0 <= value < size for value in observed_samples)
-
-    expected_bins = _coarse_histogram(expected_samples, size=size, bins=10)
-    observed_bins = _coarse_histogram(observed_samples, size=size, bins=10)
-    for expected_count, observed_count in zip(expected_bins, observed_bins, strict=True):
-        expected_probability = expected_count / sample_size
-        # Both the independently constructed reference mixture and QuantumMonty
-        # contribute sampling error. Seven combined binomial standard errors is
-        # intentionally conservative for the ten simultaneous comparisons.
-        combined_error = math.sqrt(
-            2 * expected_probability * (1 - expected_probability) / sample_size
-        )
-        observed_probability = observed_count / sample_size
-        assert observed_probability == pytest.approx(
-            expected_probability,
-            abs=7 * combined_error + 1 / sample_size,
-        )

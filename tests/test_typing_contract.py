@@ -59,7 +59,7 @@ def _assert_count_overloads(functions, expected):
 def test_every_count_api_has_precise_module_and_generator_overloads():
     module = ast.parse(STUB.read_text())
     expected = _runtime_count_apis()
-    assert len(expected) == 45
+    assert len(expected) == 35
 
     generator = next(
         node for node in module.body if isinstance(node, ast.ClassDef) and node.name == "Generator"

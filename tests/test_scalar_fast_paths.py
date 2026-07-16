@@ -3,7 +3,6 @@ import pytest
 import Fortuna
 
 SCALAR_FAST_PATHS = (
-    ("random_uint", (7, 10_007)),
     ("ability_dice", (6,)),
     ("plus_or_minus", (31,)),
     ("plus_or_minus_triangular", (31,)),
@@ -26,19 +25,9 @@ SCALAR_FAST_PATHS = (
     ("front_triangular", (101,)),
     ("center_triangular", (101,)),
     ("back_triangular", (101,)),
-    ("mixed_triangular", (101,)),
-    ("front_exponential", (101,)),
-    ("center_normal", (101,)),
-    ("back_exponential", (101,)),
-    ("mixed_exponential_normal", (101,)),
-    ("front_poisson", (101,)),
-    ("edge_poisson", (101,)),
-    ("back_poisson", (101,)),
-    ("quantum_monty", (101,)),
 )
 
 INVALID_SCALAR_FAST_PATHS = (
-    ("random_uint", (2, 1)),
     ("ability_dice", (2,)),
     ("plus_or_minus_normal", (-1,)),
     ("pareto_variate", (0.0,)),
@@ -46,16 +35,13 @@ INVALID_SCALAR_FAST_PATHS = (
     ("weibull_variate", (2.0, 0.0)),
     ("cauchy_variate", (0.0, 0.0)),
     ("front_triangular", (0,)),
-    ("quantum_monty", (0,)),
 )
 
 COUNT_PRECEDENCE_CASES = (
-    ("random_uint", (2, 1)),
     ("ability_dice", (2,)),
     ("plus_or_minus", (-1,)),
     ("geometric_variate", (0.0,)),
     ("cauchy_variate", (0.0, 0.0)),
-    ("front_poisson", (0,)),
 )
 
 
@@ -87,7 +73,7 @@ def test_invalid_generator_scalar_fast_paths_do_not_advance(method, args):
     with pytest.raises(ValueError):
         getattr(tested, method)(*args)
 
-    assert tested.random_uint(0, 2**64 - 1) == control.random_uint(0, 2**64 - 1)
+    assert tested.random_below(2**64) == control.random_below(2**64)
 
 
 @pytest.mark.parametrize(("method", "args"), INVALID_SCALAR_FAST_PATHS)
@@ -98,7 +84,7 @@ def test_invalid_module_scalar_fast_paths_do_not_advance(method, args):
     with pytest.raises(ValueError):
         getattr(Fortuna, method)(*args)
 
-    assert Fortuna.random_uint(0, 2**64 - 1) == control.random_uint(0, 2**64 - 1)
+    assert Fortuna.random_below(2**64) == control.random_below(2**64)
 
 
 @pytest.mark.parametrize(("method", "args"), COUNT_PRECEDENCE_CASES)

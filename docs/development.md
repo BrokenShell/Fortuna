@@ -72,12 +72,20 @@ behavior, not just result ranges. In particular:
   remains consumed.
 - Indexes and weighted draws returned by injected custom behavior must be
   validated. Do not extend native trust to subclasses or monkeypatched methods.
-- `Generator` class factories preserve `cls`, and `QuantumMonty` initializes
-  its truffle strategy lazily.
-- `FlexCat` validates selector ownership and configuration and materializes all
-  categories before randomized selector construction begins. Failures after
-  selector construction starts do not roll back already consumed randomness.
-- Stateful selectors and value engines are not promised thread-safe. A native
+- `Generator` class factories preserve `cls`, and `RandomValue` initializes its
+  truffle strategy lazily. Construction, uniform selection, triangular
+  selection, and cycling must not pay the shuffle cost or advance the truffle
+  schedule.
+- A bare `RandomValue` call is uniform. Keep its retained bound methods
+  (`uniform`, `cycle`, `truffle_shuffle`, and the three triangular profiles)
+  independently callable; `take` repeats the default uniform strategy.
+- Callable resolution belongs to value engines internally. Preserve exception
+  propagation and the cycle and depth guards without restoring a public
+  `resolve` helper.
+- `WeightedChoice` accepts only relative `(weight, value)` tables. Validate
+  finite, nonnegative weights, a positive finite total, and untrusted injected
+  draws before selection.
+- Stateful value engines are not promised thread-safe. A native
   generator lock protects its engine, not surrounding Python selection state.
 
 Regression tests should assert the next draw where a change could silently

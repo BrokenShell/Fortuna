@@ -1,4 +1,4 @@
-"""Benchmarks for Fortuna's Python selector and composite APIs."""
+"""Benchmarks for Fortuna's public selector and collection APIs."""
 
 from __future__ import annotations
 
@@ -12,23 +12,15 @@ from benchmarks.model import BenchmarkCase, BenchmarkUnit
 SUITE = "selectors"
 SEED = 0x5EED
 VALUES_100 = tuple(range(100))
-MATRIX_10X10 = {key: tuple(range(key * 10, (key + 1) * 10)) for key in range(10)}
 SAMPLE_REGIMES = ((100, 10), (1_000, 10), (1_000, 500))
 WEIGHT_SIZES = (4, 100, 1_000)
-INDEX_PROFILES = (
+RANDOM_VALUE_METHODS = (
     "uniform",
+    "cycle",
+    "truffle_shuffle",
     "front_triangular",
     "center_triangular",
     "back_triangular",
-    "mixed_triangular",
-    "front_exponential",
-    "center_normal",
-    "back_exponential",
-    "mixed_exponential_normal",
-    "front_poisson",
-    "edge_poisson",
-    "back_poisson",
-    "quantum_monty",
 )
 
 VALUES_100_FIXTURE = {
@@ -36,13 +28,6 @@ VALUES_100_FIXTURE = {
     "type": "tuple",
     "recipe": "tuple(range(100))",
     "size": 100,
-}
-MATRIX_10X10_FIXTURE = {
-    "id": "matrix-10x10",
-    "type": "dict[int, tuple[int, ...]]",
-    "recipe": "key -> tuple(range(key * 10, (key + 1) * 10))",
-    "keys": 10,
-    "values_per_key": 10,
 }
 
 
@@ -59,40 +44,21 @@ def _range_fixture(identifier: str, *, size: int, container: str) -> dict[str, A
     }
 
 
-def _weighted_fixture(size: int, *, cumulative: bool) -> dict[str, Any]:
-    label = "cumulative" if cumulative else "relative"
+def _weighted_fixture(size: int) -> dict[str, Any]:
     return {
-        "id": f"weighted-{label}-{size}",
+        "id": f"weighted-relative-{size}",
         "type": "tuple[tuple[float, int], ...]",
-        "recipe": (
-            "tuple((float(index + 1), index) for index in range(size))"
-            if cumulative
-            else "tuple((1.0, index) for index in range(size))"
-        ),
+        "recipe": "tuple((1.0, index) for index in range(size))",
         "size": size,
-        "weight_model": label,
+        "weight_model": "relative",
     }
 
 
 class _ConstantIndexGenerator:
     """Minimal deterministic dependency-injection target."""
 
-    def random_index(self, size: int, *, count: int | None = None) -> int | list[int]:
-        if count is None:
-            return 0
-        return [0] * count
-
-
-class _ResolutionChain:
-    __slots__ = ("remaining",)
-
-    def __init__(self, remaining: int) -> None:
-        self.remaining = remaining
-
-    def __call__(self) -> int | _ResolutionChain:
-        if self.remaining == 0:
-            return 1
-        return _ResolutionChain(self.remaining - 1)
+    def random_index(self, size: int) -> int:
+        return 0
 
 
 def _resolved_value() -> int:
@@ -117,12 +83,27 @@ def _case(
     description: str = "",
     workload_args: tuple[Any, ...] = (),
     workload_kwargs: dict[str, Any] | None = None,
-    workload_input: Any = None,
+    workload_input: Any,
     setup_variant: str,
     seed: int | None = SEED,
 ) -> BenchmarkCase:
+    workload = {
+        "args": workload_args,
+        "kwargs": workload_kwargs or {},
+        "seed": seed,
+        "input": workload_input,
+        "setup_variant": setup_variant,
+    }
     if fortuna is None:
-        return BenchmarkCase(SUITE, name, skip_reason=import_error or "Fortuna unavailable")
+        return BenchmarkCase(
+            SUITE,
+            name,
+            unit=unit,
+            values_per_call=values_per_call,
+            description=description,
+            skip_reason=import_error or "Fortuna unavailable",
+            workload=workload,
+        )
     return BenchmarkCase(
         SUITE,
         name,
@@ -130,46 +111,38 @@ def _case(
         unit=unit,
         values_per_call=values_per_call,
         description=description,
-        workload={
-            "args": workload_args,
-            "kwargs": workload_kwargs or {},
-            "seed": seed,
-            "input": workload_input,
-            "setup_variant": setup_variant,
-        },
+        workload=workload,
     )
 
 
-def _index_selector_setup(
+def _random_value_method_setup(
     fortuna: Any,
     *,
+    method_name: str,
     source: str,
-    profile: str,
-    count: int | None,
+    callable_values: bool = False,
+    resolve_callables: bool = True,
 ) -> Callable[[], Any]:
+    values = (_resolved_value,) * 100 if callable_values else VALUES_100
+    generator = None
     if source == "module":
         fortuna.seed(SEED)
-        generator = None
     elif source == "generator":
         generator = fortuna.Generator(SEED)
     else:
-        generator = _ConstantIndexGenerator()
-    selector = fortuna.IndexSelector(profile, generator=generator)
-    if count is None:
-        return lambda: selector(100)
-    return lambda: selector(100, count=count)
+        raise ValueError(f"unknown RandomValue source: {source}")
+    selector = fortuna.RandomValue(
+        values,
+        generator=generator,
+        resolve_callables=resolve_callables,
+    )
+    return getattr(selector, method_name)
 
 
-def _random_value_setup(
-    fortuna: Any,
-    *,
-    resolve_callables: bool,
-    callable_values: bool,
-) -> Callable[[], Any]:
+def _random_value_take_setup(fortuna: Any, count: int) -> Callable[[], Any]:
     fortuna.seed(SEED)
-    values = (_resolved_value,) * 100 if callable_values else VALUES_100
-    selector = fortuna.RandomValue(values, resolve_callables=resolve_callables)
-    return selector
+    selector = fortuna.RandomValue(VALUES_100)
+    return lambda: selector.take(count)
 
 
 def _random_value_construction_setup(fortuna: Any) -> Callable[[], Any]:
@@ -184,8 +157,7 @@ def _random_value_function_setup(fortuna: Any) -> Callable[[], Any]:
 
 def _truffle_call_setup(fortuna: Any) -> Callable[[], Any]:
     fortuna.seed(SEED)
-    selector = fortuna.TruffleShuffle(VALUES_100)
-    return selector
+    return fortuna.TruffleShuffle(VALUES_100)
 
 
 def _truffle_construction_setup(fortuna: Any) -> Callable[[], Any]:
@@ -193,74 +165,19 @@ def _truffle_construction_setup(fortuna: Any) -> Callable[[], Any]:
     return lambda: fortuna.TruffleShuffle(VALUES_100)
 
 
-def _quantum_setup(fortuna: Any, operation: str) -> Callable[[], Any]:
-    fortuna.seed(SEED)
-    selector = fortuna.QuantumMonty(VALUES_100)
-    if operation == "named":
-        return selector.front_triangular
-    if operation == "mixed":
-        return selector
-    if operation == "cycle":
-        return selector.cycle
-    if operation == "dispatch-enum":
-        profile = fortuna.IndexProfile.CENTER_NORMAL
-        return lambda: selector.dispatch(profile)
-    if operation == "dispatch-string":
-        return lambda: selector.dispatch("center_normal")
-    raise ValueError(f"unknown QuantumMonty benchmark operation: {operation}")
-
-
-def _quantum_construction_setup(fortuna: Any) -> Callable[[], Any]:
-    fortuna.seed(SEED)
-    return lambda: fortuna.QuantumMonty(VALUES_100)
-
-
-def _flex_setup(fortuna: Any, *, uniform: bool, explicit_key: bool) -> Callable[[], Any]:
-    fortuna.seed(SEED)
-    kwargs = {"key_selector": "uniform", "value_selector": "uniform"} if uniform else {}
-    selector = fortuna.FlexCat(MATRIX_10X10, **kwargs)
-    if explicit_key:
-        return lambda: selector(3)
-    return selector
-
-
-def _flex_construction_setup(fortuna: Any, *, uniform: bool) -> Callable[[], Any]:
-    fortuna.seed(SEED)
-    kwargs = {"key_selector": "uniform", "value_selector": "uniform"} if uniform else {}
-    return lambda: fortuna.FlexCat(MATRIX_10X10, **kwargs)
-
-
-def _weighted_data(size: int, *, cumulative: bool) -> tuple[tuple[float, int], ...]:
-    if cumulative:
-        return tuple((float(index + 1), index) for index in range(size))
+def _weighted_data(size: int) -> tuple[tuple[float, int], ...]:
     return tuple((1.0, index) for index in range(size))
 
 
-def _weighted_call_setup(
-    fortuna: Any,
-    *,
-    size: int,
-    cumulative: bool,
-) -> Callable[[], Any]:
+def _weighted_call_setup(fortuna: Any, *, size: int) -> Callable[[], Any]:
     fortuna.seed(SEED)
-    selector_type = (
-        fortuna.CumulativeWeightedChoice if cumulative else fortuna.RelativeWeightedChoice
-    )
-    return selector_type(_weighted_data(size, cumulative=cumulative))
+    return fortuna.WeightedChoice(_weighted_data(size))
 
 
-def _weighted_construction_setup(
-    fortuna: Any,
-    *,
-    size: int,
-    cumulative: bool,
-) -> Callable[[], Any]:
+def _weighted_construction_setup(fortuna: Any, *, size: int) -> Callable[[], Any]:
     fortuna.seed(SEED)
-    selector_type = (
-        fortuna.CumulativeWeightedChoice if cumulative else fortuna.RelativeWeightedChoice
-    )
-    data = _weighted_data(size, cumulative=cumulative)
-    return lambda: selector_type(data)
+    data = _weighted_data(size)
+    return lambda: fortuna.WeightedChoice(data)
 
 
 def _sample_setup(
@@ -296,153 +213,131 @@ def _shuffle_setup(fortuna: Any, *, size: int, generator_method: bool) -> Callab
     return lambda: fortuna.shuffle(values)
 
 
-def _resolve_setup(fortuna: Any, operation: str) -> Callable[[], Any]:
-    if operation == "noncallable":
-        return lambda: fortuna.resolve(1)
-    if operation == "disabled":
-        return lambda: fortuna.resolve(_resolved_value, resolve_callables=False)
-    if operation == "one":
-        return lambda: fortuna.resolve(_resolved_value)
-    if operation == "depth-10":
-        chain = _ResolutionChain(9)
-        return lambda: fortuna.resolve(chain)
-    if operation == "depth-100":
-        chain = _ResolutionChain(99)
-        return lambda: fortuna.resolve(chain)
-    raise ValueError(f"unknown resolve benchmark operation: {operation}")
-
-
 def selector_cases() -> list[BenchmarkCase]:
     fortuna, error = _load_fortuna()
     cases: list[BenchmarkCase] = []
 
-    index_workloads = [
-        (f"index-{profile.replace('_', '-')}-scalar-{source}", source, profile, None)
-        for profile in INDEX_PROFILES
-        for source in ("module", "generator")
-    ]
-    index_workloads.extend(
-        (
-            f"index-{profile.replace('_', '-')}-bulk-{source}-1000",
-            source,
-            profile,
-            1_000,
-        )
-        for profile in INDEX_PROFILES
-        for source in ("module", "generator")
-    )
-    index_workloads.extend(
-        (
-            ("index-uniform-scalar-custom", "custom", "uniform", None),
-            ("index-uniform-bulk-custom-1000", "custom", "uniform", 1_000),
-        )
-    )
-
-    for name, source, profile, count in index_workloads:
-        workload_seed = None if source == "custom" else SEED
-        generator_input = {
+    for source in ("module", "generator"):
+        source_input = {
             "module": {"type": "Fortuna module-global engine", "seed": SEED},
             "generator": {"type": "Fortuna.Generator", "seed": SEED},
-            "custom": {
-                "type": "_ConstantIndexGenerator",
-                "recipe": "random_index returns 0 or count zeros",
-            },
         }[source]
-        cases.append(
-            _case(
-                name,
-                fortuna,
-                error,
-                lambda module, source=source, profile=profile, count=count: _index_selector_setup(
-                    module,
-                    source=source,
-                    profile=profile,
-                    count=count,
-                ),
-                unit="value" if count is not None else "call",
-                values_per_call=count or 1,
-                workload_args=(100,),
-                workload_kwargs={} if count is None else {"count": count},
-                workload_input={
-                    "callable": "IndexSelector.__call__",
-                    "selector": {"profile": profile, "generator": generator_input},
-                },
-                setup_variant="reused IndexSelector",
-                seed=workload_seed,
+        for method_name in RANDOM_VALUE_METHODS:
+            cases.append(
+                _case(
+                    f"random-value-{method_name.replace('_', '-')}-{source}-100",
+                    fortuna,
+                    error,
+                    lambda module, method_name=method_name, source=source: (
+                        _random_value_method_setup(
+                            module,
+                            method_name=method_name,
+                            source=source,
+                        )
+                    ),
+                    workload_input={
+                        "callable": f"RandomValue.{method_name}",
+                        "constructor": {
+                            "values": _fixture_reference("values-100"),
+                            "generator": source_input,
+                        },
+                        "fixtures": [VALUES_100_FIXTURE],
+                    },
+                    setup_variant="reused RandomValue",
+                )
             )
-        )
 
-    for name, resolve_callables, callable_values in (
-        ("random-value-noncallable", True, False),
-        ("random-value-resolution-disabled", False, True),
-        ("random-value-callable", True, True),
+    for label, callable_values, resolve_callables in (
+        ("call-uniform", False, True),
+        ("callable-resolution", True, True),
+        ("callable-resolution-disabled", True, False),
     ):
 
-        def random_value_factory(
+        def random_value_call_factory(
             module: Any,
-            resolve_callables: bool = resolve_callables,
             callable_values: bool = callable_values,
+            resolve_callables: bool = resolve_callables,
         ) -> Callable[[], Any]:
-            return _random_value_setup(
+            return _random_value_method_setup(
                 module,
-                resolve_callables=resolve_callables,
+                method_name="__call__",
+                source="module",
                 callable_values=callable_values,
+                resolve_callables=resolve_callables,
             )
 
         cases.append(
             _case(
-                name,
+                f"random-value-{label}-module-100",
                 fortuna,
                 error,
-                random_value_factory,
+                random_value_call_factory,
                 workload_input={
                     "callable": "RandomValue.__call__",
-                    "constructor": {"resolve_callables": resolve_callables},
-                    "values": (
-                        {
-                            "id": "resolved-callables-100",
-                            "type": "tuple[callable, ...]",
-                            "recipe": "(_resolved_value,) * 100",
-                            "size": 100,
-                        }
-                        if callable_values
-                        else VALUES_100_FIXTURE
-                    ),
+                    "constructor": {
+                        "resolve_callables": resolve_callables,
+                        "values": (
+                            {
+                                "id": "resolved-callables-100",
+                                "type": "tuple[callable, ...]",
+                                "recipe": "(_resolved_value,) * 100",
+                                "size": 100,
+                            }
+                            if callable_values
+                            else _fixture_reference("values-100")
+                        ),
+                    },
+                    "fixtures": [VALUES_100_FIXTURE] if not callable_values else [],
                 },
                 setup_variant="reused RandomValue",
             )
         )
-    cases.append(
-        _case(
-            "random-value-function-100",
-            fortuna,
-            error,
-            _random_value_function_setup,
-            workload_args=(_fixture_reference("values-100"),),
-            workload_input={
-                "callable": "random_value",
-                "fixtures": [VALUES_100_FIXTURE],
-            },
-            setup_variant="module-level function",
+
+    for count in (10, 1_000):
+        cases.append(
+            _case(
+                f"random-value-take-{count}",
+                fortuna,
+                error,
+                lambda module, count=count: _random_value_take_setup(module, count),
+                unit="value",
+                values_per_call=count,
+                workload_args=(count,),
+                workload_input={
+                    "callable": "RandomValue.take",
+                    "constructor": {"values": _fixture_reference("values-100")},
+                    "fixtures": [VALUES_100_FIXTURE],
+                },
+                setup_variant="reused RandomValue",
+            )
         )
-    )
-    cases.append(
-        _case(
-            "random-value-construction-100",
-            fortuna,
-            error,
-            _random_value_construction_setup,
-            workload_args=(_fixture_reference("values-100"),),
-            workload_input={
-                "callable": "RandomValue",
-                "fixtures": [VALUES_100_FIXTURE],
-            },
-            setup_variant="RandomValue construction",
-        )
-    )
 
     cases.extend(
         (
+            _case(
+                "random-value-function-100",
+                fortuna,
+                error,
+                _random_value_function_setup,
+                workload_args=(_fixture_reference("values-100"),),
+                workload_input={
+                    "callable": "random_value",
+                    "fixtures": [VALUES_100_FIXTURE],
+                },
+                setup_variant="module-level function",
+            ),
+            _case(
+                "random-value-construction-100",
+                fortuna,
+                error,
+                _random_value_construction_setup,
+                workload_args=(_fixture_reference("values-100"),),
+                workload_input={
+                    "callable": "RandomValue",
+                    "fixtures": [VALUES_100_FIXTURE],
+                },
+                setup_variant="RandomValue construction",
+            ),
             _case(
                 "truffle-call-100",
                 fortuna,
@@ -470,135 +365,39 @@ def selector_cases() -> list[BenchmarkCase]:
         )
     )
 
-    for operation in ("named", "mixed", "cycle", "dispatch-enum", "dispatch-string"):
-        if operation == "dispatch-enum":
-            workload_args = ({"enum": "IndexProfile.CENTER_NORMAL"},)
-        elif operation == "dispatch-string":
-            workload_args = ("center_normal",)
-        else:
-            workload_args = ()
-        cases.append(
-            _case(
-                f"quantum-{operation}-100",
-                fortuna,
-                error,
-                lambda module, operation=operation: _quantum_setup(module, operation),
-                workload_args=workload_args,
-                workload_input={
-                    "callable": {
-                        "named": "QuantumMonty.front_triangular",
-                        "mixed": "QuantumMonty.__call__",
-                        "cycle": "QuantumMonty.cycle",
-                        "dispatch-enum": "QuantumMonty.dispatch",
-                        "dispatch-string": "QuantumMonty.dispatch",
-                    }[operation],
-                    "constructor": {"values": _fixture_reference("values-100")},
-                    "fixtures": [VALUES_100_FIXTURE],
-                },
-                setup_variant="reused QuantumMonty",
-            )
-        )
-    cases.append(
-        _case(
-            "quantum-construction-100",
-            fortuna,
-            error,
-            _quantum_construction_setup,
-            workload_args=(_fixture_reference("values-100"),),
-            workload_input={
-                "callable": "QuantumMonty",
-                "fixtures": [VALUES_100_FIXTURE],
-            },
-            setup_variant="QuantumMonty construction",
-        )
-    )
-
-    for configuration, uniform in (("default", False), ("uniform", True)):
-        constructor_kwargs = (
-            {"key_selector": "uniform", "value_selector": "uniform"} if uniform else {}
-        )
-        for selection, explicit_key in (("explicit-key", True), ("random-key", False)):
-            cases.append(
-                _case(
-                    f"flex-{configuration}-{selection}-10x10",
-                    fortuna,
-                    error,
-                    lambda module, uniform=uniform, explicit_key=explicit_key: _flex_setup(
-                        module,
-                        uniform=uniform,
-                        explicit_key=explicit_key,
-                    ),
-                    workload_args=(3,) if explicit_key else (),
-                    workload_input={
-                        "callable": "FlexCat.__call__",
-                        "constructor": {
-                            "mapping": _fixture_reference("matrix-10x10"),
-                            "kwargs": constructor_kwargs,
-                        },
-                        "fixtures": [MATRIX_10X10_FIXTURE],
-                    },
-                    setup_variant="reused FlexCat",
-                )
-            )
-        cases.append(
-            _case(
-                f"flex-{configuration}-construction-10x10",
-                fortuna,
-                error,
-                lambda module, uniform=uniform: _flex_construction_setup(
-                    module,
-                    uniform=uniform,
-                ),
-                workload_args=(_fixture_reference("matrix-10x10"),),
-                workload_kwargs=constructor_kwargs,
-                workload_input={
-                    "callable": "FlexCat",
-                    "fixtures": [MATRIX_10X10_FIXTURE],
-                },
-                setup_variant="FlexCat construction",
-            )
-        )
-
     for size in WEIGHT_SIZES:
-        for label, cumulative in (("relative", False), ("cumulative", True)):
-            fixture = _weighted_fixture(size, cumulative=cumulative)
-            selector_type = "CumulativeWeightedChoice" if cumulative else "RelativeWeightedChoice"
-            cases.append(
+        fixture = _weighted_fixture(size)
+        cases.extend(
+            (
                 _case(
-                    f"weighted-{label}-call-{size}",
+                    f"weighted-choice-call-{size}",
                     fortuna,
                     error,
-                    lambda module, size=size, cumulative=cumulative: _weighted_call_setup(
-                        module,
-                        size=size,
-                        cumulative=cumulative,
-                    ),
+                    lambda module, size=size: _weighted_call_setup(module, size=size),
                     workload_input={
-                        "callable": f"{selector_type}.__call__",
-                        "constructor": {"weighted_values": _fixture_reference(fixture["id"])},
+                        "callable": "WeightedChoice.__call__",
+                        "constructor": {"weighted_table": _fixture_reference(fixture["id"])},
                         "fixtures": [fixture],
                     },
-                    setup_variant="reused weighted selector",
-                )
-            )
-            cases.append(
+                    setup_variant="reused WeightedChoice",
+                ),
                 _case(
-                    f"weighted-{label}-construction-{size}",
+                    f"weighted-choice-construction-{size}",
                     fortuna,
                     error,
-                    lambda module, size=size, cumulative=cumulative: _weighted_construction_setup(
+                    lambda module, size=size: _weighted_construction_setup(
                         module,
                         size=size,
-                        cumulative=cumulative,
                     ),
                     workload_args=(_fixture_reference(fixture["id"]),),
                     workload_input={
-                        "callable": selector_type,
+                        "callable": "WeightedChoice",
                         "fixtures": [fixture],
                     },
-                    setup_variant="weighted selector construction",
-                )
+                    setup_variant="WeightedChoice construction",
+                ),
             )
+        )
 
     for size, count in SAMPLE_REGIMES:
         for source in ("module", "explicit-generator", "generator-method", "stdlib"):
@@ -646,11 +445,8 @@ def selector_cases() -> list[BenchmarkCase]:
                     setup_variant="reused seeded source",
                 )
             )
-    custom_sample_population = _range_fixture(
-        "population-100",
-        size=100,
-        container="tuple",
-    )
+
+    custom_population = _range_fixture("population-100", size=100, container="tuple")
     cases.append(
         _case(
             "sample-custom-generator-100-10",
@@ -672,12 +468,13 @@ def selector_cases() -> list[BenchmarkCase]:
                     "recipe": "random_index(size) returns 0",
                     "seed": None,
                 },
-                "fixtures": [custom_sample_population],
+                "fixtures": [custom_population],
             },
             setup_variant="custom generator fallback",
             seed=None,
         )
     )
+
     for size in (0, 1, 10, 100):
         values_id = f"mutable-values-{size}"
         values = _range_fixture(values_id, size=size, container="list")
@@ -700,6 +497,7 @@ def selector_cases() -> list[BenchmarkCase]:
                 setup_variant="public module shuffle",
             )
         )
+
     cases.append(
         _case(
             "shuffle-generator-method-100",
@@ -716,51 +514,4 @@ def selector_cases() -> list[BenchmarkCase]:
             setup_variant="Generator.shuffle",
         )
     )
-
-    for operation in ("noncallable", "disabled", "one", "depth-10", "depth-100"):
-        if operation == "noncallable":
-            workload_args = (1,)
-            workload_kwargs = {}
-            value_input: Any = {"type": "int", "value": 1}
-        elif operation == "disabled":
-            workload_args = ({"fixture": "resolved-value-callable"},)
-            workload_kwargs = {"resolve_callables": False}
-            value_input = {
-                "id": "resolved-value-callable",
-                "type": "function",
-                "recipe": "_resolved_value returns 1",
-            }
-        elif operation == "one":
-            workload_args = ({"fixture": "resolved-value-callable"},)
-            workload_kwargs = {}
-            value_input = {
-                "id": "resolved-value-callable",
-                "type": "function",
-                "recipe": "_resolved_value returns 1",
-            }
-        else:
-            depth = 10 if operation == "depth-10" else 100
-            chain_id = f"resolution-chain-{depth}"
-            workload_args = ({"fixture": chain_id},)
-            workload_kwargs = {}
-            value_input = {
-                "id": chain_id,
-                "type": "_ResolutionChain",
-                "recipe": f"_ResolutionChain({depth - 1}) yields {depth} callable hops then 1",
-                "callable_hops": depth,
-            }
-        cases.append(
-            _case(
-                f"resolve-{operation}",
-                fortuna,
-                error,
-                lambda module, operation=operation: _resolve_setup(module, operation),
-                workload_args=workload_args,
-                workload_kwargs=workload_kwargs,
-                workload_input={"callable": "Fortuna.resolve", "value": value_input},
-                setup_variant="resolve callable chain",
-                seed=None,
-            )
-        )
-
     return cases

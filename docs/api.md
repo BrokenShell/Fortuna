@@ -81,7 +81,6 @@ validated before the engine advances.
 | `random_below(limit, *, count=None)` | Uniform integer in `[0, limit)` for positive `limit` and `(limit, 0]` for negative `limit`; `limit` must be nonzero and `abs(limit) <= 2**64`. |
 | `random_index(size, *, count=None)` | Uniform integer in `[0, size)` for positive `size` and `[size, 0)` for negative `size`; `size` must be nonzero and `abs(size) <= SIZE_MAX`. |
 | `random_int(low, high, *, count=None)` | Uniform signed 64-bit integer in the inclusive interval `[low, high]`. |
-| `random_uint(low, high, *, count=None)` | Uniform unsigned 64-bit integer in the inclusive interval `[low, high]`. |
 | `random_range(start, stop=None, step=1, *, count=None)` | Uniform member of the nonempty integer range described by Python `range` arguments. Inputs must fit the signed 64-bit domain. |
 | `d(sides=20, *, count=None)` | One die roll in the inclusive interval `[1, sides]`. |
 | `dice(rolls=1, sides=20, *, count=None)` | Sum of `rolls` independent `d(sides)` rolls; zero rolls returns zero. |
@@ -175,31 +174,22 @@ are not accepted as integers or real-valued parameters.
 ### Positional index profiles
 
 Every profile takes `size` and returns an integer in `[0, size)`. `size` must be
-positive. The `mixed_*` profiles choose equally among their three named
-components. `quantum_monty` chooses equally among the nine non-mixed triangular,
-exponential/normal, and Poisson profiles.
+positive. Fortuna 6.0.2 deliberately retains only the three bounded triangular
+profiles: they are useful, honest about their algorithms, and preserve stable
+integer-only draw schedules.
 
 | API | Bias |
 | --- | --- |
 | `front_triangular(size, *, count=None)` | Toward the front, using the smaller of two uniform indexes. |
 | `center_triangular(size, *, count=None)` | Toward the center, using the integer midpoint of two uniform indexes. |
 | `back_triangular(size, *, count=None)` | Toward the back, using the larger of two uniform indexes. |
-| `mixed_triangular(size, *, count=None)` | Equal mixture of front, center, and back triangular profiles. |
-| `front_exponential(size, *, count=None)` | Strong exponential bias toward the front. |
-| `center_normal(size, *, count=None)` | Normal bias around the center. |
-| `back_exponential(size, *, count=None)` | Strong exponential bias toward the back. |
-| `mixed_exponential_normal(size, *, count=None)` | Equal mixture of front exponential, center normal, and back exponential. |
-| `front_poisson(size, *, count=None)` | Poisson-shaped front bias. |
-| `edge_poisson(size, *, count=None)` | Equal mixture of front and back Poisson profiles. |
-| `back_poisson(size, *, count=None)` | Poisson-shaped back bias. |
-| `quantum_monty(size, *, count=None)` | Equal strategy mixture of the nine base profiles. |
 
 Exact seeded sequences for Fortuna/Storm-owned bounded integer algorithms and
 the bounded-only triangular profiles are stable throughout the Fortuna 6 line.
 Other floating-point transforms—including custom triangular, Pareto, and von
-Mises transforms—and profiles or distributions built on them are deterministic
-within one platform and toolchain build, but their exact seeded sequences are
-not a cross-platform contract.
+Mises transforms—and distributions built on them are deterministic within one
+platform and toolchain build, but their exact seeded sequences are not a
+cross-platform contract.
 
 ## Collection helpers
 
@@ -211,7 +201,6 @@ draw from the calling thread's module default.
 | `random_value(data, *, generator=None)` | Materialize a nonempty iterable and return one uniformly selected value. |
 | `shuffle(array, *, generator=None)` | Unbiased in-place Knuth-B shuffle of a mutable sequence; returns `None`. Fortuna generators use the native loop; custom generator-like objects retain a Fisher-Yates fallback. |
 | `sample(population, k, *, generator=None)` | Return `k` uniformly selected values without replacement from an iterable. |
-| `resolve(value, *args, resolve_callables=True, max_depth=100, **kwargs)` | Repeatedly call a callable result until it resolves to a non-callable. Arguments are passed only to the first call. Cycle and depth violations raise `RuntimeError`. |
 
 Explicit generators provide corresponding
 `generator.random_value(data)`, `generator.shuffle(data)`, and
@@ -230,57 +219,46 @@ when inherited unchanged by a subclass and permits callback re-entry without
 deadlock. If a callback raises, the sequence may be partially mutated and the
 complete schedule has still been consumed. Custom generator-like objects
 without their own `shuffle` use the Python Fisher-Yates fallback; every
-injected index is validated before use.
-
-## Index selectors
-
-`IndexProfile` is a string enum containing the canonical profile names:
-`uniform`, `front_triangular`, `center_triangular`, `back_triangular`,
-`mixed_triangular`, `front_exponential`, `center_normal`, `back_exponential`,
-`mixed_exponential_normal`, `front_poisson`, `edge_poisson`, `back_poisson`, and
-`quantum_monty`.
-
-`IndexSelector(profile=IndexProfile.UNIFORM, *, generator=None)` adapts an
-`IndexProfile` or its canonical string to a callable index selector:
-
-```python
-selector = Fortuna.IndexSelector("front_triangular")
-index = selector(100)
-indexes = selector(100, count=50)
-same_indexes = selector.take(50, 100)
-```
-
-It validates that every produced index is in `[0, size)`. Custom generators,
-`Generator` subclass overrides, and monkeypatched module draw functions remain
-untrusted: scalar results must be integer indexes, while bulk results must be a
-list of the requested length containing only valid indexes. An explicit
-`generator` routes all draws through that engine. The same index validation
-applies when `random_value` or `sample` uses a custom generator or a
-`Generator` subclass override.
+injected index is validated before use. The same validation boundary applies
+when `random_value` or `sample` receives a custom generator or a `Generator`
+subclass override.
 
 ## Value engines
 
-Value engines are callable selectors. Each constructor accepts
+Value engines are prepared callable selectors. Each constructor accepts
 `resolve_callables=True` and `generator=None`; each also provides
-`take(count, *args, **kwargs)` for repeated selection. With callable resolution
-enabled, arguments are passed to the initially selected callable, and any
-callables it returns are then invoked without arguments.
+`take(count, *args, **kwargs)` for repeated calls to its default strategy. With
+callable resolution enabled, arguments are passed to the initially selected
+callable, and any callables it returns are then invoked without arguments.
+Callable cycles and runaway chains raise `RuntimeError`. Callable resolution is
+an engine behavior, not a separately exported public helper.
 
 | API | Construction and behavior |
 | --- | --- |
-| `RandomValue(collection, selector=IndexProfile.UNIFORM, *, resolve_callables=True, generator=None)` | Select from a materialized nonempty iterable. A profile or canonical string creates an owned `IndexSelector`. A supplied `IndexSelector` or custom callable is retained as the draw owner and therefore cannot be combined with `generator=`. |
+| `RandomValue(collection, *, resolve_callables=True, generator=None)` | Prepare a materialized nonempty iterable. Calling the object or its `uniform` method selects uniformly. `cycle` advances in input order, `truffle_shuffle` uses the stateful wide-uniform strategy, and `front_triangular`, `center_triangular`, and `back_triangular` select through the corresponding positional profile. The truffle selector is created lazily on its first use. `take(count, ...)` repeats the default uniform strategy. |
 | `TruffleShuffle(collection, *, resolve_callables=True, generator=None)` | Shuffle once, then rotate a nonempty collection by randomized short distances before each selection. |
-| `QuantumMonty(collection, *, resolve_callables=True, generator=None)` | Select values through an equal mixture of the nine base positional profiles. Calling the object uses that mixture; `dispatch(profile)` exposes a named strategy, and `cycle()` and `truffle_shuffle()` expose its stateful alternatives. The internal `TruffleShuffle` is constructed lazily on the first `truffle_shuffle()` call, so construction, profile selection, and cycling do not pay its shuffle cost or advance the engine for it. |
-| `FlexCat(matrix_data, key_selector=IndexProfile.FRONT_TRIANGULAR, value_selector=TruffleShuffle, *, resolve_callables=True, generator=None)` | Build independent selectors for mapping keys and their nonempty value collections. Calling with no category selects a key; `flex(cat_key)` selects directly from that category. Selector ownership and configuration are validated and every category is materialized before randomized selector construction begins. As with `RandomValue`, a supplied `IndexSelector` or custom callable cannot be combined with `generator=`. |
-| `RelativeWeightedChoice(weighted_table, *, resolve_callables=True, generator=None)` | Select from `(weight, value)` pairs using finite nonnegative relative weights. At least one weight must be positive and the finite total must be representable. Draws supplied by custom generators, subclass overrides, or monkeypatched module functions must be finite real numbers in `[0, total)`. |
-| `CumulativeWeightedChoice(weighted_table, *, resolve_callables=True, generator=None)` | Select from `(threshold, value)` pairs whose finite thresholds are positive and strictly increasing. Injected draws must be finite real numbers in `[0, final_threshold)`. |
+| `WeightedChoice(weighted_table, *, resolve_callables=True, generator=None)` | Select from `(weight, value)` pairs using finite nonnegative relative weights. The table must be nonempty, at least one weight must be positive, and the finite total must be representable. Draws supplied by custom generators, subclass overrides, or monkeypatched module functions must be finite real numbers in `[0, total)`. |
 
-The generator binding exposed by a value engine is read-only. `IndexSelector`
-caches its selected draw method, and value engines may maintain cycles,
-rotations, or other mutable selection state. These instances are not promised
-to be thread-safe. Supplying one exact native `Generator` serializes that
-generator's engine calls only; it does not make the surrounding selector state
-atomic. Use one selector/value-engine instance per worker or provide external
+`RandomValue` methods are ordinary bound callables, which supports the prepared
+generator pattern directly:
+
+```python
+loot = Fortuna.RandomValue(["copper", "potion", "wand"])
+
+uniform_drop = loot()
+loot_gen = loot.front_triangular
+front_loaded_drop = loot_gen()
+next_in_order = loot.cycle()
+
+rarity = Fortuna.WeightedChoice([(80, "common"), (18, "rare"), (2, "legendary")])
+result = rarity()
+```
+
+The generator binding exposed by a value engine is read-only. Value engines may
+maintain cycles, rotations, or other mutable selection state and are not
+promised to be thread-safe. Supplying one exact native `Generator` serializes
+that generator's engine calls only; it does not make the surrounding selector
+state atomic. Use one value-engine instance per worker or provide external
 synchronization when sharing one.
 
 See the [Fortuna 5 to 6 migration guide](migration-5-to-6.md) for renamed and

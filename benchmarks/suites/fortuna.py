@@ -34,7 +34,6 @@ _CORE_WORKLOADS = (
     _NumericWorkload("random_below", "random_below", (1_000,), 10_000),
     _NumericWorkload("random_index", "random_index", (1_000,), 10_000),
     _NumericWorkload("random_int", "random_int", (-1_000, 1_000), 10_000),
-    _NumericWorkload("random_uint", "random_uint", (0, 1_000), 10_000),
     _NumericWorkload("random_range", "random_range", (-1_000, 1_000, 3), 10_000),
     _NumericWorkload("d", "d", (20,), 10_000),
     _NumericWorkload("dice", "dice", (3, 6), 5_000),
@@ -64,15 +63,6 @@ _CORE_WORKLOADS = (
     _NumericWorkload("front_triangular", "front_triangular", (100,), 10_000),
     _NumericWorkload("center_triangular", "center_triangular", (100,), 10_000),
     _NumericWorkload("back_triangular", "back_triangular", (100,), 10_000),
-    _NumericWorkload("mixed_triangular", "mixed_triangular", (100,), 5_000),
-    _NumericWorkload("front_exponential", "front_exponential", (100,), 5_000),
-    _NumericWorkload("center_normal", "center_normal", (100,), 5_000),
-    _NumericWorkload("back_exponential", "back_exponential", (100,), 5_000),
-    _NumericWorkload("mixed_exponential_normal", "mixed_exponential_normal", (100,), 2_000),
-    _NumericWorkload("front_poisson", "front_poisson", (100,), 2_000),
-    _NumericWorkload("edge_poisson", "edge_poisson", (100,), 2_000),
-    _NumericWorkload("back_poisson", "back_poisson", (100,), 2_000),
-    _NumericWorkload("quantum_monty", "quantum_monty", (100,), 2_000),
 )
 
 
@@ -81,7 +71,6 @@ _CORE_WORKLOADS = (
 # paths without duplicating the entire bulk matrix.
 _SCALAR_REGIMES = (
     _NumericWorkload("random_below-full-domain", "random_below", (2**64,), 10_000),
-    _NumericWorkload("random_uint-full-domain", "random_uint", (0, 2**64 - 1), 10_000),
     _NumericWorkload("random_range-descending", "random_range", (1_000, -1_000, -3), 10_000),
     _NumericWorkload("triangular-edge-mode", "triangular", (0.0, 1.0, 0.0), 10_000),
     _NumericWorkload("vonmises-uniform", "vonmises_variate", (0.0, 0.0), 5_000),
@@ -92,7 +81,6 @@ _SCALAR_REGIMES = (
     _NumericWorkload("gamma-subunit-shape", "gamma_variate", (0.5, 3.0), 1_000),
     _NumericWorkload("normal-degenerate", "normal_variate", (3.0, 0.0), 10_000),
     _NumericWorkload("log-normal-degenerate", "log_normal_variate", (1.0, 0.0), 10_000),
-    _NumericWorkload("center-normal-size-one", "center_normal", (1,), 10_000),
 )
 
 
@@ -251,48 +239,6 @@ def _generator_scalar(
     )
 
 
-def _uniform_index_selector(module: Any | None, import_error: str | None) -> BenchmarkCase:
-    selector_type = getattr(module, "IndexSelector", None) if module is not None else None
-    seed, seed_reason = _resolve(module, "seed", import_error)
-    description = "owner=module; method=IndexSelector('uniform'); arguments=(100,); seed=0"
-    metadata = {
-        "args": [100],
-        "kwargs": {},
-        "seed": 0,
-        "input": {"profile": "uniform"},
-        "setup_variant": "module-seed-0-reused-selector-per-sample",
-    }
-    if not callable(selector_type):
-        return BenchmarkCase(
-            "fortuna-scalar",
-            "index-selector-uniform",
-            description=description,
-            skip_reason=import_error or "Fortuna.IndexSelector is unavailable",
-            workload=metadata,
-        )
-    if seed is None:
-        return BenchmarkCase(
-            "fortuna-scalar",
-            "index-selector-uniform",
-            description=description,
-            skip_reason=seed_reason,
-            workload=metadata,
-        )
-
-    def setup():
-        seed(0)
-        selector = selector_type("uniform")
-        return lambda: selector(100)
-
-    return BenchmarkCase(
-        "fortuna-scalar",
-        "index-selector-uniform",
-        setup=setup,
-        description=description,
-        workload=metadata,
-    )
-
-
 def fortuna_scalar_cases() -> list[BenchmarkCase]:
     fortuna, error = _load_fortuna()
     workloads = (*_CORE_WORKLOADS, *_SCALAR_REGIMES)
@@ -302,7 +248,6 @@ def fortuna_scalar_cases() -> list[BenchmarkCase]:
     random_value = _NumericWorkload("random_value", "random_value", (tuple(range(100)),), 1)
     cases.append(_module_scalar(fortuna, error, random_value))
     cases.append(_generator_scalar(fortuna, error, random_value))
-    cases.append(_uniform_index_selector(fortuna, error))
     cases.append(_shuffle(fortuna, error))
     return cases
 

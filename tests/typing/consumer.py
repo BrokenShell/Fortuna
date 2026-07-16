@@ -75,21 +75,18 @@ assert_type(Fortuna.shuffle(mutable_words, generator=ShuffleGenerator()), None)
 assert_type(Fortuna.shuffle(mutable_words, generator=SimpleIndexGenerator()), None)
 assert_type(generator.shuffle(mutable_words), None)
 
-selector = Fortuna.IndexSelector()
-assert_type(selector(10), int)
-assert_type(selector(10, count=None), int)
-assert_type(selector(10, count=4), list[int])
-assert_type(selector.take(4, 10), list[int])
-
-assert_type(Fortuna.RandomValue(words)(), Direction)
-assert_type(Fortuna.RandomValue(words).take(2), list[Direction])
+value_generator = Fortuna.RandomValue(words)
+assert_type(value_generator(), Direction)
+assert_type(value_generator.uniform(), Direction)
+assert_type(value_generator.cycle(), Direction)
+assert_type(value_generator.truffle_shuffle(), Direction)
+assert_type(value_generator.front_triangular(), Direction)
+assert_type(value_generator.center_triangular(), Direction)
+assert_type(value_generator.back_triangular(), Direction)
+assert_type(value_generator.take(2), list[Direction])
 assert_type(Fortuna.TruffleShuffle(words)(), Direction)
-assert_type(Fortuna.QuantumMonty(words)(), Direction)
-assert_type(Fortuna.FlexCat({"direction": words})(), Direction)
-relative_weights: tuple[tuple[int, str], ...] = ((1, "north"), (1, "south"))
-cumulative_weights: tuple[tuple[int, str], ...] = ((1, "north"), (2, "south"))
-assert_type(Fortuna.RelativeWeightedChoice(relative_weights)(), Direction)
-assert_type(Fortuna.CumulativeWeightedChoice(cumulative_weights)(), Direction)
+relative_weights: tuple[tuple[int, Direction], ...] = ((1, "north"), (1, "south"))
+assert_type(Fortuna.WeightedChoice(relative_weights)(), Direction)
 
 
 def selected_direction() -> Direction:
@@ -113,7 +110,6 @@ assert_type(
 
 # These calls deliberately exercise rejected static contracts. The project
 # reports unused ignores, so removing the corresponding type error fails CI.
-Fortuna.FlexCat({"direction": words})(42)  # pyright: ignore[reportArgumentType]
 Fortuna.random_int(0, 1, count=1.5)  # pyright: ignore[reportCallIssue, reportArgumentType]
 Fortuna.shuffle(words)  # pyright: ignore[reportArgumentType]
 phantom_count_api = _core._CountAPI  # pyright: ignore[reportAttributeAccessIssue]
@@ -126,4 +122,3 @@ def check_dynamic_count(dynamic_count: int | None) -> None:
     assert_type(generator.front_triangular(10, count=dynamic_count), int | list[int])
     assert_type(Fortuna.canonical(count=dynamic_count), float | list[float])
     assert_type(generator.normal_variate(0.0, 1.0, count=dynamic_count), float | list[float])
-    assert_type(selector(10, count=dynamic_count), int | list[int])

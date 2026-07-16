@@ -154,7 +154,7 @@ def test_generator_class_factories_preserve_subclass_and_constructor_calls():
     assert entropy.constructor_seed == 0
     assert type(stream) is RecordingGenerator
     assert stream.constructor_seed != 0
-    assert stream.random_uint(0, 2**64 - 1) == stream_control.random_uint(0, 2**64 - 1)
+    assert stream.random_below(2**64) == stream_control.random_below(2**64)
     assert RecordingGenerator.constructor_seeds == [0, stream.constructor_seed]
 
 
@@ -184,10 +184,8 @@ def test_subclass_factories_preserve_fork_process_semantics():
 
     deterministic = GeneratorSubclass.for_stream(42, "fork-probe")
     deterministic_control = GeneratorSubclass.for_stream(42, "fork-probe")
-    assert deterministic.random_uint(0, 2**64 - 1) == deterministic_control.random_uint(
-        0, 2**64 - 1
-    )
-    inherited_deterministic = deterministic_control.random_uint(0, 2**64 - 1)
+    assert deterministic.random_below(2**64) == deterministic_control.random_below(2**64)
+    inherited_deterministic = deterministic_control.random_below(2**64)
     entropy = GeneratorSubclass.from_entropy()
 
     read_fd, write_fd = os.pipe()
@@ -195,8 +193,8 @@ def test_subclass_factories_preserve_fork_process_semantics():
     if process_id == 0:  # pragma: no cover - assertions occur in parent
         os.close(read_fd)
         values = (
-            deterministic.random_uint(0, 2**64 - 1),
-            entropy.random_uint(0, 2**64 - 1),
+            deterministic.random_below(2**64),
+            entropy.random_below(2**64),
         )
         os.write(write_fd, f"{values[0]},{values[1]}".encode("ascii"))
         os.close(write_fd)
@@ -207,5 +205,5 @@ def test_subclass_factories_preserve_fork_process_semantics():
     os.waitpid(process_id, 0)
 
     assert child_deterministic == inherited_deterministic
-    assert deterministic.random_uint(0, 2**64 - 1) == inherited_deterministic
-    assert child_entropy != entropy.random_uint(0, 2**64 - 1)
+    assert deterministic.random_below(2**64) == inherited_deterministic
+    assert child_entropy != entropy.random_below(2**64)

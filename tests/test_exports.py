@@ -14,7 +14,6 @@ EXPECTED_ALL = (
     "random_below",
     "random_index",
     "random_int",
-    "random_uint",
     "random_range",
     "d",
     "dice",
@@ -45,27 +44,12 @@ EXPECTED_ALL = (
     "front_triangular",
     "center_triangular",
     "back_triangular",
-    "mixed_triangular",
-    "front_exponential",
-    "center_normal",
-    "back_exponential",
-    "mixed_exponential_normal",
-    "front_poisson",
-    "edge_poisson",
-    "back_poisson",
-    "quantum_monty",
     "random_value",
     "shuffle",
     "sample",
-    "resolve",
-    "IndexProfile",
-    "IndexSelector",
     "RandomValue",
     "TruffleShuffle",
-    "QuantumMonty",
-    "FlexCat",
-    "RelativeWeightedChoice",
-    "CumulativeWeightedChoice",
+    "WeightedChoice",
 )
 
 
@@ -100,7 +84,23 @@ def test_removed_and_historical_names_are_not_exported():
         "fisher_yates",
         "truffle_shuffle",
         "TruffleShuffle2",
-        "WeightedChoice",
+        "random_uint",
+        "resolve",
+        "IndexProfile",
+        "IndexSelector",
+        "QuantumMonty",
+        "FlexCat",
+        "RelativeWeightedChoice",
+        "CumulativeWeightedChoice",
+        "mixed_triangular",
+        "front_exponential",
+        "center_normal",
+        "back_exponential",
+        "mixed_exponential_normal",
+        "front_poisson",
+        "edge_poisson",
+        "back_poisson",
+        "quantum_monty",
         "cumulative_weighted_choice",
         "MultiChoice",
         "front_linear",
@@ -116,3 +116,19 @@ def test_removed_and_historical_names_are_not_exported():
     }
     assert removed.isdisjoint(Fortuna.__all__)
     assert all(not hasattr(Fortuna, name) for name in removed)
+
+
+def test_removed_numeric_and_profile_methods_are_not_on_generator():
+    removed = {
+        "random_uint",
+        "mixed_triangular",
+        "front_exponential",
+        "center_normal",
+        "back_exponential",
+        "mixed_exponential_normal",
+        "front_poisson",
+        "edge_poisson",
+        "back_poisson",
+        "quantum_monty",
+    }
+    assert all(not hasattr(Fortuna.Generator, name) for name in removed)

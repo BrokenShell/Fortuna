@@ -160,12 +160,6 @@ cdef extern from "src/Fortuna/cpp/fortuna_core.hpp" namespace "FortunaCore":
     bint core_generator_bernoulli "FortunaCore::generator_bernoulli"(
         GeneratorCore&, double
     ) except + nogil
-    uint64_t core_module_random_uint "FortunaCore::module_random_uint_prepared"(
-        uint64_t, uint64_t
-    ) except + nogil
-    uint64_t core_generator_random_uint "FortunaCore::generator_random_uint"(
-        GeneratorCore&, uint64_t, uint64_t
-    ) except + nogil
     uint64_t core_module_ability_dice "FortunaCore::module_ability_dice_prepared"(
         uint64_t
     ) except + nogil
@@ -208,58 +202,10 @@ cdef extern from "src/Fortuna/cpp/fortuna_core.hpp" namespace "FortunaCore":
     uint64_t core_generator_back_triangular "FortunaCore::generator_back_triangular"(
         GeneratorCore&, uint64_t
     ) except + nogil
-    uint64_t core_module_mixed_triangular "FortunaCore::module_mixed_triangular_prepared"(
-        uint64_t
-    ) except + nogil
-    uint64_t core_generator_mixed_triangular "FortunaCore::generator_mixed_triangular"(
-        GeneratorCore&, uint64_t
-    ) except + nogil
-    uint64_t core_module_front_exponential "FortunaCore::module_front_exponential_prepared"(
-        uint64_t
-    ) except + nogil
-    uint64_t core_generator_front_exponential "FortunaCore::generator_front_exponential"(
-        GeneratorCore&, uint64_t
-    ) except + nogil
-    uint64_t core_module_center_normal "FortunaCore::module_center_normal_prepared"(
-        uint64_t
-    ) except + nogil
-    uint64_t core_generator_center_normal "FortunaCore::generator_center_normal"(
-        GeneratorCore&, uint64_t
-    ) except + nogil
-    uint64_t core_module_back_exponential "FortunaCore::module_back_exponential_prepared"(
-        uint64_t
-    ) except + nogil
-    uint64_t core_generator_back_exponential "FortunaCore::generator_back_exponential"(
-        GeneratorCore&, uint64_t
-    ) except + nogil
-    uint64_t core_module_mixed_exponential_normal "FortunaCore::module_mixed_exponential_normal_prepared"(
-        uint64_t
-    ) except + nogil
-    uint64_t core_generator_mixed_exponential_normal "FortunaCore::generator_mixed_exponential_normal"(
-        GeneratorCore&, uint64_t
-    ) except + nogil
     uint64_t core_module_front_poisson "FortunaCore::module_front_poisson_prepared"(
         uint64_t
     ) except + nogil
     uint64_t core_generator_front_poisson "FortunaCore::generator_front_poisson"(
-        GeneratorCore&, uint64_t
-    ) except + nogil
-    uint64_t core_module_edge_poisson "FortunaCore::module_edge_poisson_prepared"(
-        uint64_t
-    ) except + nogil
-    uint64_t core_generator_edge_poisson "FortunaCore::generator_edge_poisson"(
-        GeneratorCore&, uint64_t
-    ) except + nogil
-    uint64_t core_module_back_poisson "FortunaCore::module_back_poisson_prepared"(
-        uint64_t
-    ) except + nogil
-    uint64_t core_generator_back_poisson "FortunaCore::generator_back_poisson"(
-        GeneratorCore&, uint64_t
-    ) except + nogil
-    uint64_t core_module_quantum_monty "FortunaCore::module_quantum_monty_prepared"(
-        uint64_t
-    ) except + nogil
-    uint64_t core_generator_quantum_monty "FortunaCore::generator_quantum_monty"(
         GeneratorCore&, uint64_t
     ) except + nogil
     void core_validate_signed "FortunaCore::validate_signed"(
@@ -1047,20 +993,6 @@ cdef class Generator:
             scalar = core_generator_random_int(self._generator[0], checked_low, checked_high)
         return scalar
 
-    def random_uint(self, low, high, *, count=None):
-        cdef uint64_t checked_low = _as_uint64(low, "low")
-        cdef uint64_t checked_high = _as_uint64(high, "high")
-        cdef uint64_t scalar
-        if count is not None:
-            return _unsigned_generator_result(
-                self._generator, 0, checked_low, checked_high, 0.0, count
-            )
-        with nogil:
-            scalar = core_generator_random_uint(
-                self._generator[0], checked_low, checked_high
-            )
-        return scalar
-
     def random_range(self, start, stop=None, step=1, *, count=None):
         cdef int64_t checked_start
         cdef int64_t checked_stop
@@ -1415,87 +1347,11 @@ cdef class Generator:
             scalar = core_generator_back_triangular(self._generator[0], checked)
         return scalar
 
-    def mixed_triangular(self, size, *, count=None):
+    def _front_poisson(self, size):
         cdef uint64_t checked = _as_uint64(size, "size")
         cdef uint64_t scalar
-        if count is not None:
-            return _unsigned_generator_result(self._generator, 12, checked, 0, 0.0, count)
-        with nogil:
-            scalar = core_generator_mixed_triangular(self._generator[0], checked)
-        return scalar
-
-    def front_exponential(self, size, *, count=None):
-        cdef uint64_t checked = _as_uint64(size, "size")
-        cdef uint64_t scalar
-        if count is not None:
-            return _unsigned_generator_result(self._generator, 13, checked, 0, 0.0, count)
-        with nogil:
-            scalar = core_generator_front_exponential(self._generator[0], checked)
-        return scalar
-
-    def center_normal(self, size, *, count=None):
-        cdef uint64_t checked = _as_uint64(size, "size")
-        cdef uint64_t scalar
-        if count is not None:
-            return _unsigned_generator_result(self._generator, 14, checked, 0, 0.0, count)
-        with nogil:
-            scalar = core_generator_center_normal(self._generator[0], checked)
-        return scalar
-
-    def back_exponential(self, size, *, count=None):
-        cdef uint64_t checked = _as_uint64(size, "size")
-        cdef uint64_t scalar
-        if count is not None:
-            return _unsigned_generator_result(self._generator, 15, checked, 0, 0.0, count)
-        with nogil:
-            scalar = core_generator_back_exponential(self._generator[0], checked)
-        return scalar
-
-    def mixed_exponential_normal(self, size, *, count=None):
-        cdef uint64_t checked = _as_uint64(size, "size")
-        cdef uint64_t scalar
-        if count is not None:
-            return _unsigned_generator_result(self._generator, 16, checked, 0, 0.0, count)
-        with nogil:
-            scalar = core_generator_mixed_exponential_normal(
-                self._generator[0], checked
-            )
-        return scalar
-
-    def front_poisson(self, size, *, count=None):
-        cdef uint64_t checked = _as_uint64(size, "size")
-        cdef uint64_t scalar
-        if count is not None:
-            return _unsigned_generator_result(self._generator, 17, checked, 0, 0.0, count)
         with nogil:
             scalar = core_generator_front_poisson(self._generator[0], checked)
-        return scalar
-
-    def edge_poisson(self, size, *, count=None):
-        cdef uint64_t checked = _as_uint64(size, "size")
-        cdef uint64_t scalar
-        if count is not None:
-            return _unsigned_generator_result(self._generator, 18, checked, 0, 0.0, count)
-        with nogil:
-            scalar = core_generator_edge_poisson(self._generator[0], checked)
-        return scalar
-
-    def back_poisson(self, size, *, count=None):
-        cdef uint64_t checked = _as_uint64(size, "size")
-        cdef uint64_t scalar
-        if count is not None:
-            return _unsigned_generator_result(self._generator, 19, checked, 0, 0.0, count)
-        with nogil:
-            scalar = core_generator_back_poisson(self._generator[0], checked)
-        return scalar
-
-    def quantum_monty(self, size, *, count=None):
-        cdef uint64_t checked = _as_uint64(size, "size")
-        cdef uint64_t scalar
-        if count is not None:
-            return _unsigned_generator_result(self._generator, 20, checked, 0, 0.0, count)
-        with nogil:
-            scalar = core_generator_quantum_monty(self._generator[0], checked)
         return scalar
 
     def random_value(self, data):
@@ -1661,19 +1517,6 @@ def random_int(low, high, *, count=None):
         return _signed_result(_module(), 0, checked_low, checked_high, 0, count)
     _prepare_module_scalar()
     scalar = core_module_random_int(checked_low, checked_high)
-    return scalar
-
-
-def random_uint(low, high, *, count=None):
-    cdef uint64_t checked_low = _as_uint64(low, "low")
-    cdef uint64_t checked_high = _as_uint64(high, "high")
-    cdef uint64_t scalar
-    if count is not None:
-        return _unsigned_result(
-            _module(), 0, checked_low, checked_high, 0.0, count
-        )
-    _prepare_module_scalar()
-    scalar = core_module_random_uint(checked_low, checked_high)
     return scalar
 
 
@@ -2017,93 +1860,11 @@ def back_triangular(size, *, count=None):
     return scalar
 
 
-def mixed_triangular(size, *, count=None):
+def _front_poisson(size):
     cdef uint64_t checked = _as_uint64(size, "size")
     cdef uint64_t scalar
-    if count is not None:
-        return _unsigned_result(_module(), 12, checked, 0, 0.0, count)
-    _prepare_module_scalar()
-    scalar = core_module_mixed_triangular(checked)
-    return scalar
-
-
-def front_exponential(size, *, count=None):
-    cdef uint64_t checked = _as_uint64(size, "size")
-    cdef uint64_t scalar
-    if count is not None:
-        return _unsigned_result(_module(), 13, checked, 0, 0.0, count)
-    _prepare_module_scalar()
-    scalar = core_module_front_exponential(checked)
-    return scalar
-
-
-def center_normal(size, *, count=None):
-    cdef uint64_t checked = _as_uint64(size, "size")
-    cdef uint64_t scalar
-    if count is not None:
-        return _unsigned_result(_module(), 14, checked, 0, 0.0, count)
-    _prepare_module_scalar()
-    scalar = core_module_center_normal(checked)
-    return scalar
-
-
-def back_exponential(size, *, count=None):
-    cdef uint64_t checked = _as_uint64(size, "size")
-    cdef uint64_t scalar
-    if count is not None:
-        return _unsigned_result(_module(), 15, checked, 0, 0.0, count)
-    _prepare_module_scalar()
-    scalar = core_module_back_exponential(checked)
-    return scalar
-
-
-def mixed_exponential_normal(size, *, count=None):
-    cdef uint64_t checked = _as_uint64(size, "size")
-    cdef uint64_t scalar
-    if count is not None:
-        return _unsigned_result(_module(), 16, checked, 0, 0.0, count)
-    _prepare_module_scalar()
-    scalar = core_module_mixed_exponential_normal(checked)
-    return scalar
-
-
-def front_poisson(size, *, count=None):
-    cdef uint64_t checked = _as_uint64(size, "size")
-    cdef uint64_t scalar
-    if count is not None:
-        return _unsigned_result(_module(), 17, checked, 0, 0.0, count)
     _prepare_module_scalar()
     scalar = core_module_front_poisson(checked)
-    return scalar
-
-
-def edge_poisson(size, *, count=None):
-    cdef uint64_t checked = _as_uint64(size, "size")
-    cdef uint64_t scalar
-    if count is not None:
-        return _unsigned_result(_module(), 18, checked, 0, 0.0, count)
-    _prepare_module_scalar()
-    scalar = core_module_edge_poisson(checked)
-    return scalar
-
-
-def back_poisson(size, *, count=None):
-    cdef uint64_t checked = _as_uint64(size, "size")
-    cdef uint64_t scalar
-    if count is not None:
-        return _unsigned_result(_module(), 19, checked, 0, 0.0, count)
-    _prepare_module_scalar()
-    scalar = core_module_back_poisson(checked)
-    return scalar
-
-
-def quantum_monty(size, *, count=None):
-    cdef uint64_t checked = _as_uint64(size, "size")
-    cdef uint64_t scalar
-    if count is not None:
-        return _unsigned_result(_module(), 20, checked, 0, 0.0, count)
-    _prepare_module_scalar()
-    scalar = core_module_quantum_monty(checked)
     return scalar
 
 
