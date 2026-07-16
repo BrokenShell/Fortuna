@@ -416,11 +416,20 @@ class QuantumMonty(_ValueEngine):
             raise ValueError("collection must not be empty")
         self.size = len(self.data)
         self._cycle = iter_cycle(self.data)
-        self._truffle = TruffleShuffle(
-            self.data,
-            resolve_callables=resolve_callables,
-            generator=generator,
-        )
+        self._truffle: TruffleShuffle | None = None
+
+    def _truffle_selector(self) -> TruffleShuffle:
+        selector = self._truffle
+        if selector is None:
+            # Construct into a local first so a failed initialization never
+            # leaves a partially initialized selector in the cache.
+            selector = TruffleShuffle(
+                self.data,
+                resolve_callables=self.resolve_callables,
+                generator=self.generator,
+            )
+            self._truffle = selector
+        return selector
 
     def _profile_value(
         self,
@@ -461,7 +470,7 @@ class QuantumMonty(_ValueEngine):
         return self._resolve(next(self._cycle), *args, **kwargs)
 
     def truffle_shuffle(self, *args: Any, **kwargs: Any) -> Any:
-        return self._truffle(*args, **kwargs)
+        return self._truffle_selector()(*args, **kwargs)
 
     def front_triangular(self, *args: Any, **kwargs: Any) -> Any:
         return self._profile_value(IndexProfile.FRONT_TRIANGULAR, *args, **kwargs)
@@ -537,6 +546,19 @@ def _selection_engine(
     )
 
 
+def _validated_selection_strategy(strategy: Any) -> Any:
+    """Validate a selector configuration without constructing a value engine."""
+    if strategy is TruffleShuffle or strategy is QuantumMonty or strategy is RandomValue:
+        return strategy
+    if isinstance(strategy, IndexSelector):
+        return strategy
+    if isinstance(strategy, (IndexProfile, str)):
+        return _coerce_profile(strategy)
+    if callable(strategy):
+        return strategy
+    raise TypeError("selector must be an IndexProfile, canonical string, or callable")
+
+
 class FlexCat(_ValueEngine):
     """Select a category and then a value using independent strategies.
 
@@ -559,25 +581,38 @@ class FlexCat(_ValueEngine):
         super().__init__(resolve_callables=resolve_callables, generator=generator)
         if not isinstance(matrix_data, Mapping):
             raise TypeError("matrix_data must be a mapping")
-        self.matrix_data = dict(matrix_data)
-        if not self.matrix_data:
+        copied_matrix = dict(matrix_data)
+        if not copied_matrix:
             raise ValueError("matrix_data must not be empty")
-        keys = tuple(self.matrix_data)
-        self.key_selector = _selection_engine(
+
+        checked_key_selector = _validated_selection_strategy(key_selector)
+        checked_value_selector = _validated_selection_strategy(value_selector)
+        materialized_matrix: dict[Any, tuple[Any, ...]] = {}
+        for key, values in copied_matrix.items():
+            materialized_values = tuple(values)
+            if not materialized_values:
+                raise ValueError("collection must not be empty")
+            materialized_matrix[key] = materialized_values
+
+        keys = tuple(materialized_matrix)
+        constructed_key_selector = _selection_engine(
             keys,
-            key_selector,
+            checked_key_selector,
             resolve_callables=False,
             generator=generator,
         )
-        self.value_selectors = {
+        constructed_value_selectors = {
             key: _selection_engine(
                 values,
-                value_selector,
+                checked_value_selector,
                 resolve_callables=resolve_callables,
                 generator=generator,
             )
-            for key, values in self.matrix_data.items()
+            for key, values in materialized_matrix.items()
         }
+        self.matrix_data = materialized_matrix
+        self.key_selector = constructed_key_selector
+        self.value_selectors = constructed_value_selectors
 
     def __call__(self, cat_key: Any = _MISSING, *args: Any, **kwargs: Any) -> Any:
         key = self.key_selector() if cat_key is _MISSING else cat_key
