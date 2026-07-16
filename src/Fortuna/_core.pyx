@@ -70,6 +70,12 @@ cdef extern from "src/Fortuna/cpp/fortuna_core.hpp" namespace "FortunaCore":
     uint64_t core_generator_random_index "FortunaCore::generator_random_index"(
         GeneratorCore&, uint64_t
     ) except + nogil
+    void core_module_sample_offsets "FortunaCore::module_sample_offsets_prepared"(
+        size_t, size_t, size_t*
+    ) except + nogil
+    void core_generator_sample_offsets "FortunaCore::generator_sample_offsets"(
+        GeneratorCore&, size_t, size_t, size_t*
+    ) except + nogil
     int64_t core_module_random_int "FortunaCore::module_random_int_prepared"(
         int64_t, int64_t
     ) except + nogil
@@ -666,6 +672,53 @@ cdef void _shuffle_fisher_yates(
         data[position], data[other] = data[other], data[position]
 
 
+cdef list _sample_module_materialized(list working, Py_ssize_t count):
+    cdef vector[size_t] offsets
+    cdef size_t population_size = <size_t>len(working)
+    cdef Py_ssize_t position
+    cdef Py_ssize_t other
+    if count < 0:
+        raise ValueError("sample size must be nonnegative")
+    if count > len(working):
+        raise ValueError("sample size exceeds population")
+    if count == 0:
+        return []
+    offsets.resize(count)
+    _prepare_module_scalar()
+    with nogil:
+        core_module_sample_offsets(population_size, <size_t>count, &offsets[0])
+    for position in range(count):
+        other = <Py_ssize_t>offsets[position]
+        working[position], working[other] = working[other], working[position]
+    del working[count:]
+    return working
+
+
+cdef list _sample_generator_materialized(
+    GeneratorCore* generator, list working, Py_ssize_t count
+):
+    cdef vector[size_t] offsets
+    cdef size_t population_size = <size_t>len(working)
+    cdef Py_ssize_t position
+    cdef Py_ssize_t other
+    if count < 0:
+        raise ValueError("sample size must be nonnegative")
+    if count > len(working):
+        raise ValueError("sample size exceeds population")
+    if count == 0:
+        return []
+    offsets.resize(count)
+    with nogil:
+        core_generator_sample_offsets(
+            generator[0], population_size, <size_t>count, &offsets[0]
+        )
+    for position in range(count):
+        other = <Py_ssize_t>offsets[position]
+        working[position], working[other] = working[other], working[position]
+    del working[count:]
+    return working
+
+
 cdef bytes _stream_payload(object stream_id):
     cdef bytes magnitude
     cdef bytes encoded
@@ -1139,10 +1192,15 @@ cdef class Generator:
         cdef Py_ssize_t other
         if checked_k > len(working):
             raise ValueError("sample size exceeds population")
+        if type(self) is Generator:
+            return _sample_generator_materialized(self._generator, working, checked_k)
         for position in range(checked_k):
             other = position + self.random_index(len(working) - position)
             working[position], working[other] = working[other], working[position]
         return working[:checked_k]
+
+    def _sample_materialized(self, list working, Py_ssize_t checked_k):
+        return _sample_generator_materialized(self._generator, working, checked_k)
 
 
 def storm_version():
@@ -1175,6 +1233,10 @@ def _benchmark_shuffle_knuth_b(data):
 def _benchmark_shuffle_fisher_yates(data):
     """Internal benchmark hook; not part of Fortuna's public API."""
     _shuffle_fisher_yates(_module(), data, False)
+
+
+def _sample_materialized(list working, Py_ssize_t checked_k):
+    return _sample_module_materialized(working, checked_k)
 
 
 def percent_true(percent=50.0, *, count=None):

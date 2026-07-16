@@ -250,6 +250,26 @@ inline auto random_index(GeneratorCore& generator, const std::size_t size) -> st
     return Storm::uniform_index(generator.engine(), size);
 }
 
+inline void sample_offsets(Storm::engine_type& engine, const std::size_t population_size,
+                           const std::size_t count, std::size_t* output) {
+    for (std::size_t position = 0; position < count; ++position) {
+        output[position] = position + Storm::uniform_index(engine, population_size - position);
+    }
+}
+
+inline void module_sample_offsets_prepared(const std::size_t population_size,
+                                           const std::size_t count, std::size_t* output) {
+    auto& engine = module_prepared_engine();
+    sample_offsets(engine, population_size, count, output);
+}
+
+inline void generator_sample_offsets(GeneratorCore& generator, const std::size_t population_size,
+                                     const std::size_t count, std::size_t* output) {
+    const GeneratorLockGuard guard{generator};
+    auto& engine = generator.engine();
+    sample_offsets(engine, population_size, count, output);
+}
+
 inline auto random_range(GeneratorCore& generator, const std::int64_t start,
                          const std::int64_t stop, const std::int64_t step) -> std::int64_t {
     return Storm::random_range(generator.engine(), start, stop, step);

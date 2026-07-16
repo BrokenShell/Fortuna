@@ -127,6 +127,10 @@ def sample(
     size = len(data)
     if checked_k > size:
         raise ValueError("sample size k must not exceed the population size")
+    if generator is None:
+        return _core._sample_materialized(data, checked_k)
+    if type(generator) is _core.Generator:
+        return generator._sample_materialized(data, checked_k)
     uniform = IndexSelector(IndexProfile.UNIFORM, generator=generator)
     for position in range(checked_k):
         other = position + uniform(size - position)
@@ -168,6 +172,10 @@ _PROFILE_METHODS = {
     IndexProfile.QUANTUM_MONTY: "quantum_monty",
 }
 
+_NATIVE_PROFILE_METHODS = {
+    profile: getattr(_core, method_name) for profile, method_name in _PROFILE_METHODS.items()
+}
+
 
 def _coerce_profile(profile: IndexProfile | str) -> IndexProfile:
     if isinstance(profile, IndexProfile):
@@ -183,7 +191,13 @@ def _coerce_profile(profile: IndexProfile | str) -> IndexProfile:
 class IndexSelector:
     """Callable adapter from an :class:`IndexProfile` to an index draw."""
 
-    __slots__ = ("_draw_method", "_generator", "_method_name", "_profile")
+    __slots__ = (
+        "_draw_method",
+        "_generator",
+        "_method_name",
+        "_profile",
+        "_trusted_native",
+    )
 
     def __init__(
         self,
@@ -193,6 +207,7 @@ class IndexSelector:
     ) -> None:
         self._draw_method: Callable[..., Any] | None = None
         self._generator = generator
+        self._trusted_native = False
         self.profile = profile
 
     @property
@@ -205,6 +220,7 @@ class IndexSelector:
         self._profile = profile
         self._method_name = _PROFILE_METHODS[profile]
         self._draw_method = None
+        self._trusted_native = False
 
     @property
     def generator(self) -> Any | None:
@@ -214,25 +230,43 @@ class IndexSelector:
     def generator(self, value: Any | None) -> None:
         self._generator = value
         self._draw_method = None
+        self._trusted_native = False
 
     def __call__(self, size: int, *, count: int | None = None) -> int | list[int]:
-        checked_size = _integer(size, name="size", minimum=1)
+        if type(size) is int:
+            checked_size = size
+            if checked_size < 1:
+                raise ValueError("size must be >= 1")
+        else:
+            checked_size = _integer(size, name="size", minimum=1)
         method = self._draw_method
         if method is None:
             source = self._generator
             if source is None:
-                source = _core
-            method = getattr(source, self._method_name)
+                method = getattr(_core, self._method_name)
+                self._trusted_native = method is _NATIVE_PROFILE_METHODS[self._profile]
+            else:
+                method = getattr(source, self._method_name)
+                self._trusted_native = type(source) is _core.Generator
             self._draw_method = method
         if count is None:
             value = method(checked_size)
+            if self._trusted_native:
+                return value
             if type(value) is int:
                 if 0 <= value < checked_size:
                     return value
                 raise ValueError(f"generated index {value} is outside [0, {checked_size})")
             return self._validated_index(value, checked_size)
-        checked_count = _integer(count, name="count", minimum=0)
+        if type(count) is int:
+            checked_count = count
+            if checked_count < 0:
+                raise ValueError("count must be >= 0")
+        else:
+            checked_count = _integer(count, name="count", minimum=0)
         values = method(checked_size, count=checked_count)
+        if self._trusted_native:
+            return values
         if not isinstance(values, list):
             raise TypeError("bulk profile generation must return a list")
         if len(values) != checked_count:
