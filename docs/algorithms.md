@@ -177,7 +177,7 @@ TruffleShuffle allows repeats after wraparound or when sampled movement reaches
 a value again. Applications requiring a hard cooldown, a shuffle bag, or
 sampling without replacement should model that contract directly.
 
-Storm 5.0.2 owns the native permutation, cursor, and Poisson distribution for
+Storm 5.1.0 owns the native permutation, cursor, and Poisson distribution for
 exact Fortuna generators. Fortuna owns value lookup, callable resolution,
 custom-generator fallbacks, and process semantics. The native representation
 matches Fortuna's established Knuth-B construction, unsigned Poisson type,
@@ -185,20 +185,21 @@ cursor direction, and engine advancement.
 
 ## Prepared weighted selection
 
-`WeightedChoice` converts relative weights into monotonically increasing
-cumulative boundaries once during construction. A draw then:
+`WeightedChoice` prepares monotonically nondecreasing cumulative boundaries
+during construction. Relative input is accumulated once; cumulative input
+supplies the boundaries directly. A draw then:
 
 1. Samples a uniform real value in `[0, total_weight)`.
 2. Uses an upper-bound search to locate the first cumulative boundary greater
    than the draw.
 3. Returns the value at that index.
 
-Zero-weight entries occupy no interval and receive zero selection probability.
-At least one weight must be positive, and the cumulative total must remain
-finite and representable.
+Zero-weight entries and equal cumulative boundaries occupy no interval and
+receive zero selection probability. The final total must be positive, finite,
+and representable.
 
-For exact native generators, Storm owns the prepared cumulative table and
-performs logarithmic lookup. Fortuna owns the Python values and callable
+For exact native generators, Storm owns a copy of the prepared cumulative table
+and performs logarithmic lookup. Fortuna owns the Python values and callable
 resolution. Custom generators and generator subclasses use a validated Python
 fallback so injected draws cannot escape the weighted interval.
 

@@ -5,7 +5,7 @@ explicit generator model, deterministic stream derivation, native bulk
 generation, practical probability distributions, and prepared value selectors
 for games, simulations, procedural generation, and generative systems.
 
-Fortuna 6 is built on the vendored, immutable Storm 5.0.2 engine and is
+Fortuna 6 is built on the vendored, immutable Storm 5.1.0 engine and is
 licensed under MIT.
 
 > **Toolchain-free installs on supported systems:** Fortuna 6 ships precompiled
@@ -228,11 +228,12 @@ for the model and its origin.
 
 ### WeightedChoice
 
-`WeightedChoice` accepts finite, nonnegative relative weights:
+`WeightedChoice` accepts relative weights directly or through the explicit
+`relative=` keyword:
 
 ```python
 rarity = Fortuna.WeightedChoice(
-    [
+    relative=[
         (80, "common"),
         (18, "rare"),
         (2, "legendary"),
@@ -243,9 +244,28 @@ item_rarity = rarity()
 ```
 
 Weights are relative and may total any positive finite value. A weight of zero
-is allowed, and at least one weight must be positive. Native generators use
-Storm's prepared cumulative selector with logarithmic lookup for repeated
-draws.
+is allowed, and at least one weight must be positive. Passing the table as the
+first positional argument is equivalent to `relative=table`.
+
+Cumulative tables can be transcribed directly from printed roll tables:
+
+```python
+treasure = Fortuna.WeightedChoice(
+    cumulative=[
+        (30, "coins"),
+        (60, "gem"),
+        (90, "potion"),
+        (100, "magic item"),
+    ]
+)
+
+treasure_found = treasure()
+```
+
+Cumulative boundaries must be finite, nonnegative, and nondecreasing, with a
+positive final boundary. Equal boundaries represent zero-weight entries.
+Native generators use Storm's prepared cumulative selector with logarithmic
+lookup for repeated draws.
 
 ### Callable values
 

@@ -238,13 +238,13 @@ encounter = Fortuna.TruffleShuffle(encounter_table, generator=encounter_rng)
 
 The table's preparation consumes that generator's shuffle schedule immediately.
 
-## Rarity with WeightedChoice
+## Weighted tables with WeightedChoice
 
-Use `WeightedChoice` when values have intentional relative rarity:
+Use relative weights when each number expresses an entry's share:
 
 ```python
 rarity = Fortuna.WeightedChoice(
-    [
+    relative=[
         (80, "common"),
         (18, "rare"),
         (2, "legendary"),
@@ -256,11 +256,35 @@ Weights are relative, so `(80, 18, 2)`, `(40, 9, 1)`, and `(0.80, 0.18,
 0.02)` describe the same probabilities. They must be finite and nonnegative,
 and at least one must be positive.
 
+Passing the table as the first positional argument is equivalent to using
+`relative=`. The explicit keyword is useful when a module contains several
+table styles.
+
+Many tabletop books publish cumulative roll tables. Their upper boundaries can
+be entered directly:
+
+```python
+treasure = Fortuna.WeightedChoice(
+    cumulative=[
+        (30, "coins"),       # rolls 1–30
+        (60, "gem"),         # rolls 31–60
+        (90, "potion"),      # rolls 61–90
+        (100, "magic item"), # rolls 91–100
+    ]
+)
+
+drop = treasure()
+```
+
+Cumulative boundaries must be finite, nonnegative, and nondecreasing, and the
+last boundary must be positive. Equal adjacent boundaries give an entry zero
+probability.
+
 Values may be procedural callables:
 
 ```python
 treasure = Fortuna.WeightedChoice(
-    [
+    relative=[
         (80, lambda: f"{Fortuna.dice(3, 6)} silver pieces"),
         (18, lambda: "a potion of healing"),
         (2, lambda: f"a +{Fortuna.d(3)} weapon"),
@@ -270,7 +294,8 @@ treasure = Fortuna.WeightedChoice(
 drop = treasure()
 ```
 
-Prepared native draws use a cumulative table and logarithmic lookup in Storm.
+Both input forms prepare the same cumulative representation. Native draws use
+logarithmic lookup in Storm.
 
 ## Positional table profiles
 

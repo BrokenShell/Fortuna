@@ -235,7 +235,7 @@ a value-engine behavior.
 | --- | --- |
 | `RandomValue(collection, *, resolve_callables=True, generator=None)` | Prepare a materialized nonempty iterable. Calling the object or its `uniform` method selects uniformly. `cycle` advances in input order, `truffle_shuffle` uses the stateful wide-uniform strategy, and `front_triangular`, `center_triangular`, and `back_triangular` select through the corresponding positional profile. The truffle selector is created lazily on its first use. `take(count, ...)` repeats the default uniform strategy. |
 | `TruffleShuffle(collection, *, resolve_callables=True, generator=None)` | Shuffle once, then rotate a nonempty collection by randomized short distances before each selection. |
-| `WeightedChoice(weighted_table, *, resolve_callables=True, generator=None)` | Select from `(weight, value)` pairs using finite nonnegative relative weights. The table must be nonempty, at least one weight must be positive, and the finite total must be representable. Draws supplied by custom generators, subclass overrides, or monkeypatched module functions must be finite real numbers in `[0, total)`. |
+| `WeightedChoice(weighted_table=None, *, relative=None, cumulative=None, resolve_callables=True, generator=None)` | Prepare exactly one weighted table. A positional `weighted_table` and `relative=` accept finite nonnegative relative `(weight, value)` pairs with a positive finite total. `cumulative=` accepts finite nonnegative nondecreasing `(boundary, value)` pairs with a positive final boundary; equal boundaries represent zero-weight entries. Draws supplied by custom generators, subclass overrides, or monkeypatched module functions must be finite real numbers in `[0, total)`. |
 
 TruffleShuffle's Poisson movement and WeightedChoice's real draw use C++
 standard-library distributions. Their seeded sequences are repeatable within
@@ -253,8 +253,12 @@ loot_gen = loot.front_triangular
 front_loaded_drop = loot_gen()
 next_in_order = loot.cycle()
 
-rarity = Fortuna.WeightedChoice([(80, "common"), (18, "rare"), (2, "legendary")])
+rarity = Fortuna.WeightedChoice(relative=[(80, "common"), (18, "rare"), (2, "legendary")])
 result = rarity()
+
+treasure = Fortuna.WeightedChoice(
+    cumulative=[(30, "coins"), (60, "gem"), (90, "potion"), (100, "magic item")]
+)
 ```
 
 The generator binding exposed by a value engine is read-only. Value engines may

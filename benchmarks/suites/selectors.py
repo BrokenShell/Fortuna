@@ -45,13 +45,19 @@ def _range_fixture(identifier: str, *, size: int, container: str) -> dict[str, A
     }
 
 
-def _weighted_fixture(size: int) -> dict[str, Any]:
+def _weighted_fixture(size: int, *, weight_model: str = "relative") -> dict[str, Any]:
+    if weight_model == "relative":
+        recipe = "tuple((1.0, index) for index in range(size))"
+    elif weight_model == "cumulative":
+        recipe = "tuple((float(index + 1), index) for index in range(size))"
+    else:
+        raise ValueError(f"unknown weight model: {weight_model}")
     return {
-        "id": f"weighted-relative-{size}",
+        "id": f"weighted-{weight_model}-{size}",
         "type": "tuple[tuple[float, int], ...]",
-        "recipe": "tuple((1.0, index) for index in range(size))",
+        "recipe": recipe,
         "size": size,
-        "weight_model": "relative",
+        "weight_model": weight_model,
     }
 
 
@@ -170,6 +176,10 @@ def _weighted_data(size: int) -> tuple[tuple[float, int], ...]:
     return tuple((1.0, index) for index in range(size))
 
 
+def _cumulative_weighted_data(size: int) -> tuple[tuple[float, int], ...]:
+    return tuple((float(index + 1), index) for index in range(size))
+
+
 def _weighted_call_setup(fortuna: Any, *, size: int) -> Callable[[], Any]:
     fortuna.seed(SEED)
     return fortuna.WeightedChoice(_weighted_data(size))
@@ -179,6 +189,17 @@ def _weighted_construction_setup(fortuna: Any, *, size: int) -> Callable[[], Any
     fortuna.seed(SEED)
     data = _weighted_data(size)
     return lambda: fortuna.WeightedChoice(data)
+
+
+def _cumulative_weighted_call_setup(fortuna: Any, *, size: int) -> Callable[[], Any]:
+    fortuna.seed(SEED)
+    return fortuna.WeightedChoice(cumulative=_cumulative_weighted_data(size))
+
+
+def _cumulative_weighted_construction_setup(fortuna: Any, *, size: int) -> Callable[[], Any]:
+    fortuna.seed(SEED)
+    data = _cumulative_weighted_data(size)
+    return lambda: fortuna.WeightedChoice(cumulative=data)
 
 
 def _sample_setup(
@@ -368,6 +389,7 @@ def selector_cases() -> list[BenchmarkCase]:
 
     for size in WEIGHT_SIZES:
         fixture = _weighted_fixture(size)
+        cumulative_fixture = _weighted_fixture(size, weight_model="cumulative")
         cases.extend(
             (
                 _case(
@@ -396,6 +418,36 @@ def selector_cases() -> list[BenchmarkCase]:
                         "fixtures": [fixture],
                     },
                     setup_variant="WeightedChoice construction",
+                ),
+                _case(
+                    f"weighted-choice-cumulative-call-{size}",
+                    fortuna,
+                    error,
+                    lambda module, size=size: _cumulative_weighted_call_setup(
+                        module,
+                        size=size,
+                    ),
+                    workload_input={
+                        "callable": "WeightedChoice.__call__",
+                        "constructor": {"cumulative": _fixture_reference(cumulative_fixture["id"])},
+                        "fixtures": [cumulative_fixture],
+                    },
+                    setup_variant="reused cumulative WeightedChoice",
+                ),
+                _case(
+                    f"weighted-choice-cumulative-construction-{size}",
+                    fortuna,
+                    error,
+                    lambda module, size=size: _cumulative_weighted_construction_setup(
+                        module,
+                        size=size,
+                    ),
+                    workload_kwargs={"cumulative": _fixture_reference(cumulative_fixture["id"])},
+                    workload_input={
+                        "callable": "WeightedChoice",
+                        "fixtures": [cumulative_fixture],
+                    },
+                    setup_variant="cumulative WeightedChoice construction",
                 ),
             )
         )

@@ -127,20 +127,77 @@ def test_truffle_shuffle_is_stateful_and_validates_custom_poisson_draws():
         broken()
 
 
-def test_weighted_choice_uses_relative_weights_and_boundary_draws():
+def test_weighted_choice_accepts_relative_forms_and_cumulative_boundaries():
     table = ((1, "first"), (2, "second"), (1, "third"))
     assert WeightedChoice(table, generator=FixedGenerator(floats=(0.0,)))() == "first"
-    assert WeightedChoice(table, generator=FixedGenerator(floats=(1.0,)))() == "second"
-    assert WeightedChoice(table, generator=FixedGenerator(floats=(3.5,)))() == "third"
+    assert WeightedChoice(relative=table, generator=FixedGenerator(floats=(1.0,)))() == "second"
+    cumulative = ((1, "first"), (3, "second"), (4, "third"))
+    assert (
+        WeightedChoice(cumulative=cumulative, generator=FixedGenerator(floats=(3.5,)))() == "third"
+    )
+
+
+def test_weighted_choice_requires_exactly_one_weight_source():
+    table = ((1, "value"),)
+    with pytest.raises(TypeError, match="exactly one"):
+        WeightedChoice()
+    with pytest.raises(TypeError, match="exactly one"):
+        WeightedChoice(table, relative=table)
+    with pytest.raises(TypeError, match="exactly one"):
+        WeightedChoice(relative=table, cumulative=table)
 
 
 @pytest.mark.parametrize(
     "table",
-    [(), ((-1, "bad"),), ((0, "zero"),), ((float("inf"), "bad"),)],
+    [
+        (),
+        ((-1, "bad"),),
+        ((0, "zero"),),
+        ((float("inf"), "bad"),),
+        ((10**1000, "bad"),),
+    ],
 )
 def test_weighted_choice_rejects_invalid_tables(table):
     with pytest.raises((TypeError, ValueError)):
         WeightedChoice(table)
+
+
+@pytest.mark.parametrize(
+    "table",
+    [
+        (),
+        ((-1, "bad"),),
+        ((0, "zero"),),
+        ((2, "first"), (1, "descending")),
+        ((float("inf"), "bad"),),
+        ((float("nan"), "bad"),),
+        ((False, "bad"),),
+        ((10**1000, "bad"),),
+    ],
+)
+def test_weighted_choice_rejects_invalid_cumulative_tables(table):
+    with pytest.raises((TypeError, ValueError)):
+        WeightedChoice(cumulative=table)
+
+
+def test_weighted_choice_allows_equal_cumulative_boundaries_as_zero_weights():
+    table = ((0, "never"), (1, "first"), (1, "also never"), (4, "last"))
+    choice = WeightedChoice(
+        cumulative=table,
+        generator=FixedGenerator(floats=(0.0, 1.0)),
+    )
+    assert choice() == "first"
+    assert choice() == "last"
+
+
+def test_weighted_choice_preserves_supplied_cumulative_float_boundaries():
+    boundaries = (0.1, 0.3, 0.7, 1.0)
+    choice = WeightedChoice(
+        cumulative=tuple(zip(boundaries, range(4), strict=True)),
+        resolve_callables=False,
+    )
+
+    assert tuple(boundary for boundary, _ in choice.data) == boundaries
 
 
 @pytest.mark.parametrize("draw", [False, -0.1, 1.0, float("nan"), float("inf")])

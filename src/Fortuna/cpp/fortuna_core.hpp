@@ -584,9 +584,10 @@ private:
     Storm::wide_index_selector selector_;
 };
 
-class PreparedWeightedIndexCore {
+class PreparedCumulativeWeightedIndexCore {
 public:
-    explicit PreparedWeightedIndexCore(const std::vector<double>& weights) : selector_{weights} {}
+    explicit PreparedCumulativeWeightedIndexCore(const std::vector<double>& boundaries)
+        : selector_{boundaries} {}
 
     auto draw_module() const -> std::uint64_t {
         module_prepare();
@@ -599,7 +600,7 @@ public:
     }
 
 private:
-    Storm::PreparedWeightedIndex selector_;
+    Storm::PreparedCumulativeWeightedIndex selector_;
 };
 
 // The small numeric dispatch surface keeps Cython declarations narrow. These
