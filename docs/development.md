@@ -2,7 +2,7 @@
 
 Fortuna uses uv for project environments, locked dependencies, test commands,
 and package builds. The compiled extension is built by Meson through
-meson-python; no legacy setup or shell build script is part of the workflow.
+meson-python.
 
 ## Set up the checkout
 
@@ -57,10 +57,10 @@ they detect a changed process identity and reseed lazily before the child's
 next draw. Built-in native methods sharing one `Generator` are serialized,
 including methods inherited unchanged by a subclass, though assignment of
 draws to threads remains scheduling-dependent. Generator subclasses and custom
-generator-like objects own synchronization for their overrides. Do not fork
-while another thread is actively using a shared explicit generator because the
-child could inherit its native mutex in a locked state. Keep the concurrency
-and process tests aligned with this contract.
+generator-like objects own synchronization for their overrides. Fork after
+concurrent use of a shared explicit generator has quiesced because the child
+could otherwise inherit its native mutex in a locked state. Keep the
+concurrency and process tests aligned with this contract.
 
 ## API hardening contracts
 
@@ -80,22 +80,23 @@ behavior, not just result ranges. In particular:
   callbacks. Callback failure may leave partial mutation, but the full schedule
   remains consumed.
 - Indexes and weighted draws returned by injected custom behavior must be
-  validated. Do not extend native trust to subclasses or monkeypatched methods.
+  validated. Apply the untrusted-input boundary to subclasses and monkeypatched
+  methods.
 - `Generator` class factories preserve `cls`, and `RandomValue` initializes its
   truffle strategy lazily. Construction, uniform selection, triangular
   selection, and cycling must not pay the shuffle cost or advance the truffle
   schedule.
-- A bare `RandomValue` call is uniform. Keep its retained bound methods
+- A bare `RandomValue` call is uniform. Keep its bound methods
   (`uniform`, `cycle`, `truffle_shuffle`, and the three triangular profiles)
   independently callable; `take` repeats the default uniform strategy.
 - Callable resolution belongs to value engines internally. Preserve exception
-  propagation and the cycle and depth guards without restoring a public
-  `resolve` helper.
+  propagation and the cycle and depth guards.
 - `WeightedChoice` accepts only relative `(weight, value)` tables. Validate
   finite, nonnegative weights, a positive finite total, and untrusted injected
   draws before selection.
-- Stateful value engines are not promised thread-safe. A native
-  generator lock protects its engine, not surrounding Python selection state.
+- Callers own synchronization for stateful value engines. A native generator
+  lock protects its engine; surrounding Python selection state requires its own
+  synchronization.
 
 Regression tests should assert the next draw where a change could silently
 alter a seeded sequence, and should exercise invalid injected results before a
@@ -103,9 +104,8 @@ fast path is treated as trusted.
 
 ## Experimental work
 
-Experimentation belongs in Fortuna. The boundary is not whether an idea is
-unusual; it is whether users are being asked to depend on an unfinished
-contract.
+Experimentation belongs in Fortuna. Experiments have an explicitly provisional
+contract until they graduate into the stable API.
 
 Early work should live under `experiments/<name>/` and remain outside the built
 wheel and `Fortuna.__all__`. Each experiment needs a short README stating:
@@ -116,18 +116,16 @@ wheel and `Fortuna.__all__`. Each experiment needs a short README stating:
 - the evidence that would justify promotion; and
 - the condition for concluding or removing the experiment.
 
-Experimental results may be documented, benchmarked, and shared. They do not
-receive compatibility guarantees or appear in the stable API reference. An
-experiment graduates only through a deliberate release change with a durable
-name and contract, correctness tests, relevant statistical or performance
-evidence, user documentation, and migration notes where needed. A future
-installed experimental namespace or separate distribution requires its own
-design decision; repository placement alone must not create one implicitly.
+Experimental results may be documented, benchmarked, and shared. Stable
+compatibility begins when an experiment graduates through a deliberate release
+change with a durable name and contract, correctness tests, relevant
+statistical or performance evidence, user documentation, and migration notes
+where needed. An installed experimental namespace or separate distribution
+requires its own design decision.
 
-This structure keeps Fortuna hospitable to invention without making every
-invention permanent. Concluded experiments should leave a brief result behind
-when the lesson is useful, then be archived or removed rather than retained as
-stable-package weight.
+This structure gives invention a clear path through exploration, evidence, and
+graduation. Concluded experiments should leave a brief result when the lesson
+is useful, then be archived or removed.
 
 ## Lint and test
 
@@ -145,9 +143,11 @@ The test surfaces have distinct jobs:
   reliable: `uv run pytest -m "not statistical" -n auto`.
 - Statistical tests check declared distributions with explicit hypotheses,
   sample sizes, tolerances, and deterministic seeds: `uv run pytest -m statistical`.
-  They do not prove security and must not become vague “looks random” tests.
-- Benchmarks measure performance only. They cannot prove correctness or
-  distribution quality and ordinary CI never fails on timing differences.
+  Security claims require a separate threat model, and each statistical test
+  must state more than “looks random.”
+- Benchmarks measure performance. Correctness and distribution quality belong
+  to their corresponding test suites, and ordinary CI ignores timing
+  differences.
 
 Python 3.14 is the supported interpreter series. CI exercises it on Ubuntu,
 macOS, and Windows, and the wheel workflow covers every approved native target.
@@ -155,8 +155,8 @@ Local development pins the current approved patch release in `.python-version`.
 
 ## Benchmarks
 
-The repository-owned harness is under `benchmarks/` and is not part of Fortuna's
-installed public API. List and run cases with:
+The repository-owned benchmark harness lives under `benchmarks/`. List and run
+cases with:
 
 ```console
 uv run python -m benchmarks --list
@@ -176,8 +176,8 @@ Build both the source distribution and the native wheel:
 uv build --no-sources
 ```
 
-Do not treat a successful build as installation proof. Install the wheel into a
-fresh environment and import it without the source checkout on `sys.path`:
+A release check includes installing the built wheel into a fresh environment
+and importing it with the source checkout absent from `sys.path`:
 
 ```console
 uv venv --python 3.14.6 .wheel-check
@@ -198,7 +198,7 @@ The release-wheel workflow uses cibuildwheel to create CPython 3.14 wheels for:
 - manylinux x86_64 and aarch64;
 - Windows AMD64.
 
-Each wheel is imported and asked for its Storm version before it is retained as
+Each wheel is imported and asked for its Storm version before it is saved as
 a GitHub Actions artifact. Linux aarch64 is built and tested under QEMU, while
 both macOS architectures and Windows AMD64 use native hosted runners. Download
 the artifacts and smoke-test representative wheels on real target machines

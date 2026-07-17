@@ -17,7 +17,7 @@ uv run python -m benchmarks --case '*shuffle*'
 uv run python -m benchmarks --list
 ```
 
-For a quick harness smoke test rather than a meaningful measurement:
+For a quick harness smoke test:
 
 ```console
 uv run python -m benchmarks --suite reference --case random --warmups 0 --samples 2 --target-ms 1
@@ -168,4 +168,4 @@ order and swap traversal.
 Fortuna selects Knuth-B and optimizes for larger shuffle workloads. That is the
 range where the forward traversal has produced the clearest repeatable win; the
 benchmark suite keeps both native loops visible so the choice can be revisited
-instead of becoming folklore.
+with its rationale attached to reproducible evidence.

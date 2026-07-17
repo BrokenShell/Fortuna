@@ -5,8 +5,8 @@ explicit generator model, deterministic stream derivation, native bulk
 generation, practical probability distributions, and prepared value selectors
 for games, simulations, procedural generation, and generative systems.
 
-Fortuna 6 is a deliberate clean break from the historical API. It is built on
-the vendored, immutable Storm 5.0.2 engine and is licensed under MIT.
+Fortuna 6 is built on the vendored, immutable Storm 5.0.2 engine and is
+licensed under MIT.
 
 > **Not for cryptography:** Fortuna uses MT19937-64. Do not use it for
 > passwords, tokens, keys, secrets, authentication, cryptography, gambling
@@ -101,8 +101,8 @@ generator = Fortuna.from_entropy()
 ```
 
 `seed(value)` is deterministic, including `seed(0)`. It changes only the
-calling thread's module default. It does not seed other threads or existing
-explicit generators.
+calling thread's module default. Other threads and existing explicit generators
+keep their current states.
 
 ## Scalar and bulk generation
 
@@ -201,9 +201,9 @@ treasure_pile = loot.take(10)
 
 ### TruffleShuffle
 
-`TruffleShuffle` is a stateful wide selector intended for tables where general
-uniformity is desirable but locally clumpy output is not. It shuffles the table
-once, then moves through that permutation by randomized short distances:
+`TruffleShuffle` is a stateful wide selector designed for broad uniformity with
+reduced localized clumping. It shuffles the table once, then moves through that
+permutation by randomized short distances:
 
 ```python
 encounter = Fortuna.TruffleShuffle(
@@ -214,8 +214,8 @@ next_encounter = encounter()
 encounter_week = encounter.take(7)
 ```
 
-It does not promise that repeats are impossible. It is designed to reduce the
-feel of localized repetition while retaining broad long-run coverage. See
+TruffleShuffle allows repeats. Its design combines reduced localized
+repetition with broad long-run coverage. See
 [Algorithm and design notes](https://github.com/BrokenShell/Fortuna/blob/main/docs/algorithms.md)
 for the model and its origin.
 
@@ -235,14 +235,15 @@ rarity = Fortuna.WeightedChoice(
 item_rarity = rarity()
 ```
 
-Weights need not add to 100. A weight of zero is allowed, but at least one
-weight must be positive. Native generators use Storm's prepared cumulative
-selector, so repeated draws do not scan the table in Python.
+Weights are relative and may total any positive finite value. A weight of zero
+is allowed, and at least one weight must be positive. Native generators use
+Storm's prepared cumulative selector with logarithmic lookup for repeated
+draws.
 
 ### Callable values
 
-Prepared value engines resolve selected callables by default. This makes nested
-procedural tables concise without eagerly evaluating their contents:
+Prepared value engines resolve selected callables after selection. This makes
+nested procedural tables concise and evaluates only the selected path:
 
 ```python
 coins = Fortuna.RandomValue(
@@ -261,8 +262,7 @@ Callable cycles and runaway chains raise `RuntimeError`.
 
 ## Positional profiles
 
-The retained positional profiles describe their actual bounded triangular
-algorithms:
+The positional profiles use bounded triangular algorithms:
 
 ```python
 table = ["common", "uncommon", "rare", "very rare", "legendary"]
@@ -282,9 +282,9 @@ Module defaults are thread-local. A forked child invalidates the inherited
 module default and reseeds it before its next draw. A generator created through
 `from_entropy()` behaves similarly.
 
-Explicit deterministic generators intentionally retain copied state through
-`fork`. Derive a separate stream for each worker when repeated worker streams
-are not intended:
+Explicit deterministic generators intentionally preserve copied state through
+`fork`. Derive a separate stream for each worker that needs a distinct
+sequence:
 
 ```python
 worker_generator = Fortuna.for_stream(root_seed, worker_id)
@@ -292,11 +292,11 @@ worker_generator = Fortuna.for_stream(root_seed, worker_id)
 
 Built-in operations sharing one exact `Generator` are serialized, but thread
 scheduling still determines which thread receives each draw. Value engines
-also contain mutable strategy state and are not promised to be thread-safe.
-Use one value-engine instance per worker or synchronize it externally.
+also contain mutable strategy state, so callers own their synchronization. Use
+one value-engine instance per worker or synchronize it externally.
 
-Do not fork while another thread is actively using a shared explicit generator;
-the child could inherit its native mutex in a locked state.
+Fork only after concurrent use of a shared explicit generator has quiesced; a
+child could otherwise inherit its native mutex in a locked state.
 
 ## Reproducibility boundary
 
@@ -307,8 +307,8 @@ stable across supported platforms throughout the Fortuna 6 line.
 Standard-library probability distributions, `random_float`, custom floating
 transforms, `TruffleShuffle`'s Poisson movement, and `WeightedChoice`'s real
 draw depend partly on C++ standard-library implementations. They are repeatable
-within one platform and toolchain build, but their exact seeded sequences are
-not a cross-platform contract. See
+within one platform and toolchain build. Their exact seeded sequences are
+platform-and-toolchain-specific. See
 [Algorithm and design notes](https://github.com/BrokenShell/Fortuna/blob/main/docs/algorithms.md)
 for the complete boundary.
 
@@ -340,8 +340,8 @@ uv build
 ```
 
 Correctness and statistical validation live under `tests/`. Performance
-measurement lives under `benchmarks/`; timing is evidence for engineering
-decisions, not an ordinary CI pass/fail condition.
+measurement lives under `benchmarks/`; ordinary CI gates correctness, while
+timing provides evidence for engineering decisions.
 
 ## License
 

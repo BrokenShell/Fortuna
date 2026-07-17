@@ -37,7 +37,8 @@ ability_scores = Fortuna.ability_dice(count=6)
 ```
 
 `ability_dice(rolls=4)` rolls four six-sided dice and sums the best three.
-Changing `rolls` changes the number rolled, not the number retained:
+The `rolls` argument sets how many dice are rolled; the highest three are
+summed:
 
 ```python
 standard_score = Fortuna.ability_dice(4)
@@ -87,10 +88,10 @@ encounters = Fortuna.for_stream(root_seed, "encounters")
 treasure = Fortuna.for_stream(root_seed, "treasure")
 ```
 
-Changing treasure generation no longer shifts the terrain stream. Stream
-identifiers are inputs to seed derivation, not decorative labels, so changing
-one produces a different deterministic generator sequence. They may be `int`,
-`str`, or `bytes`; those types define separate identifier domains.
+Terrain, encounters, and treasure advance independently. Stream identifiers
+are inputs to seed derivation, not decorative labels, so changing one produces
+a different deterministic generator sequence. They may be `int`, `str`, or
+`bytes`; those types define separate identifier domains.
 
 Use the same pattern for deterministic workers:
 
@@ -99,13 +100,13 @@ def generator_for_worker(root_seed: int, worker_id: int) -> Fortuna.Generator:
     return Fortuna.for_stream(root_seed, worker_id)
 ```
 
-Do not create several workers from the same seed unless identical copied
-streams are intentional.
+Assign a distinct derived stream to each worker. Reuse a seed when identical
+copied streams are intentional.
 
 ## Bulk generation
 
-Every numeric function accepts keyword-only `count`. Use it instead of a
-Python loop when all values share one validated parameter set:
+Every numeric function accepts keyword-only `count`. Use it when all values
+share one validated parameter set:
 
 ```python
 initiative_rolls = Fortuna.d(20, count=10_000)
@@ -143,10 +144,10 @@ another = loot.uniform()  # explicitly uniform
 next_item = loot.cycle()  # input order, wrapping at the end
 ```
 
-The object snapshots the input iterable during construction. Later mutation of
-the original list does not change the prepared table.
+The object snapshots the input iterable during construction, fixing the
+prepared table at that point.
 
-Methods can be retained as dedicated callables:
+Methods can be stored as dedicated callables:
 
 ```python
 front_loaded_loot = loot.front_triangular
@@ -155,8 +156,7 @@ first_drop = front_loaded_loot()
 second_drop = front_loaded_loot()
 ```
 
-This is the ergonomic prepared-generator pattern formerly associated with
-`QuantumMonty`, now attached to the direct `RandomValue` name.
+This makes each selection strategy usable as a lightweight prepared generator.
 
 ## Callable values and procedural composition
 
@@ -183,8 +183,7 @@ result = loot()
 ```
 
 Resolution is recursive, so selecting `coins` calls it and then resolves the
-callable it selects. Cycles and runaway chains raise `RuntimeError` instead of
-recursing forever.
+callable it selects. Cycles and runaway chains raise `RuntimeError`.
 
 Arguments supplied to a value engine are passed to the initially selected
 callable:
@@ -226,8 +225,8 @@ week = encounter.take(7)
 
 It prepares a randomized permutation and advances through it by randomized
 short distances. This tends to spread nearby selections across the table while
-retaining broad coverage. It does not prohibit repeats and should not be used
-when a strict cooldown or no-repeat rule is required.
+maintaining broad coverage. Values may repeat; use a cooldown or no-repeat
+model when that is the required contract.
 
 Supply an explicit generator when its construction and draws belong to a
 reproducible stream:
@@ -271,8 +270,7 @@ treasure = Fortuna.WeightedChoice(
 drop = treasure()
 ```
 
-Prepared native draws use a cumulative table and logarithmic lookup rather
-than scanning every weight in Python.
+Prepared native draws use a cumulative table and logarithmic lookup in Storm.
 
 ## Positional table profiles
 
@@ -331,7 +329,7 @@ hand = deck_rng.sample(deck, 5)
 
 ## Negative bounded continuations
 
-Fortuna retains two intentionally different negative domains:
+Fortuna defines two intentionally different negative domains:
 
 ```python
 Fortuna.random_below(-10)  # -9 through 0
@@ -380,8 +378,7 @@ Fortuna uses explicit exceptions:
 - `ValueError` for values outside an operation's domain.
 - `OverflowError` when an input or result is not safely representable.
 
-Validation occurs before sampling, so invalid calls do not advance the
-generator:
+Invalid calls raise before sampling, preserving generator state:
 
 ```python
 generator = Fortuna.Generator(42)

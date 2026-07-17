@@ -1,8 +1,7 @@
 # Algorithm and design notes
 
-This document explains the models behind Fortuna's distinctive behavior. It is
-not a substitute for the [API reference](api.md), which defines the supported
-domains and exceptions.
+This document explains the models behind Fortuna's distinctive behavior. The
+[API reference](api.md) defines the supported domains and exceptions.
 
 ## The Fortuna and Storm boundary
 
@@ -15,13 +14,13 @@ Fortuna owns the Python-facing contracts around it:
 - Collection materialization, callable resolution, and value-engine ergonomics.
 - Public names, documentation, and compatibility guarantees.
 
-This boundary is intentional. Numeric state and hot loops can remain native
-without forcing Python behavior, callable invocation, or mutable collection
-callbacks under a C++ lock.
+This boundary keeps numeric state and hot loops native while Fortuna owns
+Python behavior, callable invocation, and mutable collection callbacks outside
+the C++ lock.
 
-Fortuna vendors an immutable Storm release rather than building against a
-moving checkout. The exact tag, commit, source checksum, header checksum, and
-license are recorded in `src/Fortuna/vendor/Storm/README.md`.
+Fortuna vendors an immutable Storm release. The exact tag, commit, source
+checksum, header checksum, and license are recorded in
+`src/Fortuna/vendor/Storm/README.md`.
 
 ## Engine model
 
@@ -49,18 +48,18 @@ accidental repetition.
 its process identity and reseeds lazily when first used in a forked child.
 
 Native operations on one exact `Generator` acquire its mutex around engine
-access. This protects the engine from concurrent mutation; it does not make
-thread scheduling deterministic and it does not make surrounding Python value
-engines atomic.
+access. This protects the engine from concurrent mutation. Thread scheduling
+remains nondeterministic, and surrounding Python value engines require their
+own synchronization.
 
 ## Bounded unsigned sampling
 
 Uniform bounded integers are a foundation for integer APIs, positional
 profiles, collection selection, sampling, and shuffle schedules.
 
-Storm uses rejection sampling rather than a simple remainder operation. For a
-bound `n`, it rejects the high tail of the 64-bit engine domain that would make
-some remainders more common than others, then maps the accepted result into the
+Storm uses rejection sampling to eliminate modulo bias. For a bound `n`, it
+rejects the high tail of the 64-bit engine domain that would make some
+remainders more common than others, then maps the accepted result into the
 requested interval.
 
 This avoids modulo bias and defines a stable Fortuna-owned draw schedule. The
@@ -73,7 +72,7 @@ the special span represented by `2**64`.
 from one engine result:
 
 1. Discard the lowest 11 bits of the 64-bit result.
-2. Retain 53 bits of precision.
+2. Select 53 bits of precision.
 3. Scale by `2**-53`.
 
 This is a small, auditable algorithm with an exact cross-platform seeded
@@ -109,26 +108,24 @@ negative index: -10 -9 -8 ... -1
 Thus `items[random_index(-len(items))]` uniformly addresses the same elements
 through their negative spellings.
 
-This is not accidental permissiveness. The two functions preserve different
-structures beyond the ordinary positive domain. Zero remains a true
+The two functions deliberately preserve different structures beyond the
+ordinary positive domain. Zero remains a true
 singularity for both: neither “an integer below zero” in the bounded interval
 nor “an index into a sequence of size zero” describes a possible result.
 
-`random_range` models a different object and follows Python's directed `range`
-semantics instead of either continuation.
+`random_range` follows Python's directed `range` semantics.
 
 ## Bounded triangular profiles
 
-The three retained positional profiles draw two uniform indexes, `left` and
-`right`, in `[0, size)`:
+The three positional profiles draw two uniform indexes, `left` and `right`, in
+`[0, size)`:
 
 - `front_triangular` returns `min(left, right)`.
 - `center_triangular` returns the integer midpoint of the two indexes.
 - `back_triangular` returns `max(left, right)`.
 
-Their names describe their actual algorithms rather than a visual analogy to a
-Gaussian or another unrelated distribution. They are bounded, integer-only,
-and have stable Fortuna-owned seeded schedules.
+They are bounded, integer-only algorithms with stable Fortuna-owned seeded
+schedules.
 
 The profiles are most useful when a sequence is already ordered by rarity,
 priority, progression, or some other meaningful axis.
@@ -141,7 +138,7 @@ the unprocessed suffix and swaps the two values.
 
 It is distributionally equivalent to the familiar reverse Fisher-Yates form
 when both use unbiased bounded indexes. The traversal and index ranges differ,
-so their deterministic draw schedules are not interchangeable.
+giving each form a distinct deterministic draw schedule.
 
 Fortuna selected Knuth-B after controlled benchmarks showed its clearest
 advantage on larger collections. The project optimizes for those larger
@@ -157,7 +154,7 @@ consumed, although the sequence may be partially modified.
 ## TruffleShuffle and wide distributions
 
 TruffleShuffle began with a question about efficient “wide distributions”:
-how can a selector retain broad general coverage without producing the locally
+how can a selector combine broad general coverage with less of the locally
 clumpy texture of independent uniform draws?
 
 Fortuna's answer is a prepared stateful selector:
@@ -170,18 +167,16 @@ Fortuna's answer is a prepared stateful selector:
 6. Move forward by one plus that distance, wrapping around the permutation.
 7. Return the value at the resulting position.
 
-The mandatory step of at least one prevents the selector from remaining at its
-current position. The short randomized movement tends to spread adjacent
-outputs across the prepared permutation, reducing localized repetition while
-retaining broad coverage.
+The mandatory step of at least one guarantees movement on every draw. The short
+randomized movement tends to spread adjacent outputs across the prepared
+permutation, combining broad coverage with reduced localized repetition.
 
-This is not a strict no-repeat algorithm. A value may repeat after wraparound
-or because a sampled movement reaches it again. Applications requiring a hard
-cooldown, a shuffle bag, or sampling without replacement should model that
-contract directly instead.
+TruffleShuffle allows repeats after wraparound or when sampled movement reaches
+a value again. Applications requiring a hard cooldown, a shuffle bag, or
+sampling without replacement should model that contract directly.
 
 Storm 5.0.2 owns the native permutation, cursor, and Poisson distribution for
-exact Fortuna generators. Fortuna retains value lookup, callable resolution,
+exact Fortuna generators. Fortuna owns value lookup, callable resolution,
 custom-generator fallbacks, and process semantics. The native representation
 matches Fortuna's established Knuth-B construction, unsigned Poisson type,
 cursor direction, and engine advancement.
@@ -196,12 +191,12 @@ cumulative boundaries once during construction. A draw then:
    than the draw.
 3. Returns the value at that index.
 
-Zero-weight entries occupy no interval and therefore cannot be selected.
+Zero-weight entries occupy no interval and receive zero selection probability.
 At least one weight must be positive, and the cumulative total must remain
 finite and representable.
 
 For exact native generators, Storm owns the prepared cumulative table and
-performs logarithmic lookup. Fortuna retains the Python values and callable
+performs logarithmic lookup. Fortuna owns the Python values and callable
 resolution. Custom generators and generator subclasses use a validated Python
 fallback so injected draws cannot escape the weighted interval.
 
@@ -221,9 +216,9 @@ runaway chains raise `RuntimeError`; user exceptions propagate unchanged.
 
 ## Bulk generation
 
-Bulk APIs do not define a separate probability model. They validate one
-parameter set and repeat the same scalar native operation into a contiguous C++
-buffer before converting the result to a Python list.
+Bulk APIs use the scalar probability model. They validate one parameter set
+and repeat the same scalar native operation into a contiguous C++ buffer before
+converting the result to a Python list.
 
 The loop runs without the Python GIL. For stable Fortuna-owned algorithms, bulk
 and scalar calls on equivalent generators produce the same sequence and leave
@@ -231,8 +226,7 @@ the engines in the same state.
 
 ## Reproducibility tiers
 
-Not every deterministic operation can promise identical bits across every C++
-standard library. Fortuna documents two tiers.
+Fortuna documents two tiers of deterministic reproducibility.
 
 ### Stable across supported Fortuna 6 builds
 
@@ -251,18 +245,20 @@ standard library. Fortuna documents two tiers.
 - Custom triangular, Pareto, and von Mises transforms.
 - Distributions composed from toolchain-dependent floating transforms.
 
-The second tier remains deterministic for a fixed build, but its exact seeded
-sequence is not a cross-platform promise. Applications that persist seeds for
-long-term portable replay should build critical decisions from the stable tier.
+The second tier remains deterministic for a fixed build. Its exact seeded
+sequence is platform-and-toolchain-specific. Applications that persist seeds
+for long-term portable replay should build critical decisions from the stable
+tier.
 
 ## Performance evidence
 
 Fortuna's benchmark suite is repository-local and opt-in. Benchmark cases
 consume their results, report fixed workload metadata, and can compare
-compatible JSON artifacts. Timing is not an ordinary correctness gate because
-shared CI machines cannot provide stable latency measurements.
+compatible JSON artifacts. Correctness gates use deterministic and statistical
+tests; timing evidence requires controlled hardware because shared CI machines
+provide variable latency.
 
 Performance changes must preserve the relevant output distribution, seeded
 schedule where promised, engine advancement, validation boundary, and ownership
-contract. A faster algorithm with a different deterministic schedule is a
-behavior change, not a transparent optimization.
+contract. A faster algorithm with a different deterministic schedule requires
+an explicit behavior-contract change.

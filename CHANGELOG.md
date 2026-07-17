@@ -17,6 +17,8 @@ without changing Fortuna's public value-engine contracts or seeded schedules.
 - The public documentation is organized into a concise project README, a
   practical usage guide, an API contract reference, algorithm notes, a Fortuna
   5 migration guide, and contributor documentation.
+- Historical API context is centralized in the migration guide and changelog,
+  keeping current-product documentation focused on Fortuna 6.
 - Vendored Storm was upgraded from 5.0.1 to the immutable 5.0.2 release.
 - Exact native `Generator` and module-level `TruffleShuffle` paths now keep the
   wide-index permutation, cursor, and Poisson distribution in Storm while value

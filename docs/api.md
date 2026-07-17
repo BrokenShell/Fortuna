@@ -1,7 +1,8 @@
 # Fortuna 6 API
 
-Everything documented here is exported directly from `Fortuna`. Names not in
-`Fortuna.__all__` are implementation details and may change without notice.
+Everything documented here is exported directly from `Fortuna`.
+`Fortuna.__all__` defines the supported public surface; other names are
+implementation details and may change without notice.
 
 Fortuna uses MT19937-64. It is **not** a cryptographically secure random number
 generator; use `secrets` for passwords, tokens, keys, and other security work.
@@ -28,18 +29,17 @@ Module-level generation functions use a Fortuna-owned thread-local generator.
 The initial state in each thread comes from process-local entropy. After
 `fork`, a child invalidates an inherited module default before its next draw.
 An entropy-managed explicit generator also reseeds on its first child-process
-draw. A deterministically seeded explicit generator intentionally retains its
-copied state after `fork`; use `for_stream` to assign a distinct deterministic
-stream to each worker.
+draw. A deterministically seeded explicit generator intentionally preserves
+its copied state after `fork`; use `for_stream` to assign a distinct
+deterministic stream to each worker.
 
 Built-in native methods on one `Generator` instance are serialized, including
-methods inherited unchanged by a subclass. This prevents concurrent engine
-mutation, but the order in which threads receive draws depends on scheduling.
+methods inherited unchanged by a subclass. This serializes engine mutation,
+while thread scheduling determines the order in which threads receive draws.
 A subclass or custom generator is responsible for synchronizing its overrides.
-Use one derived generator per worker when result
-assignment must be reproducible. Do not fork while another thread is actively
-using a shared explicit generator: the child could inherit its native mutex in
-a locked state.
+Use one derived generator per worker when result assignment must be
+reproducible. Fork after concurrent use of a shared explicit generator has
+quiesced; the child could otherwise inherit its native mutex in a locked state.
 
 ## Module functions and `Generator` methods
 
@@ -154,9 +154,8 @@ All real-valued distribution parameters must be finite. Fixed shape and count
 limits keep the C++ standard-library transforms terminating across supported
 platforms. Fortuna also rejects parameter combinations whose expected value,
 scale, or conservative tail margin is not safely representable. A floating
-distribution either returns finite values or raises `OverflowError`; it does
-not return `NaN` or infinity as a successful draw. Discrete distributions also
-raise `OverflowError` instead of returning a saturated unsigned sentinel.
+distribution returns a finite value or raises `OverflowError`. Discrete
+distributions raise `OverflowError` for a saturated unsigned sentinel.
 
 | Safety bound | Contract |
 | --- | --- |
@@ -164,18 +163,17 @@ raise `OverflowError` instead of returning a saturated unsigned sentinel.
 | Standard discrete counts | At most `1_000_000` binomial trials or negative-binomial successes. |
 | Poisson mean | `[0, 2**63]`. |
 | Floating mean, scale, and tail safety | Combinations that could exceed Fortuna's conservative finite-output margin raise `OverflowError` before sampling. |
-| Saturated discrete output | A standard-library `UINT64_MAX` sentinel raises `OverflowError` instead of being returned as a draw. |
+| Saturated discrete output | A standard-library `UINT64_MAX` sentinel raises `OverflowError`. |
 
 Validation failures use `TypeError` for incompatible argument types,
 `ValueError` for values outside a function's supported domain, and
 `OverflowError` when an input or result is not representable. Boolean values
-are not accepted as integers or real-valued parameters.
+passed as integers or real-valued parameters raise `TypeError`.
 
 ### Positional index profiles
 
 Every profile takes `size` and returns an integer in `[0, size)`. `size` must be
-positive. Fortuna 6 deliberately retains only the three bounded triangular
-profiles: they are useful, honest about their algorithms, and preserve stable
+positive. Fortuna exposes three bounded triangular profiles with stable,
 integer-only draw schedules.
 
 | API | Bias |
@@ -185,11 +183,11 @@ integer-only draw schedules.
 | `back_triangular(size, *, count=None)` | Toward the back, using the larger of two uniform indexes. |
 
 Exact seeded sequences for Fortuna/Storm-owned bounded integer algorithms and
-the bounded-only triangular profiles are stable throughout the Fortuna 6 line.
+the bounded triangular profiles are stable throughout the Fortuna 6 line.
 Other floating-point transforms—including custom triangular, Pareto, and von
 Mises transforms—and distributions built on them are deterministic within one
-platform and toolchain build, but their exact seeded sequences are not a
-cross-platform contract.
+platform and toolchain build. Their exact seeded sequences are
+platform-and-toolchain-specific.
 
 ## Collection helpers
 
@@ -199,13 +197,13 @@ draw from the calling thread's module default.
 | API | Meaning |
 | --- | --- |
 | `random_value(data, *, generator=None)` | Materialize a nonempty iterable and return one uniformly selected value. |
-| `shuffle(array, *, generator=None)` | Unbiased in-place Knuth-B shuffle of a mutable sequence; returns `None`. Fortuna generators use the native loop; custom generator-like objects retain a Fisher-Yates fallback. |
+| `shuffle(array, *, generator=None)` | Unbiased in-place Knuth-B shuffle of a mutable sequence; returns `None`. Fortuna generators use the native loop; custom generator-like objects use a Fisher-Yates fallback. |
 | `sample(population, k, *, generator=None)` | Return `k` uniformly selected values without replacement from an iterable. |
 
 Explicit generators provide corresponding
 `generator.random_value(data)`, `generator.shuffle(data)`, and
-`generator.sample(population, k)` methods. These always use that generator and
-do not accept a separate `generator=` argument.
+`generator.sample(population, k)` methods. The generator is already bound to
+these method calls.
 
 Sequence advancement is deliberate at degenerate sizes. Selecting from a
 singleton with `random_value`, or sampling its sole value with `k=1`, consumes
@@ -231,7 +229,7 @@ Value engines are prepared callable selectors. Each constructor accepts
 callable resolution enabled, arguments are passed to the initially selected
 callable, and any callables it returns are then invoked without arguments.
 Callable cycles and runaway chains raise `RuntimeError`. Callable resolution is
-an engine behavior, not a separately exported public helper.
+a value-engine behavior.
 
 | API | Construction and behavior |
 | --- | --- |
@@ -241,7 +239,8 @@ an engine behavior, not a separately exported public helper.
 
 TruffleShuffle's Poisson movement and WeightedChoice's real draw use C++
 standard-library distributions. Their seeded sequences are repeatable within
-one platform and toolchain build, but are not exact cross-platform contracts.
+one platform and toolchain build. Exact seeded sequences are
+platform-and-toolchain-specific.
 
 `RandomValue` methods are ordinary bound callables, which supports the prepared
 generator pattern directly:
@@ -259,11 +258,7 @@ result = rarity()
 ```
 
 The generator binding exposed by a value engine is read-only. Value engines may
-maintain cycles, rotations, or other mutable selection state and are not
-promised to be thread-safe. Supplying one exact native `Generator` serializes
-that generator's engine calls only; it does not make the surrounding selector
-state atomic. Use one value-engine instance per worker or provide external
-synchronization when sharing one.
-
-See the [Fortuna 5 to 6 migration guide](migration-5-to-6.md) for renamed and
-removed interfaces.
+maintain cycles, rotations, or other mutable selection state; callers own their
+synchronization. Supplying one exact native `Generator` serializes that
+generator's engine calls. Surrounding selector state requires one value-engine
+instance per worker or external synchronization when shared.
