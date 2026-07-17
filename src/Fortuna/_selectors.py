@@ -23,10 +23,30 @@ from typing import (
 from . import _core
 
 _DEFAULT_RESOLVE_DEPTH = 100
+_NORMAL_PROFILE_SPAN = 3.0
 
 _T = TypeVar("_T")
 _Weight = int | float
 _Resolvable: TypeAlias = _T | Callable[..., "_Resolvable[_T]"]
+
+
+def _front_normal_weights(size: int) -> tuple[float, ...]:
+    """Sample a half-normal kernel from its peak through three sigma."""
+    if size == 1:
+        return (1.0,)
+    scale = _NORMAL_PROFILE_SPAN / (size - 1)
+    return tuple(math.exp(-0.5 * (scale * position) ** 2) for position in range(size))
+
+
+def _center_normal_weights(size: int) -> tuple[float, ...]:
+    """Sample a centered normal kernel whose two edges sit at three sigma."""
+    if size == 1:
+        return (1.0,)
+    last = size - 1
+    return tuple(
+        math.exp(-0.5 * (_NORMAL_PROFILE_SPAN * abs(2 * position - last) / last) ** 2)
+        for position in range(size)
+    )
 
 
 class _IndexGenerator(Protocol):
@@ -295,7 +315,15 @@ class TruffleShuffle(_ValueEngine[_T]):
 class RandomValue(_ValueEngine[_T]):
     """Prepared value generator with uniform, cyclic, and positional strategies."""
 
-    __slots__ = ("_cycle", "_truffle", "data", "size")
+    __slots__ = (
+        "_back_normal",
+        "_center_normal",
+        "_cycle",
+        "_front_normal",
+        "_truffle",
+        "data",
+        "size",
+    )
 
     @overload
     def __init__(
@@ -329,6 +357,9 @@ class RandomValue(_ValueEngine[_T]):
         self.size = len(self.data)
         self._cycle = iter_cycle(self.data)
         self._truffle: TruffleShuffle[_T] | None = None
+        self._front_normal: WeightedChoice[_T] | None = None
+        self._center_normal: WeightedChoice[_T] | None = None
+        self._back_normal: WeightedChoice[_T] | None = None
 
     def uniform(self, *args: Any, **kwargs: Any) -> _T:
         generator = self._generator
@@ -414,6 +445,46 @@ class RandomValue(_ValueEngine[_T]):
         if self.resolve_callables and callable(value):
             return cast(_T, _resolve_callable(value, *args, **kwargs))
         return value
+
+    def front_normal(self, *args: Any, **kwargs: Any) -> _T:
+        """Select through a half-normal profile peaking at the first value."""
+        selector = self._front_normal
+        if selector is None:
+            selector = WeightedChoice(
+                relative=zip(_front_normal_weights(self.size), self.data, strict=True),
+                resolve_callables=self.resolve_callables,
+                generator=self._generator,
+            )
+            self._front_normal = selector
+        return selector(*args, **kwargs)
+
+    def center_normal(self, *args: Any, **kwargs: Any) -> _T:
+        """Select through a normal profile centered on the values."""
+        selector = self._center_normal
+        if selector is None:
+            selector = WeightedChoice(
+                relative=zip(_center_normal_weights(self.size), self.data, strict=True),
+                resolve_callables=self.resolve_callables,
+                generator=self._generator,
+            )
+            self._center_normal = selector
+        return selector(*args, **kwargs)
+
+    def back_normal(self, *args: Any, **kwargs: Any) -> _T:
+        """Select through a half-normal profile peaking at the final value."""
+        selector = self._back_normal
+        if selector is None:
+            selector = WeightedChoice(
+                relative=zip(
+                    reversed(_front_normal_weights(self.size)),
+                    self.data,
+                    strict=True,
+                ),
+                resolve_callables=self.resolve_callables,
+                generator=self._generator,
+            )
+            self._back_normal = selector
+        return selector(*args, **kwargs)
 
 
 def _weighted_pairs(

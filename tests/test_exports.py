@@ -132,3 +132,14 @@ def test_removed_numeric_and_profile_methods_are_not_on_generator():
         "quantum_monty",
     }
     assert all(not hasattr(Fortuna.Generator, name) for name in removed)
+
+
+def test_normal_value_profiles_use_new_names_without_gauss_aliases():
+    assert all(
+        hasattr(Fortuna.RandomValue, name)
+        for name in ("front_normal", "center_normal", "back_normal")
+    )
+    assert all(
+        not hasattr(Fortuna.RandomValue, name)
+        for name in ("front_gauss", "middle_gauss", "back_gauss")
+    )

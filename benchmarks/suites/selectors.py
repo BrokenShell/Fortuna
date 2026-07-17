@@ -22,6 +22,9 @@ RANDOM_VALUE_METHODS = (
     "front_triangular",
     "center_triangular",
     "back_triangular",
+    "front_normal",
+    "center_normal",
+    "back_normal",
 )
 
 VALUES_100_FIXTURE = {

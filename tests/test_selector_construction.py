@@ -26,6 +26,23 @@ def test_random_value_profiles_do_not_initialize_truffle():
     assert selector._truffle is None
 
 
+def test_random_value_normal_profiles_are_independently_lazy_and_reused():
+    selector = RandomValue(VALUES, generator=Fortuna.Generator(8128))
+
+    assert selector._front_normal is None
+    assert selector._center_normal is None
+    assert selector._back_normal is None
+
+    selector.front_normal()
+    front = selector._front_normal
+    selector.front_normal()
+
+    assert front is not None
+    assert selector._front_normal is front
+    assert selector._center_normal is None
+    assert selector._back_normal is None
+
+
 def test_random_value_lazily_constructs_one_truffle_selector():
     selector = RandomValue(VALUES, generator=Fortuna.Generator(8128))
     selector.truffle_shuffle()

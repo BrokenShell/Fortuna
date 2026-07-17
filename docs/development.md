@@ -83,12 +83,13 @@ behavior, not just result ranges. In particular:
   validated. Apply the untrusted-input boundary to subclasses and monkeypatched
   methods.
 - `Generator` class factories preserve `cls`, and `RandomValue` initializes its
-  truffle strategy lazily. Construction, uniform selection, triangular
-  selection, and cycling must not pay the shuffle cost or advance the truffle
-  schedule.
+  truffle and normal strategies independently and lazily. Construction,
+  uniform selection, triangular selection, and cycling must not pay their
+  preparation costs or advance their schedules.
 - A bare `RandomValue` call is uniform. Keep its bound methods
-  (`uniform`, `cycle`, `truffle_shuffle`, and the three triangular profiles)
-  independently callable; `take` repeats the default uniform strategy.
+  (`uniform`, `cycle`, `truffle_shuffle`, the three triangular profiles, and
+  the three normal profiles) independently callable; `take` repeats the
+  default uniform strategy.
 - Callable resolution belongs to value engines internally. Preserve exception
   propagation and the cycle and depth guards.
 - `WeightedChoice` accepts exactly one positional-relative, explicit-relative,

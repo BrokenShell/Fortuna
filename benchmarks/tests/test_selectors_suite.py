@@ -29,7 +29,7 @@ def test_selector_suite_names_are_unique_and_cover_each_api_family():
     assert all(case.suite == "selectors" for case in cases)
     assert all(case.workload_payload["declared"] for case in cases)
     assert all(case.workload_payload["input"] is not None for case in cases)
-    assert len(cases) == 62
+    assert len(cases) == 68
     for prefix in (
         "random-value-",
         "truffle-",

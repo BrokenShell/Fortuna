@@ -34,10 +34,10 @@ actively using that shared generator.
 Exact cross-platform stream stability applies to Fortuna/Storm-owned bounded
 integer algorithms, bounded-only triangular profiles, stream derivation,
 uniform value selection, sampling, and shuffle. Standard-library probability
-distributions, `random_float`, custom floating transforms, TruffleShuffle's
-Poisson movement, and WeightedChoice's real draw are deterministic within one
-platform and toolchain build but are not exact cross-platform sequence
-contracts.
+distributions, `random_float`, custom floating transforms, RandomValue's normal
+profiles, TruffleShuffle's Poisson movement, and WeightedChoice's real draw are
+deterministic within one platform and toolchain build but are not exact
+cross-platform sequence contracts.
 
 ## Retained positional profiles
 
@@ -47,11 +47,18 @@ contracts.
 | `middle_linear` | `center_triangular` |
 | `back_linear` | `back_triangular` |
 
-These are the only public positional index profiles in Fortuna 6. The
-mixed, exponential/normal, Poisson, and quantum profile families were removed
+These are the public positional index profiles in Fortuna 6. The mixed,
+exponential/normal, Poisson, and quantum index-profile families were removed
 instead of being carried forward under aliases. The standard probability
 distribution primitives, including `normal_variate`, `exponential_variate`,
 and `poisson_variate`, remain public.
+
+Fortuna 6.1.1 introduces `RandomValue.front_normal`, `center_normal`, and
+`back_normal`. These are new prepared value profiles built from the intended
+probability shapes: a centered normal curve and two mirrored half-normal curves
+stretched across the complete table. They are not aliases for `front_gauss`,
+`middle_gauss`, or `back_gauss`, and they do not preserve those methods'
+implementation or draw schedules.
 
 ## Other renames
 
@@ -81,10 +88,10 @@ loot_gen = loot.front_triangular  # retain a strategy as a callable
 another = loot_gen()
 ```
 
-The complete retained strategy set is `uniform`, `cycle`, `truffle_shuffle`,
-`front_triangular`, `center_triangular`, and `back_triangular`. The object also
-provides `take`; its default repeated strategy is uniform. `QuantumMonty` is
-removed without an alias.
+The strategy set is `uniform`, `cycle`, `truffle_shuffle`, `front_triangular`,
+`center_triangular`, `back_triangular`, `front_normal`, `center_normal`, and
+`back_normal`. The object also provides `take`; its default repeated strategy
+is uniform. `QuantumMonty` is removed without an alias.
 
 `WeightedChoice` replaces both weighted selector classes. Relative tables may
 remain positional or use `relative=`. Cumulative thresholds use `cumulative=`:
