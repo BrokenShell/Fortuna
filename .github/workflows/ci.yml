@@ -52,7 +52,20 @@ jobs:
           enable-cache: true
           python-version: ${{ matrix.python }}
       - run: uv sync --frozen --group dev --no-build-isolation-package Fortuna --reinstall-package Fortuna
-      - run: uv run --frozen pytest -m "not statistical" -n auto
+      - name: Build and install the Windows wheel
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          uv build --no-config --no-sources --wheel
+          $wheel = (Get-ChildItem dist -Filter '*.whl' | Select-Object -First 1).FullName
+          if (-not $wheel) { throw 'Windows wheel was not built' }
+          uv pip install --python .venv\Scripts\python.exe --reinstall $wheel
+      - name: Test the editable source build
+        if: runner.os != 'Windows'
+        run: uv run --frozen pytest -m "not statistical" -n auto
+      - name: Test the installed Windows wheel
+        if: runner.os == 'Windows'
+        run: .venv\Scripts\python.exe -m pytest -m "not statistical" -n auto
 
   statistical-tests:
     name: Statistical tests
