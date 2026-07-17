@@ -122,6 +122,7 @@ jobs:
           CIBW_TEST_COMMAND: >-
             python -c "from importlib.metadata import version; from pathlib import Path; import Fortuna; root = Path(Fortuna.__file__).parent; assert version('Fortuna') == Fortuna.__version__ == '6.0.4'; assert Fortuna.storm_version() == '5.0.2'; assert (root / '_core.pyi').is_file() and (root / 'py.typed').is_file(); a = Fortuna.Generator(0); b = Fortuna.Generator(0); assert [a.random_int(-10, 10) for _ in range(8)] == [b.random_int(-10, 10) for _ in range(8)]"
         with:
+          extras: uv
           output-dir: wheelhouse
       - name: Store wheels as workflow artifacts
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
