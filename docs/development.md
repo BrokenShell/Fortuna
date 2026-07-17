@@ -129,6 +129,19 @@ This structure gives invention a clear path through exploration, evidence, and
 graduation. Concluded experiments should leave a brief result when the lesson
 is useful, then be archived or removed.
 
+## Documentation
+
+When more than one API can accomplish a task, lead with the recommended form.
+Include another form only when it demonstrates a distinct capability or a
+meaningful tradeoff. For example, prepared value engines are the default way to
+select values repeatedly; module-level positional profile functions belong in
+examples that use the resulting index itself, such as coordinating parallel
+tables.
+
+Keep current-product documentation focused on the clearest Fortuna 6 workflow.
+Historical alternatives and removed contracts belong in the migration guide or
+changelog.
+
 ## Lint and test
 
 Run the same static checks used by CI:

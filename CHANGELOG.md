@@ -22,6 +22,8 @@ first-class inputs to one prepared value engine.
   cumulative selector and retain the same logarithmic draw path.
 - Passing a weighted table positionally remains equivalent to
   `WeightedChoice(relative=table)`.
+- Usage examples lead with prepared value engines. Lower-level index forms are
+  shown only where retaining an index provides a distinct capability.
 
 ## 6.0.4
 

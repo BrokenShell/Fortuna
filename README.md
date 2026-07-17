@@ -289,14 +289,15 @@ Callable cycles and runaway chains raise `RuntimeError`.
 
 ## Positional profiles
 
-The positional profiles use bounded triangular algorithms:
+Use a prepared `RandomValue` when selecting values from an ordered table:
 
 ```python
 table = ["common", "uncommon", "rare", "very rare", "legendary"]
+treasure = Fortuna.RandomValue(table)
 
-front = table[Fortuna.front_triangular(len(table))]
-center = table[Fortuna.center_triangular(len(table))]
-back = table[Fortuna.back_triangular(len(table))]
+front = treasure.front_triangular()
+center = treasure.center_triangular()
+back = treasure.back_triangular()
 ```
 
 - `front_triangular` uses the smaller of two uniform indexes.

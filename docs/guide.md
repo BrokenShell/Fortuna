@@ -311,18 +311,23 @@ treasure_table = [
     "scroll",
     "enchanted weapon",
 ]
+treasure = Fortuna.RandomValue(treasure_table)
 
-common_leaning = treasure_table[Fortuna.front_triangular(len(treasure_table))]
-middle_leaning = treasure_table[Fortuna.center_triangular(len(treasure_table))]
-rare_leaning = treasure_table[Fortuna.back_triangular(len(treasure_table))]
+common_leaning = treasure.front_triangular()
+middle_leaning = treasure.center_triangular()
+rare_leaning = treasure.back_triangular()
 ```
 
-`RandomValue` exposes the same profiles directly and avoids repeating the
-indexing expression:
+The module-level profile functions return an index. Use that form when one
+draw needs to coordinate parallel tables:
 
 ```python
-treasure = Fortuna.RandomValue(treasure_table)
-rare_leaning = treasure.back_triangular()
+item_names = ["copper", "silver", "gold", "potion", "enchanted weapon"]
+item_values = [1, 10, 100, 500, 5_000]
+
+rare_index = Fortuna.back_triangular(len(item_names))
+rare_item = item_names[rare_index]
+rare_item_value = item_values[rare_index]
 ```
 
 These profiles are bounded integer algorithms with stable Fortuna 6 draw
