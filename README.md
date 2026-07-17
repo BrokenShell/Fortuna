@@ -8,10 +8,11 @@ for games, simulations, procedural generation, and generative systems.
 Fortuna 6 is built on the vendored, immutable Storm 5.0.2 engine and is
 licensed under MIT.
 
-> **Windows installs without a development toolchain:** Fortuna 6 ships a
-> precompiled CPython 3.14 wheel for Windows x86-64. On that supported target,
-> pip and uv install Fortuna without a C++ compiler, Windows SDK, or Visual
-> Studio Build Tools.
+> **Toolchain-free installs on supported systems:** Fortuna 6 ships precompiled
+> CPython 3.14 wheels for macOS arm64 and x86-64, Linux arm64 and x86-64, and
+> Windows x86-64. On those targets, pip and uv install Fortuna without a C++
+> compiler, platform SDK, or development toolchain. Windows support is notably
+> improved: Visual Studio Build Tools are not required.
 
 > **Not for cryptography:** Fortuna uses MT19937-64. Do not use it for
 > passwords, tokens, keys, secrets, authentication, cryptography, gambling
