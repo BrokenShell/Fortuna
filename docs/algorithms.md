@@ -140,10 +140,12 @@ It is distributionally equivalent to the familiar reverse Fisher-Yates form
 when both use unbiased bounded indexes. The traversal and index ranges differ,
 giving each form a distinct deterministic draw schedule.
 
-Fortuna selected Knuth-B after controlled benchmarks showed its clearest
-advantage on larger collections. The project optimizes for those larger
-workloads while keeping ordinary sizes competitive. Both the choice and the
-seeded schedule are part of Fortuna 6's collection contract.
+Fortuna selected Knuth-B for its large-workload behavior. Controlled macOS
+arm64 release-build measurements show a substantial advantage at one million
+elements, while intermediate sizes are close enough for either traversal to
+take a small win. The project prioritizes the large-workload result rather than
+claiming one traversal wins every size. Both the choice and the seeded schedule
+are part of Fortuna 6's collection contract.
 
 For exact native generators, Fortuna consumes the complete index schedule while
 holding the generator lock, then releases the lock before mutating arbitrary
