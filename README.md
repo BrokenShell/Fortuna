@@ -89,7 +89,9 @@ treasure_roll = treasure.d(100)
 
 `for_stream(root_seed, stream_id)` deterministically derives a generator from
 an unsigned 64-bit root seed and an `int`, `str`, or `bytes` identifier. The
-identifier types are intentionally distinct.
+stream identifier is an input to seed derivation, not a decorative label, so
+changing it produces a different deterministic generator sequence. Identifier
+types are intentionally distinct.
 
 Use `from_entropy()` when an explicitly owned but nondeterministic generator is
 required:

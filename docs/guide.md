@@ -88,8 +88,9 @@ treasure = Fortuna.for_stream(root_seed, "treasure")
 ```
 
 Changing treasure generation no longer shifts the terrain stream. Stream
-identifiers may be `int`, `str`, or `bytes`; those types define separate
-identifier domains.
+identifiers are inputs to seed derivation, not decorative labels, so changing
+one produces a different deterministic generator sequence. They may be `int`,
+`str`, or `bytes`; those types define separate identifier domains.
 
 Use the same pattern for deterministic workers:
 
