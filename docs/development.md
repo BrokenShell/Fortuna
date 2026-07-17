@@ -101,6 +101,34 @@ Regression tests should assert the next draw where a change could silently
 alter a seeded sequence, and should exercise invalid injected results before a
 fast path is treated as trusted.
 
+## Experimental work
+
+Experimentation belongs in Fortuna. The boundary is not whether an idea is
+unusual; it is whether users are being asked to depend on an unfinished
+contract.
+
+Early work should live under `experiments/<name>/` and remain outside the built
+wheel and `Fortuna.__all__`. Each experiment needs a short README stating:
+
+- the question or hypothesis it explores;
+- what, if anything, is safe for users to rely on;
+- how to run its tests or benchmarks;
+- the evidence that would justify promotion; and
+- the condition for concluding or removing the experiment.
+
+Experimental results may be documented, benchmarked, and shared. They do not
+receive compatibility guarantees or appear in the stable API reference. An
+experiment graduates only through a deliberate release change with a durable
+name and contract, correctness tests, relevant statistical or performance
+evidence, user documentation, and migration notes where needed. A future
+installed experimental namespace or separate distribution requires its own
+design decision; repository placement alone must not create one implicitly.
+
+This structure keeps Fortuna hospitable to invention without making every
+invention permanent. Concluded experiments should leave a brief result behind
+when the lesson is useful, then be archived or removed rather than retained as
+stable-package weight.
+
 ## Lint and test
 
 Run the same static checks used by CI:

@@ -174,7 +174,7 @@ are not accepted as integers or real-valued parameters.
 ### Positional index profiles
 
 Every profile takes `size` and returns an integer in `[0, size)`. `size` must be
-positive. Fortuna 6.0.2 deliberately retains only the three bounded triangular
+positive. Fortuna 6 deliberately retains only the three bounded triangular
 profiles: they are useful, honest about their algorithms, and preserve stable
 integer-only draw schedules.
 
@@ -238,6 +238,10 @@ an engine behavior, not a separately exported public helper.
 | `RandomValue(collection, *, resolve_callables=True, generator=None)` | Prepare a materialized nonempty iterable. Calling the object or its `uniform` method selects uniformly. `cycle` advances in input order, `truffle_shuffle` uses the stateful wide-uniform strategy, and `front_triangular`, `center_triangular`, and `back_triangular` select through the corresponding positional profile. The truffle selector is created lazily on its first use. `take(count, ...)` repeats the default uniform strategy. |
 | `TruffleShuffle(collection, *, resolve_callables=True, generator=None)` | Shuffle once, then rotate a nonempty collection by randomized short distances before each selection. |
 | `WeightedChoice(weighted_table, *, resolve_callables=True, generator=None)` | Select from `(weight, value)` pairs using finite nonnegative relative weights. The table must be nonempty, at least one weight must be positive, and the finite total must be representable. Draws supplied by custom generators, subclass overrides, or monkeypatched module functions must be finite real numbers in `[0, total)`. |
+
+TruffleShuffle's Poisson movement and WeightedChoice's real draw use C++
+standard-library distributions. Their seeded sequences are repeatable within
+one platform and toolchain build, but are not exact cross-platform contracts.
 
 `RandomValue` methods are ordinary bound callables, which supports the prepared
 generator pattern directly:

@@ -1,12 +1,22 @@
 # Changelog
 
-## 6.0.3 - Unreleased
+## 6.0.3
 
 Fortuna 6.0.3 adopts Storm's prepared selector primitives at the native boundary
 without changing Fortuna's public value-engine contracts or seeded schedules.
 
+### Added
+
+- A practical usage guide with game-oriented examples and an algorithm guide
+  describing Fortuna's engine, reproducibility, and selector designs.
+- A documented path for developing and sharing experiments without presenting
+  them as stable installed APIs.
+
 ### Changed
 
+- The public documentation is organized into a concise project README, a
+  practical usage guide, an API contract reference, algorithm notes, a Fortuna
+  5 migration guide, and contributor documentation.
 - Vendored Storm was upgraded from 5.0.1 to the immutable 5.0.2 release.
 - Exact native `Generator` and module-level `TruffleShuffle` paths now keep the
   wide-index permutation, cursor, and Poisson distribution in Storm while value
@@ -63,7 +73,6 @@ Fortuna 6 is a clean, intentionally breaking reconstruction.
 ### Added
 
 - MIT licensing.
-- Python 3.14 support.
 - Fortuna-owned `Generator` instances and deterministic stream derivation.
 - Process-local entropy defaults with thread isolation and fork recovery.
 - Serialized access to shared explicit generators.
@@ -74,6 +83,8 @@ Fortuna 6 is a clean, intentionally breaking reconstruction.
 
 ### Changed
 
+- Python 3.14, already supported by Fortuna 5, became Fortuna 6's required
+  runtime line.
 - Vendored Storm was upgraded from 4.0.4 to the immutable 5.0.1 release.
 - `seed(0)` is deterministic. Entropy construction is explicit.
 - Ranges now follow directed Python `range` semantics.

@@ -32,10 +32,12 @@ synchronization for their overrides. Do not fork while another thread is
 actively using that shared generator.
 
 Exact cross-platform stream stability applies to Fortuna/Storm-owned bounded
-integer algorithms, bounded-only triangular profiles, collection draw
-schedules, and stream derivation. Other floating-point transforms—including
-custom triangular, Pareto, and von Mises transforms—and profiles or
-distributions built on them are not exact cross-platform sequence contracts.
+integer algorithms, bounded-only triangular profiles, stream derivation,
+uniform value selection, sampling, and shuffle. Standard-library probability
+distributions, `random_float`, custom floating transforms, TruffleShuffle's
+Poisson movement, and WeightedChoice's real draw are deterministic within one
+platform and toolchain build but are not exact cross-platform sequence
+contracts.
 
 ## Retained positional profiles
 
@@ -45,7 +47,7 @@ distributions built on them are not exact cross-platform sequence contracts.
 | `middle_linear` | `center_triangular` |
 | `back_linear` | `back_triangular` |
 
-These are the only public positional index profiles in Fortuna 6.0.2. The
+These are the only public positional index profiles in Fortuna 6. The
 mixed, exponential/normal, Poisson, and quantum profile families were removed
 instead of being carried forward under aliases. The standard probability
 distribution primitives, including `normal_variate`, `exponential_variate`,
@@ -59,7 +61,7 @@ and `poisson_variate`, remain public.
 | `plus_or_minus_gauss` | `plus_or_minus_normal` |
 | `version` | `__version__` |
 
-The former `flatten`/`resolve` helper is not public in 6.0.2. Callable value
+The former `flatten`/`resolve` helper is not public in Fortuna 6. Callable value
 resolution remains an option on `RandomValue`, `TruffleShuffle`, and
 `WeightedChoice` through `resolve_callables=`.
 

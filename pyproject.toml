@@ -40,6 +40,7 @@ keywords = [
 
 [project.urls]
 Homepage = "https://github.com/BrokenShell/Fortuna"
+Documentation = "https://github.com/BrokenShell/Fortuna/blob/main/docs/guide.md"
 Issues = "https://github.com/BrokenShell/Fortuna/issues"
 Source = "https://github.com/BrokenShell/Fortuna"
 
