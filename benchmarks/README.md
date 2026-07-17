@@ -165,7 +165,8 @@ generator and creates a fresh list outside every timed sample; each timed batch
 then repeatedly shuffles that list. The loops differ only in their bounded-index
 order and swap traversal.
 
-Fortuna selects Knuth-B and optimizes for larger shuffle workloads. That is the
-range where the forward traversal has produced the clearest repeatable win; the
+Fortuna selects Knuth-B for its large-workload behavior. Current macOS arm64
+release-build measurements show a substantial advantage at one million
+elements, while intermediate sizes are close and can exchange small wins. The
 benchmark suite keeps both native loops visible so the choice can be revisited
 with its rationale attached to reproducible evidence.

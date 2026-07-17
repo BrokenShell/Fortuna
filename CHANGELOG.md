@@ -16,7 +16,9 @@ while preserving public behavior and seeded schedules.
   fresh-process measurements showed approximately 13–18% faster public shuffle
   throughput from one thousand through one million elements, with priority
   selector and numeric APIs remaining within the accepted regression ceiling.
-- macOS x86_64, Linux, and Windows release wheels retain the verified O3 policy.
+- Windows release wheels explicitly activate MSVC, preventing an unrelated
+  compiler on `PATH` from introducing nonstandard runtime dependencies.
+- macOS x86_64, Linux, and Windows retain the verified non-LTO release policy.
 
 ## 6.0.3
 

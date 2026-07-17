@@ -8,6 +8,11 @@ for games, simulations, procedural generation, and generative systems.
 Fortuna 6 is built on the vendored, immutable Storm 5.0.2 engine and is
 licensed under MIT.
 
+> **Windows installs without a development toolchain:** Fortuna 6 ships a
+> precompiled CPython 3.14 wheel for Windows x86-64. On that supported target,
+> pip and uv install Fortuna without a C++ compiler, Windows SDK, or Visual
+> Studio Build Tools.
+
 > **Not for cryptography:** Fortuna uses MT19937-64. Do not use it for
 > passwords, tokens, keys, secrets, authentication, cryptography, gambling
 > security, or security decisions. Entropy-seeded construction does not make
@@ -156,9 +161,10 @@ patrol = generator.sample(monsters, 2)
 generator.shuffle(monsters)
 ```
 
-The Knuth-B implementation is deliberately optimized for larger workloads,
-where its forward traversal has shown the clearest advantage in Fortuna's
-controlled benchmarks while remaining competitive at ordinary sizes.
+Fortuna selects Knuth-B for its large-workload behavior. In controlled
+macOS arm64 release-build measurements it holds a substantial advantage at one
+million elements; at intermediate sizes the two traversals are close and can
+exchange small wins. Exact ratios remain machine- and build-specific.
 
 ## Prepared value generation
 
