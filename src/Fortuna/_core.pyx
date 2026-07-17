@@ -1,0 +1,1960 @@
+# distutils: language = c++
+# cython: language_level=3, embedsignature=True
+
+from hashlib import sha256
+from collections.abc import MutableSequence
+from numbers import Real
+import operator
+import os
+
+from libc.stddef cimport size_t
+from libc.stdint cimport int64_t, uint64_t, uint8_t
+from cpython.list cimport PyList_New
+from cpython.object cimport PyObject
+from libcpp.vector cimport vector
+
+
+DEF SMALL_EXACT_LIST_SHUFFLE_LIMIT = 256
+
+
+cdef extern from "Python.h":
+    PyObject* raw_float_from_double "PyFloat_FromDouble"(double) except NULL
+    void raw_list_set_item "PyList_SET_ITEM"(PyObject*, Py_ssize_t, PyObject*)
+    long long raw_long_as_long_long_and_overflow "PyLong_AsLongLongAndOverflow"(
+        PyObject*, int*
+    )
+    unsigned long long raw_long_as_unsigned_long_long "PyLong_AsUnsignedLongLong"(
+        PyObject*
+    )
+    Py_ssize_t raw_long_as_ssize_t "PyLong_AsSsize_t"(PyObject*)
+    PyObject* raw_error_occurred "PyErr_Occurred"()
+    void raw_error_clear "PyErr_Clear"()
+
+
+cdef extern from "src/Fortuna/cpp/fortuna_core.hpp" namespace "FortunaCore":
+    cdef cppclass GeneratorCore:
+        GeneratorCore(uint64_t) except +
+        void seed(uint64_t) except + nogil
+        void reseed_from_entropy() except + nogil
+        void lock() except + nogil
+        void unlock() noexcept nogil
+        void prepare() except + nogil
+
+    cdef cppclass WideIndexCore:
+        WideIndexCore(uint64_t) except +
+        WideIndexCore(GeneratorCore&, uint64_t) except +
+        uint64_t draw_module() except +
+        uint64_t draw(GeneratorCore&) except +
+
+    cdef cppclass PreparedWeightedIndexCore:
+        PreparedWeightedIndexCore(const vector[double]&) except +
+        uint64_t draw_module() except +
+        uint64_t draw(GeneratorCore&) except +
+
+    const char* core_storm_version "FortunaCore::storm_version"() noexcept nogil
+    GeneratorCore* core_module_generator "FortunaCore::module_generator"() except + nogil
+    void core_module_seed "FortunaCore::module_seed"(uint64_t) except + nogil
+    void core_module_entropy "FortunaCore::module_reseed_from_entropy"() except + nogil
+    void core_after_fork "FortunaCore::mark_after_fork_child"() noexcept nogil
+
+    int64_t core_signed "FortunaCore::sample_signed_unchecked"(
+        GeneratorCore&, int, int64_t, int64_t, int64_t
+    ) except + nogil
+    uint64_t core_unsigned "FortunaCore::sample_unsigned_unchecked"(
+        GeneratorCore&, int, uint64_t, uint64_t, double
+    ) except + nogil
+    double core_float "FortunaCore::sample_float_unchecked"(
+        GeneratorCore&, int, double, double, double
+    ) except + nogil
+    bint core_bool "FortunaCore::sample_bool_unchecked"(
+        GeneratorCore&, int, double
+    ) except + nogil
+    bint core_module_needs_prepare "FortunaCore::module_needs_prepare"() noexcept nogil
+    void core_module_prepare "FortunaCore::module_prepare"() except + nogil
+    double core_module_canonical_prepared "FortunaCore::module_canonical_prepared"() noexcept nogil
+    void core_module_canonical_fill "FortunaCore::module_canonical_fill"(
+        double*, size_t
+    ) except + nogil
+    double core_generator_canonical "FortunaCore::generator_canonical"(
+        GeneratorCore&
+    ) except + nogil
+    void core_generator_canonical_fill "FortunaCore::generator_canonical_fill"(
+        GeneratorCore&, double*, size_t
+    ) except + nogil
+    uint64_t core_module_random_below "FortunaCore::module_random_below_prepared"(
+        uint64_t
+    ) except + nogil
+    uint64_t core_generator_random_below "FortunaCore::generator_random_below"(
+        GeneratorCore&, uint64_t
+    ) except + nogil
+    uint64_t core_module_random_index "FortunaCore::module_random_index_prepared"(
+        uint64_t
+    ) except + nogil
+    uint64_t core_generator_random_index "FortunaCore::generator_random_index"(
+        GeneratorCore&, uint64_t
+    ) except + nogil
+    void core_module_sample_offsets "FortunaCore::module_sample_offsets_prepared"(
+        size_t, size_t, size_t*
+    ) except + nogil
+    void core_generator_sample_offsets "FortunaCore::generator_sample_offsets"(
+        GeneratorCore&, size_t, size_t, size_t*
+    ) except + nogil
+    int64_t core_module_random_int "FortunaCore::module_random_int_prepared"(
+        int64_t, int64_t
+    ) except + nogil
+    int64_t core_generator_random_int "FortunaCore::generator_random_int"(
+        GeneratorCore&, int64_t, int64_t
+    ) except + nogil
+    int64_t core_module_random_range "FortunaCore::module_random_range_prepared"(
+        int64_t, int64_t, int64_t
+    ) except + nogil
+    int64_t core_generator_random_range "FortunaCore::generator_random_range"(
+        GeneratorCore&, int64_t, int64_t, int64_t
+    ) except + nogil
+    uint64_t core_module_roll_die "FortunaCore::module_roll_die_prepared"(
+        uint64_t
+    ) except + nogil
+    uint64_t core_generator_roll_die "FortunaCore::generator_roll_die"(
+        GeneratorCore&, uint64_t
+    ) except + nogil
+    uint64_t core_module_roll_dice "FortunaCore::module_roll_dice_prepared"(
+        uint64_t, uint64_t
+    ) except + nogil
+    uint64_t core_generator_roll_dice "FortunaCore::generator_roll_dice"(
+        GeneratorCore&, uint64_t, uint64_t
+    ) except + nogil
+    double core_module_random_float "FortunaCore::module_random_float_prepared"(
+        double, double
+    ) except + nogil
+    double core_generator_random_float "FortunaCore::generator_random_float"(
+        GeneratorCore&, double, double
+    ) except + nogil
+    double core_module_triangular "FortunaCore::module_triangular_prepared"(
+        double, double, double
+    ) except + nogil
+    double core_generator_triangular "FortunaCore::generator_triangular"(
+        GeneratorCore&, double, double, double
+    ) except + nogil
+    double core_module_exponential "FortunaCore::module_exponential_prepared"(
+        double
+    ) except + nogil
+    double core_generator_exponential "FortunaCore::generator_exponential"(
+        GeneratorCore&, double
+    ) except + nogil
+    double core_module_normal "FortunaCore::module_normal_prepared"(
+        double, double
+    ) except + nogil
+    double core_generator_normal "FortunaCore::generator_normal"(
+        GeneratorCore&, double, double
+    ) except + nogil
+    uint64_t core_module_unsigned_scalar "FortunaCore::module_unsigned_scalar_prepared"(
+        int, uint64_t, uint64_t, double
+    ) except + nogil
+    uint64_t core_generator_unsigned_scalar "FortunaCore::generator_unsigned_scalar"(
+        GeneratorCore&, int, uint64_t, uint64_t, double
+    ) except + nogil
+    double core_module_float_scalar "FortunaCore::module_float_scalar_prepared"(
+        int, double, double, double
+    ) except + nogil
+    double core_generator_float_scalar "FortunaCore::generator_float_scalar"(
+        GeneratorCore&, int, double, double, double
+    ) except + nogil
+    bint core_module_percent_true "FortunaCore::module_percent_true_prepared"(
+        double
+    ) except + nogil
+    bint core_generator_percent_true "FortunaCore::generator_percent_true"(
+        GeneratorCore&, double
+    ) except + nogil
+    bint core_module_bernoulli "FortunaCore::module_bernoulli_prepared"(
+        double
+    ) except + nogil
+    bint core_generator_bernoulli "FortunaCore::generator_bernoulli"(
+        GeneratorCore&, double
+    ) except + nogil
+    uint64_t core_module_ability_dice "FortunaCore::module_ability_dice_prepared"(
+        uint64_t
+    ) except + nogil
+    uint64_t core_generator_ability_dice "FortunaCore::generator_ability_dice"(
+        GeneratorCore&, uint64_t
+    ) except + nogil
+    int64_t core_module_plus_or_minus "FortunaCore::module_plus_or_minus_prepared"(
+        int64_t
+    ) except + nogil
+    int64_t core_generator_plus_or_minus "FortunaCore::generator_plus_or_minus"(
+        GeneratorCore&, int64_t
+    ) except + nogil
+    int64_t core_module_plus_or_minus_triangular "FortunaCore::module_plus_or_minus_triangular_prepared"(
+        int64_t
+    ) except + nogil
+    int64_t core_generator_plus_or_minus_triangular "FortunaCore::generator_plus_or_minus_triangular"(
+        GeneratorCore&, int64_t
+    ) except + nogil
+    int64_t core_module_plus_or_minus_normal "FortunaCore::module_plus_or_minus_normal_prepared"(
+        int64_t
+    ) except + nogil
+    int64_t core_generator_plus_or_minus_normal "FortunaCore::generator_plus_or_minus_normal"(
+        GeneratorCore&, int64_t
+    ) except + nogil
+    uint64_t core_module_front_triangular "FortunaCore::module_front_triangular_prepared"(
+        uint64_t
+    ) except + nogil
+    uint64_t core_generator_front_triangular "FortunaCore::generator_front_triangular"(
+        GeneratorCore&, uint64_t
+    ) except + nogil
+    uint64_t core_module_center_triangular "FortunaCore::module_center_triangular_prepared"(
+        uint64_t
+    ) except + nogil
+    uint64_t core_generator_center_triangular "FortunaCore::generator_center_triangular"(
+        GeneratorCore&, uint64_t
+    ) except + nogil
+    uint64_t core_module_back_triangular "FortunaCore::module_back_triangular_prepared"(
+        uint64_t
+    ) except + nogil
+    uint64_t core_generator_back_triangular "FortunaCore::generator_back_triangular"(
+        GeneratorCore&, uint64_t
+    ) except + nogil
+    uint64_t core_module_front_poisson "FortunaCore::module_front_poisson_prepared"(
+        uint64_t
+    ) except + nogil
+    uint64_t core_generator_front_poisson "FortunaCore::generator_front_poisson"(
+        GeneratorCore&, uint64_t
+    ) except + nogil
+    void core_validate_signed "FortunaCore::validate_signed"(
+        int, int64_t, int64_t, int64_t
+    ) except + nogil
+    void core_validate_unsigned "FortunaCore::validate_unsigned"(
+        int, uint64_t, uint64_t, double
+    ) except + nogil
+    void core_validate_float "FortunaCore::validate_float"(
+        int, double, double, double
+    ) except + nogil
+    void core_validate_bool "FortunaCore::validate_bool"(
+        int, double
+    ) except + nogil
+
+
+cdef int64_t _as_int64(object value, str name) except *:
+    cdef object integer
+    cdef int64_t result
+    cdef int overflow = 0
+    if isinstance(value, bool):
+        raise TypeError(f"{name} must be an integer, not bool")
+    if type(value) is int:
+        result = <int64_t>raw_long_as_long_long_and_overflow(<PyObject*>value, &overflow)
+        if overflow:
+            raise OverflowError(f"{name} must be in the signed 64-bit range") from None
+        return result
+    try:
+        integer = operator.index(value)
+    except TypeError as error:
+        raise TypeError(f"{name} must be an integer") from error
+    result = <int64_t>raw_long_as_long_long_and_overflow(<PyObject*>integer, &overflow)
+    if overflow:
+        raise OverflowError(f"{name} must be in the signed 64-bit range") from None
+    return result
+
+
+cdef uint64_t _as_uint64(object value, str name) except *:
+    cdef object integer
+    cdef uint64_t result
+    if isinstance(value, bool):
+        raise TypeError(f"{name} must be an integer, not bool")
+    if type(value) is int:
+        if value < 0:
+            raise ValueError(f"{name} must be nonnegative")
+        result = <uint64_t>raw_long_as_unsigned_long_long(<PyObject*>value)
+        if result == <uint64_t>-1 and raw_error_occurred() != NULL:
+            raw_error_clear()
+            raise OverflowError(f"{name} must be in the unsigned 64-bit range") from None
+        return result
+    try:
+        integer = operator.index(value)
+    except TypeError as error:
+        raise TypeError(f"{name} must be an integer") from error
+    if integer < 0:
+        raise ValueError(f"{name} must be nonnegative")
+    result = <uint64_t>raw_long_as_unsigned_long_long(<PyObject*>integer)
+    if result == <uint64_t>-1 and raw_error_occurred() != NULL:
+        raw_error_clear()
+        raise OverflowError(f"{name} must be in the unsigned 64-bit range") from None
+    return result
+
+
+cdef inline uint64_t _below_high(object value, int* direction) except *:
+    cdef object integer
+    cdef uint64_t result
+    if isinstance(value, bool):
+        raise TypeError("limit must be an integer, not bool")
+    if type(value) is int:
+        integer = value
+    else:
+        try:
+            integer = operator.index(value)
+        except TypeError as error:
+            raise TypeError("limit must be an integer") from error
+    if integer == 0:
+        direction[0] = 0
+        return 0
+    if integer > 0:
+        direction[0] = 1
+        if integer > 2**64:
+            raise OverflowError("limit magnitude must not exceed 2**64")
+        result = integer - 1
+        return result
+    direction[0] = -1
+    if integer < -(2**64):
+        raise OverflowError("limit magnitude must not exceed 2**64")
+    result = -integer - 1
+    return result
+
+
+cdef inline uint64_t _index_magnitude(object value, int* direction) except *:
+    cdef object integer
+    cdef uint64_t result
+    if isinstance(value, bool):
+        raise TypeError("size must be an integer, not bool")
+    if type(value) is int:
+        if value < 0:
+            direction[0] = -1
+            integer = -value
+        else:
+            direction[0] = 1
+            integer = value
+        result = <uint64_t>raw_long_as_unsigned_long_long(<PyObject*>integer)
+        if result == <uint64_t>-1 and raw_error_occurred() != NULL:
+            raw_error_clear()
+            raise OverflowError("size must be in the unsigned 64-bit range") from None
+        return result
+    try:
+        integer = operator.index(value)
+    except TypeError as error:
+        raise TypeError("size must be an integer") from error
+    if integer < 0:
+        direction[0] = -1
+        integer = -integer
+    else:
+        direction[0] = 1
+    result = <uint64_t>raw_long_as_unsigned_long_long(<PyObject*>integer)
+    if result == <uint64_t>-1 and raw_error_occurred() != NULL:
+        raw_error_clear()
+        raise OverflowError("size must be in the unsigned 64-bit range") from None
+    return result
+
+
+cdef object _reflected_below_result(object result, int direction):
+    cdef Py_ssize_t index
+    cdef list values
+    if direction > 0:
+        return result
+    if type(result) is list:
+        values = result
+        for index in range(len(values)):
+            values[index] = -values[index]
+        return values
+    return -result
+
+
+cdef object _continued_index_result(
+    object result,
+    int direction,
+    uint64_t magnitude,
+):
+    cdef Py_ssize_t index
+    cdef list values
+    cdef object offset
+    if direction > 0:
+        return result
+    offset = magnitude
+    if type(result) is list:
+        values = result
+        for index in range(len(values)):
+            values[index] = values[index] - offset
+        return values
+    return result - offset
+
+
+cdef Py_ssize_t _as_count(object value) except *:
+    cdef object integer
+    cdef Py_ssize_t result
+    if isinstance(value, bool):
+        raise TypeError("count must be an integer, not bool")
+    if type(value) is int:
+        if value < 0:
+            raise ValueError("count must be nonnegative")
+        result = raw_long_as_ssize_t(<PyObject*>value)
+        if result == -1 and raw_error_occurred() != NULL:
+            raw_error_clear()
+            raise OverflowError("count exceeds the platform size limit") from None
+        return result
+    try:
+        integer = operator.index(value)
+    except TypeError as error:
+        raise TypeError("count must be an integer") from error
+    if integer < 0:
+        raise ValueError("count must be nonnegative")
+    result = raw_long_as_ssize_t(<PyObject*>integer)
+    if result == -1 and raw_error_occurred() != NULL:
+        raw_error_clear()
+        raise OverflowError("count exceeds the platform size limit") from None
+    return result
+
+
+cdef Py_ssize_t _validated_generated_index(object value, Py_ssize_t size) except *:
+    cdef object index
+    if isinstance(value, bool):
+        raise TypeError("generated index must be an integer, not bool")
+    if type(value) is int:
+        index = value
+    else:
+        try:
+            index = operator.index(value)
+        except TypeError as error:
+            raise TypeError("generated index must be an integer") from error
+    if not 0 <= index < size:
+        raise ValueError(f"generated index {index} is outside [0, {size})")
+    return index
+
+
+cdef double _as_double(object value, str name) except *:
+    if type(value) is float:
+        return value
+    if type(value) is int:
+        return float(value)
+    if isinstance(value, bool) or not isinstance(value, Real):
+        raise TypeError(f"{name} must be a real number")
+    return float(value)
+
+
+cdef GeneratorCore* _module() except *:
+    cdef GeneratorCore* result
+    with nogil:
+        result = core_module_generator()
+    return result
+
+
+cdef inline void _prepare_module_scalar() except *:
+    if core_module_needs_prepare():
+        with nogil:
+            core_module_prepare()
+
+
+cdef object _signed_dispatch(
+    GeneratorCore* generator,
+    int operation,
+    int64_t a,
+    int64_t b,
+    int64_t c,
+    bint bulk,
+    Py_ssize_t size,
+):
+    cdef int64_t scalar
+    cdef vector[int64_t] values
+    cdef Py_ssize_t index
+    with nogil:
+        core_validate_signed(operation, a, b, c)
+    if not bulk:
+        with nogil:
+            scalar = core_signed(generator[0], operation, a, b, c)
+        return scalar
+    values.resize(size)
+    with nogil:
+        for index in range(size):
+            values[index] = core_signed(generator[0], operation, a, b, c)
+    return list(values)
+
+
+cdef object _signed_result(
+    GeneratorCore* generator,
+    int operation,
+    int64_t a,
+    int64_t b,
+    int64_t c,
+    object count,
+):
+    if count is None:
+        return _signed_dispatch(generator, operation, a, b, c, False, 0)
+    return _signed_dispatch(generator, operation, a, b, c, True, _as_count(count))
+
+
+cdef object _signed_generator_result(
+    GeneratorCore* generator,
+    int operation,
+    int64_t a,
+    int64_t b,
+    int64_t c,
+    object count,
+):
+    cdef bint bulk = count is not None
+    cdef Py_ssize_t size = _as_count(count) if bulk else 0
+    with nogil:
+        generator.lock()
+    try:
+        return _signed_dispatch(generator, operation, a, b, c, bulk, size)
+    finally:
+        with nogil:
+            generator.unlock()
+
+
+cdef object _unsigned_dispatch(
+    GeneratorCore* generator,
+    int operation,
+    uint64_t a,
+    uint64_t b,
+    double parameter,
+    bint bulk,
+    Py_ssize_t size,
+):
+    cdef uint64_t scalar
+    cdef vector[uint64_t] values
+    cdef Py_ssize_t index
+    with nogil:
+        core_validate_unsigned(operation, a, b, parameter)
+    if not bulk:
+        with nogil:
+            scalar = core_unsigned(generator[0], operation, a, b, parameter)
+        return scalar
+    values.resize(size)
+    with nogil:
+        for index in range(size):
+            values[index] = core_unsigned(generator[0], operation, a, b, parameter)
+    return list(values)
+
+
+cdef object _unsigned_result(
+    GeneratorCore* generator,
+    int operation,
+    uint64_t a,
+    uint64_t b,
+    double parameter,
+    object count,
+):
+    if count is None:
+        return _unsigned_dispatch(generator, operation, a, b, parameter, False, 0)
+    return _unsigned_dispatch(
+        generator, operation, a, b, parameter, True, _as_count(count)
+    )
+
+
+cdef object _unsigned_generator_result(
+    GeneratorCore* generator,
+    int operation,
+    uint64_t a,
+    uint64_t b,
+    double parameter,
+    object count,
+):
+    cdef bint bulk = count is not None
+    cdef Py_ssize_t size = _as_count(count) if bulk else 0
+    with nogil:
+        generator.lock()
+    try:
+        return _unsigned_dispatch(generator, operation, a, b, parameter, bulk, size)
+    finally:
+        with nogil:
+            generator.unlock()
+
+
+cdef object _float_dispatch(
+    GeneratorCore* generator,
+    int operation,
+    double a,
+    double b,
+    double c,
+    bint bulk,
+    Py_ssize_t size,
+):
+    cdef double scalar
+    cdef vector[double] values
+    cdef Py_ssize_t index
+    with nogil:
+        core_validate_float(operation, a, b, c)
+    if not bulk:
+        with nogil:
+            scalar = core_float(generator[0], operation, a, b, c)
+        return scalar
+    values.resize(size)
+    with nogil:
+        for index in range(size):
+            values[index] = core_float(generator[0], operation, a, b, c)
+    return list(values)
+
+
+cdef object _float_result(
+    GeneratorCore* generator,
+    int operation,
+    double a,
+    double b,
+    double c,
+    object count,
+):
+    if count is None:
+        return _float_dispatch(generator, operation, a, b, c, False, 0)
+    return _float_dispatch(generator, operation, a, b, c, True, _as_count(count))
+
+
+cdef object _float_generator_result(
+    GeneratorCore* generator,
+    int operation,
+    double a,
+    double b,
+    double c,
+    object count,
+):
+    cdef bint bulk = count is not None
+    cdef Py_ssize_t size = _as_count(count) if bulk else 0
+    with nogil:
+        generator.lock()
+    try:
+        return _float_dispatch(generator, operation, a, b, c, bulk, size)
+    finally:
+        with nogil:
+            generator.unlock()
+
+
+cdef list _canonical_list(vector[double]& values):
+    cdef Py_ssize_t size = <Py_ssize_t>values.size()
+    cdef Py_ssize_t index
+    cdef list result = PyList_New(size)
+    cdef PyObject* item
+    for index in range(size):
+        item = raw_float_from_double(values[index])
+        raw_list_set_item(<PyObject*>result, index, item)
+    return result
+
+
+cdef list _module_canonical_bulk(object count):
+    cdef vector[double] values
+    cdef Py_ssize_t size = _as_count(count)
+    values.resize(size)
+    if size:
+        with nogil:
+            core_module_canonical_fill(&values[0], <size_t>size)
+    return _canonical_list(values)
+
+
+cdef list _generator_canonical_bulk(GeneratorCore* generator, object count):
+    cdef vector[double] values
+    cdef Py_ssize_t size = _as_count(count)
+    values.resize(size)
+    if size:
+        with nogil:
+            core_generator_canonical_fill(generator[0], &values[0], <size_t>size)
+    return _canonical_list(values)
+
+
+cdef object _bool_dispatch(
+    GeneratorCore* generator,
+    int operation,
+    double parameter,
+    bint bulk,
+    Py_ssize_t size,
+):
+    cdef bint scalar
+    cdef vector[uint8_t] values
+    cdef Py_ssize_t index
+    with nogil:
+        core_validate_bool(operation, parameter)
+    if not bulk:
+        with nogil:
+            scalar = core_bool(generator[0], operation, parameter)
+        return bool(scalar)
+    values.resize(size)
+    with nogil:
+        for index in range(size):
+            values[index] = <uint8_t>core_bool(generator[0], operation, parameter)
+    return [bool(values[index]) for index in range(size)]
+
+
+cdef object _bool_result(
+    GeneratorCore* generator,
+    int operation,
+    double parameter,
+    object count,
+):
+    if count is None:
+        return _bool_dispatch(generator, operation, parameter, False, 0)
+    return _bool_dispatch(generator, operation, parameter, True, _as_count(count))
+
+
+cdef object _bool_generator_result(
+    GeneratorCore* generator,
+    int operation,
+    double parameter,
+    object count,
+):
+    cdef bint bulk = count is not None
+    cdef Py_ssize_t size = _as_count(count) if bulk else 0
+    with nogil:
+        generator.lock()
+    try:
+        return _bool_dispatch(generator, operation, parameter, bulk, size)
+    finally:
+        with nogil:
+            generator.unlock()
+
+
+cdef void _shuffle_small_exact_list(
+    GeneratorCore* generator,
+    list data,
+    Py_ssize_t last,
+    bint synchronize,
+) except *:
+    """Shuffle a small exact list without allocating an index schedule.
+
+    Exact lists cannot invoke user callbacks from indexed access or assignment,
+    so it is safe to keep an explicit generator locked while drawing and
+    applying the Knuth-B swaps. MutableSequence subclasses continue through the
+    schedule-first path below, which releases the lock before their callbacks.
+    """
+    cdef Py_ssize_t position
+    cdef Py_ssize_t other
+    if synchronize:
+        with nogil:
+            generator.lock()
+        try:
+            with nogil:
+                generator.prepare()
+            for position in range(last - 1, -1, -1):
+                other = <Py_ssize_t>core_unsigned(
+                    generator[0], 0, <uint64_t>position, <uint64_t>last, 0.0
+                )
+                data[position], data[other] = data[other], data[position]
+        finally:
+            with nogil:
+                generator.unlock()
+        return
+    for position in range(last - 1, -1, -1):
+        other = <Py_ssize_t>core_unsigned(
+            generator[0], 0, <uint64_t>position, <uint64_t>last, 0.0
+        )
+        data[position], data[other] = data[other], data[position]
+
+
+cdef void _shuffle_knuth_b(GeneratorCore* generator, object data, bint synchronize) except *:
+    cdef Py_ssize_t last
+    cdef Py_ssize_t position
+    cdef Py_ssize_t other
+    cdef vector[size_t] others
+    if type(data) is not list and not isinstance(data, MutableSequence):
+        raise TypeError("data must be a mutable sequence")
+    last = len(data) - 1
+    if last <= 0:
+        return
+    if type(data) is list and last < SMALL_EXACT_LIST_SHUFFLE_LIMIT:
+        _shuffle_small_exact_list(generator, data, last, synchronize)
+        return
+    try:
+        others.resize(last)
+    except RuntimeError as error:
+        raise MemoryError("shuffle index schedule is too large") from error
+    if synchronize:
+        with nogil:
+            generator.lock()
+        try:
+            with nogil:
+                generator.prepare()
+                for position in range(last - 1, -1, -1):
+                    others[position] = <size_t>core_unsigned(
+                        generator[0], 0, <uint64_t>position, <uint64_t>last, 0.0
+                    )
+        finally:
+            with nogil:
+                generator.unlock()
+    else:
+        with nogil:
+            for position in range(last - 1, -1, -1):
+                others[position] = <size_t>core_unsigned(
+                    generator[0], 0, <uint64_t>position, <uint64_t>last, 0.0
+                )
+
+    # Consume the complete shuffle's entropy atomically, then release the
+    # generator lock before invoking arbitrary MutableSequence callbacks. If a
+    # callback raises, the sequence may be partially shuffled and the engine
+    # has still consumed all ``last`` bounded draws.
+    for position in range(last - 1, -1, -1):
+        other = <Py_ssize_t>others[position]
+        data[position], data[other] = data[other], data[position]
+
+
+cdef void _shuffle_fisher_yates(
+    GeneratorCore* generator, object data, bint synchronize
+) except *:
+    cdef Py_ssize_t last
+    cdef Py_ssize_t position
+    cdef Py_ssize_t other
+    if not isinstance(data, MutableSequence):
+        raise TypeError("data must be a mutable sequence")
+    last = len(data) - 1
+    if last <= 0:
+        return
+    if synchronize:
+        with nogil:
+            generator.lock()
+        try:
+            with nogil:
+                generator.prepare()
+            for position in range(last, 0, -1):
+                other = <Py_ssize_t>core_unsigned(
+                    generator[0], 0, 0, <uint64_t>position, 0.0
+                )
+                data[position], data[other] = data[other], data[position]
+        finally:
+            with nogil:
+                generator.unlock()
+        return
+    for position in range(last, 0, -1):
+        other = <Py_ssize_t>core_unsigned(
+            generator[0], 0, 0, <uint64_t>position, 0.0
+        )
+        data[position], data[other] = data[other], data[position]
+
+
+cdef list _sample_module_materialized(list working, Py_ssize_t count):
+    cdef vector[size_t] offsets
+    cdef size_t population_size = <size_t>len(working)
+    cdef Py_ssize_t position
+    cdef Py_ssize_t other
+    if count < 0:
+        raise ValueError("sample size must be nonnegative")
+    if count > len(working):
+        raise ValueError("sample size exceeds population")
+    if count == 0:
+        return []
+    offsets.resize(count)
+    _prepare_module_scalar()
+    with nogil:
+        core_module_sample_offsets(population_size, <size_t>count, &offsets[0])
+    for position in range(count):
+        other = <Py_ssize_t>offsets[position]
+        working[position], working[other] = working[other], working[position]
+    del working[count:]
+    return working
+
+
+cdef list _sample_generator_materialized(
+    GeneratorCore* generator, list working, Py_ssize_t count
+):
+    cdef vector[size_t] offsets
+    cdef size_t population_size = <size_t>len(working)
+    cdef Py_ssize_t position
+    cdef Py_ssize_t other
+    if count < 0:
+        raise ValueError("sample size must be nonnegative")
+    if count > len(working):
+        raise ValueError("sample size exceeds population")
+    if count == 0:
+        return []
+    offsets.resize(count)
+    with nogil:
+        core_generator_sample_offsets(
+            generator[0], population_size, <size_t>count, &offsets[0]
+        )
+    for position in range(count):
+        other = <Py_ssize_t>offsets[position]
+        working[position], working[other] = working[other], working[position]
+    del working[count:]
+    return working
+
+
+cdef bytes _stream_payload(object stream_id):
+    cdef bytes magnitude
+    cdef bytes encoded
+    cdef bytes sign
+    if isinstance(stream_id, bool):
+        raise TypeError("stream_id must be int, str, or bytes, not bool")
+    if isinstance(stream_id, int):
+        sign = b"-" if stream_id < 0 else b"+"
+        magnitude = abs(stream_id).to_bytes(
+            max(1, (abs(stream_id).bit_length() + 7) // 8), "big"
+        )
+        return b"i" + sign + len(magnitude).to_bytes(8, "big") + magnitude
+    if isinstance(stream_id, str):
+        encoded = stream_id.encode("utf-8")
+        return b"s" + len(encoded).to_bytes(8, "big") + encoded
+    if isinstance(stream_id, bytes):
+        return b"b" + len(stream_id).to_bytes(8, "big") + stream_id
+    raise TypeError("stream_id must be int, str, or bytes")
+
+
+cdef uint64_t _stream_seed(object root_seed, object stream_id) except *:
+    cdef uint64_t checked_root = _as_uint64(root_seed, "root_seed")
+    cdef bytes payload = (
+        b"Fortuna\x006.0\x00for_stream\x00"
+        + int(checked_root).to_bytes(8, "big")
+        + _stream_payload(stream_id)
+    )
+    return int.from_bytes(sha256(payload).digest()[:8], "big")
+
+
+cdef class Generator:
+    """Generator(seed=0)\n--\n\nOwned random engine with deterministic and entropy construction modes."""
+
+    cdef GeneratorCore* _generator
+
+    def __cinit__(self, seed=0):
+        self._generator = NULL
+        self._generator = new GeneratorCore(_as_uint64(seed, "seed"))
+
+    def __dealloc__(self):
+        if self._generator != NULL:
+            del self._generator
+
+    @classmethod
+    def from_entropy(cls):
+        cdef object constructed = cls(0)
+        cdef Generator result
+        if not isinstance(constructed, cls):
+            raise TypeError("Generator subclass constructor must return an instance of cls")
+        result = constructed
+        with nogil:
+            result._generator.reseed_from_entropy()
+        return result
+
+    @classmethod
+    def for_stream(cls, root_seed, stream_id):
+        result = cls(_stream_seed(root_seed, stream_id))
+        if not isinstance(result, cls):
+            raise TypeError("Generator subclass constructor must return an instance of cls")
+        return result
+
+    def seed(self, value=0):
+        cdef uint64_t checked = _as_uint64(value, "seed")
+        with nogil:
+            self._generator.lock()
+        try:
+            with nogil:
+                self._generator.seed(checked)
+        finally:
+            with nogil:
+                self._generator.unlock()
+
+    def reseed_from_entropy(self):
+        with nogil:
+            self._generator.lock()
+        try:
+            with nogil:
+                self._generator.reseed_from_entropy()
+        finally:
+            with nogil:
+                self._generator.unlock()
+
+    def percent_true(self, percent=50.0, *, count=None):
+        cdef double checked = _as_double(percent, "percent")
+        cdef bint scalar
+        if count is not None:
+            return _bool_generator_result(self._generator, 0, checked, count)
+        with nogil:
+            scalar = core_generator_percent_true(self._generator[0], checked)
+        return bool(scalar)
+
+    def bernoulli_variate(self, probability=0.5, *, count=None):
+        cdef double checked = _as_double(probability, "probability")
+        cdef bint scalar
+        if count is not None:
+            return _bool_generator_result(self._generator, 1, checked, count)
+        with nogil:
+            scalar = core_generator_bernoulli(self._generator[0], checked)
+        return bool(scalar)
+
+    def random_below(self, limit, *, count=None):
+        cdef int direction
+        cdef uint64_t high = _below_high(limit, &direction)
+        cdef uint64_t scalar
+        cdef object result
+        if direction == 0:
+            if count is not None:
+                _as_count(count)
+            raise ValueError("limit must be nonzero")
+        if count is not None:
+            result = _unsigned_generator_result(
+                self._generator, 0, 0, high, 0.0, count
+            )
+            return _reflected_below_result(result, direction)
+        with nogil:
+            scalar = core_generator_random_below(self._generator[0], high)
+        if direction > 0:
+            return scalar
+        return -(<object>scalar)
+
+    def random_index(self, size, *, count=None):
+        cdef int direction
+        cdef uint64_t checked = _index_magnitude(size, &direction)
+        cdef uint64_t scalar
+        cdef object result
+        if count is not None:
+            result = _unsigned_generator_result(
+                self._generator, 1, checked, 0, 0.0, count
+            )
+            return _continued_index_result(result, direction, checked)
+        with nogil:
+            scalar = core_generator_random_index(self._generator[0], checked)
+        if direction > 0:
+            return scalar
+        return (<object>scalar) - checked
+
+    def random_int(self, low, high, *, count=None):
+        cdef int64_t checked_low = _as_int64(low, "low")
+        cdef int64_t checked_high = _as_int64(high, "high")
+        cdef int64_t scalar
+        if count is not None:
+            return _signed_generator_result(
+                self._generator, 0, checked_low, checked_high, 0, count
+            )
+        with nogil:
+            scalar = core_generator_random_int(self._generator[0], checked_low, checked_high)
+        return scalar
+
+    def random_range(self, start, stop=None, step=1, *, count=None):
+        cdef int64_t checked_start
+        cdef int64_t checked_stop
+        cdef int64_t checked_step
+        cdef int64_t scalar
+        if stop is None:
+            stop = start
+            start = 0
+        checked_start = _as_int64(start, "start")
+        checked_stop = _as_int64(stop, "stop")
+        checked_step = _as_int64(step, "step")
+        if count is not None:
+            return _signed_generator_result(
+                self._generator, 1, checked_start, checked_stop, checked_step, count
+            )
+        with nogil:
+            scalar = core_generator_random_range(
+                self._generator[0], checked_start, checked_stop, checked_step
+            )
+        return scalar
+
+    def d(self, sides=20, *, count=None):
+        cdef uint64_t checked = _as_uint64(sides, "sides")
+        cdef uint64_t scalar
+        if count is not None:
+            return _unsigned_generator_result(self._generator, 2, checked, 0, 0.0, count)
+        with nogil:
+            scalar = core_generator_roll_die(self._generator[0], checked)
+        return scalar
+
+    def dice(self, rolls=1, sides=20, *, count=None):
+        cdef uint64_t checked_rolls = _as_uint64(rolls, "rolls")
+        cdef uint64_t checked_sides = _as_uint64(sides, "sides")
+        cdef uint64_t scalar
+        if count is not None:
+            return _unsigned_generator_result(
+                self._generator, 3, checked_rolls, checked_sides, 0.0, count
+            )
+        with nogil:
+            scalar = core_generator_roll_dice(
+                self._generator[0], checked_rolls, checked_sides
+            )
+        return scalar
+
+    def ability_dice(self, rolls=4, *, count=None):
+        cdef uint64_t checked = _as_uint64(rolls, "rolls")
+        cdef uint64_t scalar
+        if count is not None:
+            return _unsigned_generator_result(
+                self._generator, 4, checked, 0, 0.0, count
+            )
+        with nogil:
+            scalar = core_generator_ability_dice(self._generator[0], checked)
+        return scalar
+
+    def plus_or_minus(self, radius=1, *, count=None):
+        cdef int64_t checked = _as_int64(radius, "radius")
+        cdef int64_t scalar
+        if count is not None:
+            return _signed_generator_result(self._generator, 2, checked, 0, 0, count)
+        with nogil:
+            scalar = core_generator_plus_or_minus(self._generator[0], checked)
+        return scalar
+
+    def plus_or_minus_triangular(self, radius=1, *, count=None):
+        cdef int64_t checked = _as_int64(radius, "radius")
+        cdef int64_t scalar
+        if count is not None:
+            return _signed_generator_result(self._generator, 3, checked, 0, 0, count)
+        with nogil:
+            scalar = core_generator_plus_or_minus_triangular(
+                self._generator[0], checked
+            )
+        return scalar
+
+    def plus_or_minus_normal(self, radius=1, *, count=None):
+        cdef int64_t checked = _as_int64(radius, "radius")
+        cdef int64_t scalar
+        if count is not None:
+            return _signed_generator_result(self._generator, 4, checked, 0, 0, count)
+        with nogil:
+            scalar = core_generator_plus_or_minus_normal(self._generator[0], checked)
+        return scalar
+
+    def canonical(self, *, count=None):
+        cdef double scalar
+        if count is not None:
+            return _generator_canonical_bulk(self._generator, count)
+        with nogil:
+            scalar = core_generator_canonical(self._generator[0])
+        return scalar
+
+    def random_float(self, low=0.0, high=1.0, *, count=None):
+        cdef double checked_low = _as_double(low, "low")
+        cdef double checked_high = _as_double(high, "high")
+        cdef double scalar
+        if count is not None:
+            return _float_generator_result(
+                self._generator, 1, checked_low, checked_high, 0.0, count
+            )
+        with nogil:
+            scalar = core_generator_random_float(self._generator[0], checked_low, checked_high)
+        return scalar
+
+    def triangular(self, low, high, mode, *, count=None):
+        cdef double checked_low = _as_double(low, "low")
+        cdef double checked_high = _as_double(high, "high")
+        cdef double checked_mode = _as_double(mode, "mode")
+        cdef double scalar
+        if count is not None:
+            return _float_generator_result(
+                self._generator, 2, checked_low, checked_high, checked_mode, count
+            )
+        with nogil:
+            scalar = core_generator_triangular(
+                self._generator[0], checked_low, checked_high, checked_mode
+            )
+        return scalar
+
+    def beta_variate(self, alpha, beta, *, count=None):
+        cdef double checked_alpha = _as_double(alpha, "alpha")
+        cdef double checked_beta = _as_double(beta, "beta")
+        cdef double scalar
+        if count is not None:
+            return _float_generator_result(
+                self._generator, 3, checked_alpha, checked_beta, 0.0, count
+            )
+        with nogil:
+            scalar = core_generator_float_scalar(
+                self._generator[0], 3, checked_alpha, checked_beta, 0.0
+            )
+        return scalar
+
+    def pareto_variate(self, alpha, *, count=None):
+        cdef double checked = _as_double(alpha, "alpha")
+        cdef double scalar
+        if count is not None:
+            return _float_generator_result(self._generator, 4, checked, 0.0, 0.0, count)
+        with nogil:
+            scalar = core_generator_float_scalar(self._generator[0], 4, checked, 0.0, 0.0)
+        return scalar
+
+    def vonmises_variate(self, mu, kappa, *, count=None):
+        cdef double checked_mu = _as_double(mu, "mu")
+        cdef double checked_kappa = _as_double(kappa, "kappa")
+        cdef double scalar
+        if count is not None:
+            return _float_generator_result(
+                self._generator, 5, checked_mu, checked_kappa, 0.0, count
+            )
+        with nogil:
+            scalar = core_generator_float_scalar(
+                self._generator[0], 5, checked_mu, checked_kappa, 0.0
+            )
+        return scalar
+
+    def binomial_variate(self, trials, probability, *, count=None):
+        cdef uint64_t checked_trials = _as_uint64(trials, "trials")
+        cdef double checked_probability = _as_double(probability, "probability")
+        cdef uint64_t scalar
+        if count is not None:
+            return _unsigned_generator_result(
+                self._generator, 5, checked_trials, 0, checked_probability, count
+            )
+        with nogil:
+            scalar = core_generator_unsigned_scalar(
+                self._generator[0], 5, checked_trials, 0, checked_probability
+            )
+        return scalar
+
+    def negative_binomial_variate(self, successes, probability, *, count=None):
+        cdef uint64_t checked_successes = _as_uint64(successes, "successes")
+        cdef double checked_probability = _as_double(probability, "probability")
+        cdef uint64_t scalar
+        if count is not None:
+            return _unsigned_generator_result(
+                self._generator, 6, checked_successes, 0, checked_probability, count
+            )
+        with nogil:
+            scalar = core_generator_unsigned_scalar(
+                self._generator[0], 6, checked_successes, 0, checked_probability
+            )
+        return scalar
+
+    def geometric_variate(self, probability, *, count=None):
+        cdef double checked = _as_double(probability, "probability")
+        cdef uint64_t scalar
+        if count is not None:
+            return _unsigned_generator_result(self._generator, 7, 0, 0, checked, count)
+        with nogil:
+            scalar = core_generator_unsigned_scalar(self._generator[0], 7, 0, 0, checked)
+        return scalar
+
+    def poisson_variate(self, mean, *, count=None):
+        cdef double checked = _as_double(mean, "mean")
+        cdef uint64_t scalar
+        if count is not None:
+            return _unsigned_generator_result(self._generator, 8, 0, 0, checked, count)
+        with nogil:
+            scalar = core_generator_unsigned_scalar(self._generator[0], 8, 0, 0, checked)
+        return scalar
+
+    def exponential_variate(self, rate, *, count=None):
+        cdef double checked = _as_double(rate, "rate")
+        cdef double scalar
+        if count is not None:
+            return _float_generator_result(self._generator, 6, checked, 0.0, 0.0, count)
+        with nogil:
+            scalar = core_generator_exponential(self._generator[0], checked)
+        return scalar
+
+    def gamma_variate(self, shape, scale, *, count=None):
+        cdef double checked_shape = _as_double(shape, "shape")
+        cdef double checked_scale = _as_double(scale, "scale")
+        cdef double scalar
+        if count is not None:
+            return _float_generator_result(
+                self._generator, 7, checked_shape, checked_scale, 0.0, count
+            )
+        with nogil:
+            scalar = core_generator_float_scalar(
+                self._generator[0], 7, checked_shape, checked_scale, 0.0
+            )
+        return scalar
+
+    def weibull_variate(self, shape, scale, *, count=None):
+        cdef double checked_shape = _as_double(shape, "shape")
+        cdef double checked_scale = _as_double(scale, "scale")
+        cdef double scalar
+        if count is not None:
+            return _float_generator_result(
+                self._generator, 8, checked_shape, checked_scale, 0.0, count
+            )
+        with nogil:
+            scalar = core_generator_float_scalar(
+                self._generator[0], 8, checked_shape, checked_scale, 0.0
+            )
+        return scalar
+
+    def normal_variate(self, mean, std_dev, *, count=None):
+        cdef double checked_mean = _as_double(mean, "mean")
+        cdef double checked_deviation = _as_double(std_dev, "std_dev")
+        cdef double scalar
+        if count is not None:
+            return _float_generator_result(
+                self._generator, 9, checked_mean, checked_deviation, 0.0, count
+            )
+        with nogil:
+            scalar = core_generator_normal(
+                self._generator[0], checked_mean, checked_deviation
+            )
+        return scalar
+
+    def log_normal_variate(self, log_mean, log_deviation, *, count=None):
+        cdef double checked_mean = _as_double(log_mean, "log_mean")
+        cdef double checked_deviation = _as_double(log_deviation, "log_deviation")
+        cdef double scalar
+        if count is not None:
+            return _float_generator_result(
+                self._generator, 10, checked_mean, checked_deviation, 0.0, count
+            )
+        with nogil:
+            scalar = core_generator_float_scalar(
+                self._generator[0], 10, checked_mean, checked_deviation, 0.0
+            )
+        return scalar
+
+    def extreme_value_variate(self, location, scale, *, count=None):
+        cdef double checked_location = _as_double(location, "location")
+        cdef double checked_scale = _as_double(scale, "scale")
+        cdef double scalar
+        if count is not None:
+            return _float_generator_result(
+                self._generator, 11, checked_location, checked_scale, 0.0, count
+            )
+        with nogil:
+            scalar = core_generator_float_scalar(
+                self._generator[0], 11, checked_location, checked_scale, 0.0
+            )
+        return scalar
+
+    def chi_squared_variate(self, degrees_of_freedom, *, count=None):
+        cdef double checked = _as_double(degrees_of_freedom, "degrees_of_freedom")
+        cdef double scalar
+        if count is not None:
+            return _float_generator_result(self._generator, 12, checked, 0.0, 0.0, count)
+        with nogil:
+            scalar = core_generator_float_scalar(self._generator[0], 12, checked, 0.0, 0.0)
+        return scalar
+
+    def cauchy_variate(self, location, scale, *, count=None):
+        cdef double checked_location = _as_double(location, "location")
+        cdef double checked_scale = _as_double(scale, "scale")
+        cdef double scalar
+        if count is not None:
+            return _float_generator_result(
+                self._generator, 13, checked_location, checked_scale, 0.0, count
+            )
+        with nogil:
+            scalar = core_generator_float_scalar(
+                self._generator[0], 13, checked_location, checked_scale, 0.0
+            )
+        return scalar
+
+    def fisher_f_variate(self, degrees_1, degrees_2, *, count=None):
+        cdef double checked_first = _as_double(degrees_1, "degrees_1")
+        cdef double checked_second = _as_double(degrees_2, "degrees_2")
+        cdef double scalar
+        if count is not None:
+            return _float_generator_result(
+                self._generator, 14, checked_first, checked_second, 0.0, count
+            )
+        with nogil:
+            scalar = core_generator_float_scalar(
+                self._generator[0], 14, checked_first, checked_second, 0.0
+            )
+        return scalar
+
+    def student_t_variate(self, degrees_of_freedom, *, count=None):
+        cdef double checked = _as_double(degrees_of_freedom, "degrees_of_freedom")
+        cdef double scalar
+        if count is not None:
+            return _float_generator_result(self._generator, 15, checked, 0.0, 0.0, count)
+        with nogil:
+            scalar = core_generator_float_scalar(self._generator[0], 15, checked, 0.0, 0.0)
+        return scalar
+
+    def front_triangular(self, size, *, count=None):
+        cdef uint64_t checked = _as_uint64(size, "size")
+        cdef uint64_t scalar
+        if count is not None:
+            return _unsigned_generator_result(self._generator, 9, checked, 0, 0.0, count)
+        with nogil:
+            scalar = core_generator_front_triangular(self._generator[0], checked)
+        return scalar
+
+    def center_triangular(self, size, *, count=None):
+        cdef uint64_t checked = _as_uint64(size, "size")
+        cdef uint64_t scalar
+        if count is not None:
+            return _unsigned_generator_result(self._generator, 10, checked, 0, 0.0, count)
+        with nogil:
+            scalar = core_generator_center_triangular(self._generator[0], checked)
+        return scalar
+
+    def back_triangular(self, size, *, count=None):
+        cdef uint64_t checked = _as_uint64(size, "size")
+        cdef uint64_t scalar
+        if count is not None:
+            return _unsigned_generator_result(self._generator, 11, checked, 0, 0.0, count)
+        with nogil:
+            scalar = core_generator_back_triangular(self._generator[0], checked)
+        return scalar
+
+    def _front_poisson(self, size):
+        cdef uint64_t checked = _as_uint64(size, "size")
+        cdef uint64_t scalar
+        with nogil:
+            scalar = core_generator_front_poisson(self._generator[0], checked)
+        return scalar
+
+    def random_value(self, data):
+        cdef Py_ssize_t size
+        cdef object index
+        cdef uint64_t scalar
+        data = tuple(data)
+        size = len(data)
+        if not size:
+            raise ValueError("data must not be empty")
+        if type(self) is Generator:
+            with nogil:
+                scalar = core_generator_random_index(self._generator[0], size)
+            return data[scalar]
+        index = self.random_index(size)
+        return data[_validated_generated_index(index, size)]
+
+    def shuffle(self, data):
+        """Shuffle in place after atomically consuming the complete index schedule.
+
+        Mutable-sequence callbacks run without the generator lock. If one
+        raises, the sequence may be partially shuffled and the full schedule's
+        entropy has still been consumed.
+        """
+        _shuffle_knuth_b(self._generator, data, True)
+
+    def sample(self, population, k):
+        cdef Py_ssize_t checked_k = _as_count(k)
+        cdef list working = list(population)
+        cdef Py_ssize_t position
+        cdef Py_ssize_t other
+        if checked_k > len(working):
+            raise ValueError("sample size exceeds population")
+        if type(self) is Generator:
+            return _sample_generator_materialized(self._generator, working, checked_k)
+        for position in range(checked_k):
+            other = position + _validated_generated_index(
+                self.random_index(len(working) - position),
+                len(working) - position,
+            )
+            working[position], working[other] = working[other], working[position]
+        return working[:checked_k]
+
+    def _sample_materialized(self, list working, Py_ssize_t checked_k):
+        return _sample_generator_materialized(self._generator, working, checked_k)
+
+
+cdef class _WideIndexSelector:
+    cdef WideIndexCore* _selector
+    cdef object _owner
+
+    def __cinit__(self, size, generator=None):
+        cdef uint64_t checked = _as_uint64(size, "size")
+        cdef Generator exact_generator
+        self._selector = NULL
+        self._owner = generator
+        if generator is None:
+            self._selector = new WideIndexCore(checked)
+        elif type(generator) is Generator:
+            exact_generator = generator
+            self._selector = new WideIndexCore(exact_generator._generator[0], checked)
+        else:
+            raise TypeError("generator must be an exact Fortuna.Generator or None")
+
+    def __dealloc__(self):
+        if self._selector != NULL:
+            del self._selector
+
+    def __call__(self):
+        cdef uint64_t result
+        cdef Generator exact_generator
+        if self._owner is None:
+            result = self._selector.draw_module()
+        else:
+            exact_generator = self._owner
+            result = self._selector.draw(exact_generator._generator[0])
+        return result
+
+
+cdef class _PreparedWeightedIndex:
+    cdef PreparedWeightedIndexCore* _selector
+    cdef object _owner
+
+    def __cinit__(self, weights, generator=None):
+        cdef vector[double] prepared
+        self._selector = NULL
+        self._owner = generator
+        for weight in weights:
+            prepared.push_back(_as_double(weight, "weight"))
+        if generator is None:
+            self._selector = new PreparedWeightedIndexCore(prepared)
+        elif type(generator) is Generator:
+            self._selector = new PreparedWeightedIndexCore(prepared)
+        else:
+            raise TypeError("generator must be an exact Fortuna.Generator or None")
+
+    def __dealloc__(self):
+        if self._selector != NULL:
+            del self._selector
+
+    def __call__(self):
+        cdef uint64_t result
+        cdef Generator exact_generator
+        if self._owner is None:
+            result = self._selector.draw_module()
+        else:
+            exact_generator = self._owner
+            result = self._selector.draw(exact_generator._generator[0])
+        return result
+
+
+def _wide_index_selector(size, generator=None):
+    return _WideIndexSelector(size, generator)
+
+
+def _prepared_weighted_index(weights, generator=None):
+    return _PreparedWeightedIndex(weights, generator)
+
+
+def storm_version():
+    return core_storm_version().decode("ascii")
+
+
+def seed(value=0):
+    cdef uint64_t checked = _as_uint64(value, "seed")
+    with nogil:
+        core_module_seed(checked)
+
+
+def from_entropy():
+    return Generator.from_entropy()
+
+
+def for_stream(root_seed, stream_id):
+    return Generator.for_stream(root_seed, stream_id)
+
+
+def shuffle(data):
+    """Shuffle in place after consuming the complete index schedule."""
+    _shuffle_knuth_b(_module(), data, False)
+
+
+def _benchmark_shuffle_knuth_b(data):
+    """Internal benchmark hook; not part of Fortuna's public API."""
+    _shuffle_knuth_b(_module(), data, False)
+
+
+def _benchmark_shuffle_fisher_yates(data):
+    """Internal benchmark hook; not part of Fortuna's public API."""
+    _shuffle_fisher_yates(_module(), data, False)
+
+
+def _sample_materialized(list working, Py_ssize_t checked_k):
+    return _sample_module_materialized(working, checked_k)
+
+
+def _random_value_materialized(data):
+    """Select from an exact nonempty tuple/list through the module engine."""
+    cdef tuple tuple_data
+    cdef Py_ssize_t size
+    cdef uint64_t index
+    if type(data) is tuple:
+        tuple_data = data
+    elif type(data) is list:
+        tuple_data = tuple(data)
+    else:
+        raise TypeError("data must be an exact tuple or list")
+    size = len(tuple_data)
+    if not size:
+        raise ValueError("data must not be empty")
+    _prepare_module_scalar()
+    index = core_module_random_index(size)
+    return tuple_data[index]
+
+
+def percent_true(percent=50.0, *, count=None):
+    cdef double checked = _as_double(percent, "percent")
+    cdef bint scalar
+    if count is not None:
+        return _bool_result(_module(), 0, checked, count)
+    _prepare_module_scalar()
+    scalar = core_module_percent_true(checked)
+    return bool(scalar)
+
+
+def bernoulli_variate(probability=0.5, *, count=None):
+    cdef double checked = _as_double(probability, "probability")
+    cdef bint scalar
+    if count is not None:
+        return _bool_result(_module(), 1, checked, count)
+    _prepare_module_scalar()
+    scalar = core_module_bernoulli(checked)
+    return bool(scalar)
+
+
+def random_below(limit, *, count=None):
+    cdef int direction
+    cdef uint64_t high = _below_high(limit, &direction)
+    cdef uint64_t scalar
+    cdef object result
+    if direction == 0:
+        if count is not None:
+            _as_count(count)
+        raise ValueError("limit must be nonzero")
+    if count is not None:
+        result = _unsigned_result(_module(), 0, 0, high, 0.0, count)
+        return _reflected_below_result(result, direction)
+    _prepare_module_scalar()
+    scalar = core_module_random_below(high)
+    if direction > 0:
+        return scalar
+    return -(<object>scalar)
+
+
+def random_index(size, *, count=None):
+    cdef int direction
+    cdef uint64_t checked = _index_magnitude(size, &direction)
+    cdef uint64_t scalar
+    cdef object result
+    if count is not None:
+        result = _unsigned_result(_module(), 1, checked, 0, 0.0, count)
+        return _continued_index_result(result, direction, checked)
+    _prepare_module_scalar()
+    scalar = core_module_random_index(checked)
+    if direction > 0:
+        return scalar
+    return (<object>scalar) - checked
+
+
+def random_int(low, high, *, count=None):
+    cdef int64_t checked_low = _as_int64(low, "low")
+    cdef int64_t checked_high = _as_int64(high, "high")
+    cdef int64_t scalar
+    if count is not None:
+        return _signed_result(_module(), 0, checked_low, checked_high, 0, count)
+    _prepare_module_scalar()
+    scalar = core_module_random_int(checked_low, checked_high)
+    return scalar
+
+
+def random_range(start, stop=None, step=1, *, count=None):
+    cdef int64_t checked_start
+    cdef int64_t checked_stop
+    cdef int64_t checked_step
+    cdef int64_t scalar
+    if stop is None:
+        stop = start
+        start = 0
+    checked_start = _as_int64(start, "start")
+    checked_stop = _as_int64(stop, "stop")
+    checked_step = _as_int64(step, "step")
+    if count is not None:
+        return _signed_result(_module(), 1, checked_start, checked_stop, checked_step, count)
+    _prepare_module_scalar()
+    scalar = core_module_random_range(checked_start, checked_stop, checked_step)
+    return scalar
+
+
+def d(sides=20, *, count=None):
+    cdef uint64_t checked = _as_uint64(sides, "sides")
+    cdef uint64_t scalar
+    if count is not None:
+        return _unsigned_result(_module(), 2, checked, 0, 0.0, count)
+    _prepare_module_scalar()
+    scalar = core_module_roll_die(checked)
+    return scalar
+
+
+def dice(rolls=1, sides=20, *, count=None):
+    cdef uint64_t checked_rolls = _as_uint64(rolls, "rolls")
+    cdef uint64_t checked_sides = _as_uint64(sides, "sides")
+    cdef uint64_t scalar
+    if count is not None:
+        return _unsigned_result(
+            _module(), 3, checked_rolls, checked_sides, 0.0, count
+        )
+    _prepare_module_scalar()
+    scalar = core_module_roll_dice(checked_rolls, checked_sides)
+    return scalar
+
+
+def ability_dice(rolls=4, *, count=None):
+    cdef uint64_t checked = _as_uint64(rolls, "rolls")
+    cdef uint64_t scalar
+    if count is not None:
+        return _unsigned_result(_module(), 4, checked, 0, 0.0, count)
+    _prepare_module_scalar()
+    scalar = core_module_ability_dice(checked)
+    return scalar
+
+
+def plus_or_minus(radius=1, *, count=None):
+    cdef int64_t checked = _as_int64(radius, "radius")
+    cdef int64_t scalar
+    if count is not None:
+        return _signed_result(_module(), 2, checked, 0, 0, count)
+    _prepare_module_scalar()
+    scalar = core_module_plus_or_minus(checked)
+    return scalar
+
+
+def plus_or_minus_triangular(radius=1, *, count=None):
+    cdef int64_t checked = _as_int64(radius, "radius")
+    cdef int64_t scalar
+    if count is not None:
+        return _signed_result(_module(), 3, checked, 0, 0, count)
+    _prepare_module_scalar()
+    scalar = core_module_plus_or_minus_triangular(checked)
+    return scalar
+
+
+def plus_or_minus_normal(radius=1, *, count=None):
+    cdef int64_t checked = _as_int64(radius, "radius")
+    cdef int64_t scalar
+    if count is not None:
+        return _signed_result(_module(), 4, checked, 0, 0, count)
+    _prepare_module_scalar()
+    scalar = core_module_plus_or_minus_normal(checked)
+    return scalar
+
+
+def canonical(*, count=None):
+    if count is not None:
+        return _module_canonical_bulk(count)
+    if core_module_needs_prepare():
+        with nogil:
+            core_module_prepare()
+    return core_module_canonical_prepared()
+
+
+def random_float(low=0.0, high=1.0, *, count=None):
+    cdef double checked_low = _as_double(low, "low")
+    cdef double checked_high = _as_double(high, "high")
+    cdef double scalar
+    if count is not None:
+        return _float_result(_module(), 1, checked_low, checked_high, 0.0, count)
+    _prepare_module_scalar()
+    scalar = core_module_random_float(checked_low, checked_high)
+    return scalar
+
+
+def triangular(low, high, mode, *, count=None):
+    cdef double checked_low = _as_double(low, "low")
+    cdef double checked_high = _as_double(high, "high")
+    cdef double checked_mode = _as_double(mode, "mode")
+    cdef double scalar
+    if count is not None:
+        return _float_result(
+            _module(), 2, checked_low, checked_high, checked_mode, count
+        )
+    _prepare_module_scalar()
+    scalar = core_module_triangular(checked_low, checked_high, checked_mode)
+    return scalar
+
+
+def beta_variate(alpha, beta, *, count=None):
+    cdef double checked_alpha = _as_double(alpha, "alpha")
+    cdef double checked_beta = _as_double(beta, "beta")
+    cdef double scalar
+    if count is not None:
+        return _float_result(_module(), 3, checked_alpha, checked_beta, 0.0, count)
+    _prepare_module_scalar()
+    scalar = core_module_float_scalar(3, checked_alpha, checked_beta, 0.0)
+    return scalar
+
+
+def pareto_variate(alpha, *, count=None):
+    cdef double checked = _as_double(alpha, "alpha")
+    cdef double scalar
+    if count is not None:
+        return _float_result(_module(), 4, checked, 0.0, 0.0, count)
+    _prepare_module_scalar()
+    scalar = core_module_float_scalar(4, checked, 0.0, 0.0)
+    return scalar
+
+
+def vonmises_variate(mu, kappa, *, count=None):
+    cdef double checked_mu = _as_double(mu, "mu")
+    cdef double checked_kappa = _as_double(kappa, "kappa")
+    cdef double scalar
+    if count is not None:
+        return _float_result(_module(), 5, checked_mu, checked_kappa, 0.0, count)
+    _prepare_module_scalar()
+    scalar = core_module_float_scalar(5, checked_mu, checked_kappa, 0.0)
+    return scalar
+
+
+def binomial_variate(trials, probability, *, count=None):
+    cdef uint64_t checked_trials = _as_uint64(trials, "trials")
+    cdef double checked_probability = _as_double(probability, "probability")
+    cdef uint64_t scalar
+    if count is not None:
+        return _unsigned_result(
+            _module(), 5, checked_trials, 0, checked_probability, count
+        )
+    _prepare_module_scalar()
+    scalar = core_module_unsigned_scalar(5, checked_trials, 0, checked_probability)
+    return scalar
+
+
+def negative_binomial_variate(successes, probability, *, count=None):
+    cdef uint64_t checked_successes = _as_uint64(successes, "successes")
+    cdef double checked_probability = _as_double(probability, "probability")
+    cdef uint64_t scalar
+    if count is not None:
+        return _unsigned_result(
+            _module(), 6, checked_successes, 0, checked_probability, count
+        )
+    _prepare_module_scalar()
+    scalar = core_module_unsigned_scalar(6, checked_successes, 0, checked_probability)
+    return scalar
+
+
+def geometric_variate(probability, *, count=None):
+    cdef double checked = _as_double(probability, "probability")
+    cdef uint64_t scalar
+    if count is not None:
+        return _unsigned_result(_module(), 7, 0, 0, checked, count)
+    _prepare_module_scalar()
+    scalar = core_module_unsigned_scalar(7, 0, 0, checked)
+    return scalar
+
+
+def poisson_variate(mean, *, count=None):
+    cdef double checked = _as_double(mean, "mean")
+    cdef uint64_t scalar
+    if count is not None:
+        return _unsigned_result(_module(), 8, 0, 0, checked, count)
+    _prepare_module_scalar()
+    scalar = core_module_unsigned_scalar(8, 0, 0, checked)
+    return scalar
+
+
+def exponential_variate(rate, *, count=None):
+    cdef double checked = _as_double(rate, "rate")
+    cdef double scalar
+    if count is not None:
+        return _float_result(_module(), 6, checked, 0.0, 0.0, count)
+    _prepare_module_scalar()
+    scalar = core_module_exponential(checked)
+    return scalar
+
+
+def gamma_variate(shape, scale, *, count=None):
+    cdef double checked_shape = _as_double(shape, "shape")
+    cdef double checked_scale = _as_double(scale, "scale")
+    cdef double scalar
+    if count is not None:
+        return _float_result(_module(), 7, checked_shape, checked_scale, 0.0, count)
+    _prepare_module_scalar()
+    scalar = core_module_float_scalar(7, checked_shape, checked_scale, 0.0)
+    return scalar
+
+
+def weibull_variate(shape, scale, *, count=None):
+    cdef double checked_shape = _as_double(shape, "shape")
+    cdef double checked_scale = _as_double(scale, "scale")
+    cdef double scalar
+    if count is not None:
+        return _float_result(_module(), 8, checked_shape, checked_scale, 0.0, count)
+    _prepare_module_scalar()
+    scalar = core_module_float_scalar(8, checked_shape, checked_scale, 0.0)
+    return scalar
+
+
+def normal_variate(mean, std_dev, *, count=None):
+    cdef double checked_mean = _as_double(mean, "mean")
+    cdef double checked_deviation = _as_double(std_dev, "std_dev")
+    cdef double scalar
+    if count is not None:
+        return _float_result(
+            _module(), 9, checked_mean, checked_deviation, 0.0, count
+        )
+    _prepare_module_scalar()
+    scalar = core_module_normal(checked_mean, checked_deviation)
+    return scalar
+
+
+def log_normal_variate(log_mean, log_deviation, *, count=None):
+    cdef double checked_mean = _as_double(log_mean, "log_mean")
+    cdef double checked_deviation = _as_double(log_deviation, "log_deviation")
+    cdef double scalar
+    if count is not None:
+        return _float_result(
+            _module(), 10, checked_mean, checked_deviation, 0.0, count
+        )
+    _prepare_module_scalar()
+    scalar = core_module_float_scalar(10, checked_mean, checked_deviation, 0.0)
+    return scalar
+
+
+def extreme_value_variate(location, scale, *, count=None):
+    cdef double checked_location = _as_double(location, "location")
+    cdef double checked_scale = _as_double(scale, "scale")
+    cdef double scalar
+    if count is not None:
+        return _float_result(
+            _module(), 11, checked_location, checked_scale, 0.0, count
+        )
+    _prepare_module_scalar()
+    scalar = core_module_float_scalar(11, checked_location, checked_scale, 0.0)
+    return scalar
+
+
+def chi_squared_variate(degrees_of_freedom, *, count=None):
+    cdef double checked = _as_double(degrees_of_freedom, "degrees_of_freedom")
+    cdef double scalar
+    if count is not None:
+        return _float_result(_module(), 12, checked, 0.0, 0.0, count)
+    _prepare_module_scalar()
+    scalar = core_module_float_scalar(12, checked, 0.0, 0.0)
+    return scalar
+
+
+def cauchy_variate(location, scale, *, count=None):
+    cdef double checked_location = _as_double(location, "location")
+    cdef double checked_scale = _as_double(scale, "scale")
+    cdef double scalar
+    if count is not None:
+        return _float_result(
+            _module(), 13, checked_location, checked_scale, 0.0, count
+        )
+    _prepare_module_scalar()
+    scalar = core_module_float_scalar(13, checked_location, checked_scale, 0.0)
+    return scalar
+
+
+def fisher_f_variate(degrees_1, degrees_2, *, count=None):
+    cdef double checked_first = _as_double(degrees_1, "degrees_1")
+    cdef double checked_second = _as_double(degrees_2, "degrees_2")
+    cdef double scalar
+    if count is not None:
+        return _float_result(
+            _module(), 14, checked_first, checked_second, 0.0, count
+        )
+    _prepare_module_scalar()
+    scalar = core_module_float_scalar(14, checked_first, checked_second, 0.0)
+    return scalar
+
+
+def student_t_variate(degrees_of_freedom, *, count=None):
+    cdef double checked = _as_double(degrees_of_freedom, "degrees_of_freedom")
+    cdef double scalar
+    if count is not None:
+        return _float_result(_module(), 15, checked, 0.0, 0.0, count)
+    _prepare_module_scalar()
+    scalar = core_module_float_scalar(15, checked, 0.0, 0.0)
+    return scalar
+
+
+def front_triangular(size, *, count=None):
+    cdef uint64_t checked = _as_uint64(size, "size")
+    cdef uint64_t scalar
+    if count is not None:
+        return _unsigned_result(_module(), 9, checked, 0, 0.0, count)
+    _prepare_module_scalar()
+    scalar = core_module_front_triangular(checked)
+    return scalar
+
+
+def center_triangular(size, *, count=None):
+    cdef uint64_t checked = _as_uint64(size, "size")
+    cdef uint64_t scalar
+    if count is not None:
+        return _unsigned_result(_module(), 10, checked, 0, 0.0, count)
+    _prepare_module_scalar()
+    scalar = core_module_center_triangular(checked)
+    return scalar
+
+
+def back_triangular(size, *, count=None):
+    cdef uint64_t checked = _as_uint64(size, "size")
+    cdef uint64_t scalar
+    if count is not None:
+        return _unsigned_result(_module(), 11, checked, 0, 0.0, count)
+    _prepare_module_scalar()
+    scalar = core_module_back_triangular(checked)
+    return scalar
+
+
+def _front_poisson(size):
+    cdef uint64_t checked = _as_uint64(size, "size")
+    cdef uint64_t scalar
+    _prepare_module_scalar()
+    scalar = core_module_front_poisson(checked)
+    return scalar
+
+
+def _after_fork_child():
+    with nogil:
+        core_after_fork()
+
+
+if hasattr(os, "register_at_fork"):
+    os.register_at_fork(after_in_child=_after_fork_child)
