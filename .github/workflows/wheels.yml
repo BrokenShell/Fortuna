@@ -119,11 +119,21 @@ jobs:
           CIBW_BUILD_FRONTEND: "build[uv]"
           CIBW_SKIP: "*-musllinux_*"
           CIBW_CONFIG_SETTINGS: ${{ matrix.config_settings }}
+          CIBW_BEFORE_BUILD_WINDOWS: "python -m pip install delvewheel==1.13.0"
+          CIBW_REPAIR_WHEEL_COMMAND_WINDOWS: "delvewheel repair -w {dest_dir} {wheel}"
           CIBW_TEST_COMMAND: >-
             python -c "from importlib.metadata import version; from pathlib import Path; import Fortuna; root = Path(Fortuna.__file__).parent; assert version('Fortuna') == Fortuna.__version__ == '6.0.4'; assert Fortuna.storm_version() == '5.0.2'; assert (root / '_core.pyi').is_file() and (root / 'py.typed').is_file(); a = Fortuna.Generator(0); b = Fortuna.Generator(0); assert [a.random_int(-10, 10) for _ in range(8)] == [b.random_int(-10, 10) for _ in range(8)]"
         with:
           extras: uv
           output-dir: wheelhouse
+      - name: Require the Windows C++ runtime in the wheel
+        if: matrix.platform == 'windows'
+        shell: pwsh
+        run: >-
+          python -c "from pathlib import Path; from zipfile import ZipFile;
+          wheel = next(Path('wheelhouse').glob('*.whl'));
+          names = [name.lower() for name in ZipFile(wheel).namelist()];
+          assert any('msvcp140' in name and name.endswith('.dll') for name in names), names"
       - name: Store wheels as workflow artifacts
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:

@@ -211,12 +211,14 @@ before treating a release candidate as complete.
 Release optimization is platform-specific and evidence-driven. The macOS arm64
 matrix entry passes `-Db_lto=true` to Meson through cibuildwheel's backend
 configuration settings. The Windows entry passes `--vsenv` so Meson activates
-MSVC instead of selecting an unrelated compiler from `PATH`. macOS x86_64,
-Linux, and Windows use their verified release optimization without LTO. Keep
-this policy at the release-workflow boundary: ordinary local and
-source-distribution builds must remain portable, and a compiler or architecture
-must earn a release override through controlled public-API benchmarks and
-complete correctness checks.
+MSVC instead of selecting an unrelated compiler from `PATH`, then repairs the
+wheel with pinned `delvewheel` so the required redistributable C++ Standard
+Library DLL is deployed application-locally. The workflow inspects the repaired
+archive and fails unless that DLL is present. macOS x86_64, Linux, and Windows
+use their verified release optimization without LTO. Keep this policy at the
+release-workflow boundary: ordinary local and source-distribution builds must
+remain portable, and a compiler or architecture must earn a release override
+through controlled public-API benchmarks and complete correctness checks.
 
 ## Bump the release version
 
