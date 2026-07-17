@@ -141,6 +141,34 @@ def test_explicit_generator_state_is_copied_by_fork():
 @pytest.mark.skipif(
     "fork" not in multiprocessing.get_all_start_methods(), reason="fork unavailable"
 )
+def test_explicit_truffle_selector_state_is_copied_by_fork():
+    generator = Fortuna.Generator(910)
+    control_generator = Fortuna.Generator(910)
+    selector = Fortuna.TruffleShuffle(range(100), generator=generator)
+    control = Fortuna.TruffleShuffle(range(100), generator=control_generator)
+    expected = control()
+
+    read_fd, write_fd = os.pipe()
+    process_id = os.fork()
+    if process_id == 0:  # pragma: no cover - assertion occurs in parent
+        os.close(read_fd)
+        value = selector()
+        os.write(write_fd, str(value).encode("ascii"))
+        os.close(write_fd)
+        os._exit(0)
+    os.close(write_fd)
+    child_value = int(os.read(read_fd, 128))
+    os.close(read_fd)
+    os.waitpid(process_id, 0)
+
+    assert child_value == expected
+    assert selector() == expected
+    assert generator.random_below(2**64) == control_generator.random_below(2**64)
+
+
+@pytest.mark.skipif(
+    "fork" not in multiprocessing.get_all_start_methods(), reason="fork unavailable"
+)
 def test_module_and_entropy_generators_reseed_after_fork():
     Fortuna.seed(404)
     module_control = Fortuna.Generator(404)
@@ -167,6 +195,36 @@ def test_module_and_entropy_generators_reseed_after_fork():
     assert Fortuna.random_below(2**64) == inherited_module_value
     assert child_module != inherited_module_value
     assert child_entropy != entropy_generator.random_below(2**64)
+
+
+@pytest.mark.skipif(
+    "fork" not in multiprocessing.get_all_start_methods(), reason="fork unavailable"
+)
+def test_module_truffle_selector_reseeds_engine_after_fork():
+    Fortuna.seed(405)
+    control_generator = Fortuna.Generator(405)
+    selector = Fortuna.TruffleShuffle(range(100))
+    control = Fortuna.TruffleShuffle(range(100), generator=control_generator)
+    inherited_value = control()
+    inherited_sentinel = control_generator.random_below(2**64)
+
+    read_fd, write_fd = os.pipe()
+    process_id = os.fork()
+    if process_id == 0:  # pragma: no cover - assertions occur in parent
+        os.close(read_fd)
+        child_value = selector()
+        child_sentinel = Fortuna.random_below(2**64)
+        os.write(write_fd, f"{child_value},{child_sentinel}".encode("ascii"))
+        os.close(write_fd)
+        os._exit(0)
+    os.close(write_fd)
+    _child_value, child_sentinel = map(int, os.read(read_fd, 256).decode("ascii").split(","))
+    os.close(read_fd)
+    os.waitpid(process_id, 0)
+
+    assert selector() == inherited_value
+    assert Fortuna.random_below(2**64) == inherited_sentinel
+    assert child_sentinel != inherited_sentinel
 
 
 @pytest.mark.skipif(
