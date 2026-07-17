@@ -39,7 +39,8 @@ jobs:
         with:
           enable-cache: true
           python-version: "3.14.6"
-      - run: uv build --sdist --no-sources
+      - name: Build with declared isolated dependencies
+        run: uv build --no-config --sdist --no-sources
       - name: Verify source distribution contents and isolated installation
         shell: bash
         run: |

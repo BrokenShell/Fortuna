@@ -176,6 +176,10 @@ Build both the source distribution and the native wheel:
 uv build --no-sources
 ```
 
+The clean CI artifact jobs add `--no-config` so the build validates
+`build-system.requires` in isolation instead of inheriting the checkout's
+editable-development no-isolation policy.
+
 A release check includes installing the built wheel into a fresh environment
 and importing it with the source checkout absent from `sys.path`:
 
