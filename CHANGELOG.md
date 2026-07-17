@@ -1,6 +1,24 @@
 # Changelog
 
-## 6.0.2 - Unreleased
+## 6.0.3 - Unreleased
+
+Fortuna 6.0.3 adopts Storm's prepared selector primitives at the native boundary
+without changing Fortuna's public value-engine contracts or seeded schedules.
+
+### Changed
+
+- Vendored Storm was upgraded from 5.0.1 to the immutable 5.0.2 release.
+- Exact native `Generator` and module-level `TruffleShuffle` paths now keep the
+  wide-index permutation, cursor, and Poisson distribution in Storm while value
+  and callable resolution remain in Fortuna.
+- Exact native `WeightedChoice` paths now use Storm's prepared cumulative-weight
+  selector, avoiding a Python linear scan on every draw.
+- `ability_dice` inherits Storm 5.0.2's fixed-size top-three insertion path.
+- Custom generators and generator subclasses retain Fortuna's validated Python
+  fallbacks. `WeightedChoice` also continues to validate monkeypatched module
+  `random_float` draws.
+
+## 6.0.2
 
 Fortuna 6.0.2 removes low-value experiments and gives the surviving value
 engines a smaller, faster, more direct API.

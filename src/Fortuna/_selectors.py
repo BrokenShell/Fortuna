@@ -93,6 +93,7 @@ def _resolve_callable(
 
 _NATIVE_RANDOM_INDEX = _core.random_index
 _NATIVE_RANDOM_FLOAT = _core.random_float
+_NATIVE_SHUFFLE = _core.shuffle
 _NATIVE_FRONT_TRIANGULAR = _core.front_triangular
 _NATIVE_CENTER_TRIANGULAR = _core.center_triangular
 _NATIVE_BACK_TRIANGULAR = _core.back_triangular
@@ -196,7 +197,13 @@ class _ValueEngine(Generic[_T]):
 class TruffleShuffle(_ValueEngine[_T]):
     """Stateful wide-uniform selector with randomized forward rotation."""
 
-    __slots__ = ("_distance_method", "_trusted_distance", "data", "rotate_size")
+    __slots__ = (
+        "_distance_method",
+        "_selector",
+        "_trusted_distance",
+        "data",
+        "rotate_size",
+    )
 
     @overload
     def __init__(
@@ -227,13 +234,29 @@ class TruffleShuffle(_ValueEngine[_T]):
         data = list(collection)
         if not data:
             raise ValueError("collection must not be empty")
-        shuffle(data, generator=generator)
-        self.data = deque(data)
         self.rotate_size = max(1, math.isqrt(len(data)))
         self._distance_method: Callable[[int], Any] | None = None
         self._trusted_distance = False
+        native_source = type(generator) is _core.Generator or (
+            generator is None
+            and _core.shuffle is _NATIVE_SHUFFLE
+            and _core._front_poisson is _NATIVE_FRONT_POISSON
+        )
+        if native_source:
+            self.data = tuple(data)
+            self._selector = _core._wide_index_selector(len(data), generator)
+        else:
+            shuffle(data, generator=generator)
+            self.data = deque(data)
+            self._selector = None
 
     def __call__(self, *args: Any, **kwargs: Any) -> _T:
+        selector = self._selector
+        if selector is not None:
+            selected = self.data[selector()]
+            if self.resolve_callables and callable(selected):
+                return cast(_T, _resolve_callable(selected, *args, **kwargs))
+            return cast(_T, selected)
         method = self._distance_method
         if method is None:
             generator = self._generator
@@ -262,7 +285,7 @@ class TruffleShuffle(_ValueEngine[_T]):
             distance = 1 + value
         else:
             distance = 1 + _validated_index(value, self.rotate_size)
-        self.data.rotate(distance)
+        cast(deque[Any], self.data).rotate(distance)
         selected = self.data[-1]
         if self.resolve_callables and callable(selected):
             return cast(_T, _resolve_callable(selected, *args, **kwargs))
@@ -430,7 +453,7 @@ def _validated_weighted_draw(value: Any, total: float) -> float:
 class WeightedChoice(_ValueEngine[_T]):
     """Choose values using nonnegative relative real weights."""
 
-    __slots__ = ("data", "total")
+    __slots__ = ("_selector", "data", "total")
 
     @overload
     def __init__(
@@ -460,6 +483,7 @@ class WeightedChoice(_ValueEngine[_T]):
         super().__init__(resolve_callables=resolve_callables, generator=generator)
         cumulative = 0.0
         data: list[tuple[float, _T]] = []
+        weights: list[float] = []
         for weight, value in _weighted_pairs(weighted_table):
             if weight < 0.0:
                 raise ValueError("weights must be nonnegative")
@@ -467,28 +491,42 @@ class WeightedChoice(_ValueEngine[_T]):
             if not math.isfinite(cumulative):
                 raise ValueError("weight total must be finite")
             data.append((cumulative, value))
+            weights.append(weight)
         if cumulative <= 0.0:
             raise ValueError("at least one weight must be positive")
         self.data = tuple(data)
         self.total = cumulative
+        native_source = type(generator) is _core.Generator or (
+            generator is None and _core.random_float is _NATIVE_RANDOM_FLOAT
+        )
+        native_generator = cast(_core.Generator | None, generator)
+        self._selector = (
+            _core._prepared_weighted_index(weights, native_generator) if native_source else None
+        )
 
     def __call__(self, *args: Any, **kwargs: Any) -> _T:
         source = self._generator
-        if source is None:
-            draw_method = _core.random_float
-            trusted_native = draw_method is _NATIVE_RANDOM_FLOAT
+        selector = self._selector
+        if selector is not None and (
+            source is not None or _core.random_float is _NATIVE_RANDOM_FLOAT
+        ):
+            selected = self.data[selector()][1]
         else:
-            draw_method = source.random_float
-            trusted_native = type(source) is _core.Generator
-        draw = draw_method(0.0, self.total)
-        if not trusted_native:
-            draw = _validated_weighted_draw(draw, self.total)
-        for cumulative_weight, value in self.data:
-            if draw < cumulative_weight:
-                selected = value
-                break
-        else:
-            selected = self.data[-1][1]
+            if source is None:
+                draw_method = _core.random_float
+                trusted_native = draw_method is _NATIVE_RANDOM_FLOAT
+            else:
+                draw_method = source.random_float
+                trusted_native = type(source) is _core.Generator
+            draw = draw_method(0.0, self.total)
+            if not trusted_native:
+                draw = _validated_weighted_draw(draw, self.total)
+            for cumulative_weight, value in self.data:
+                if draw < cumulative_weight:
+                    selected = value
+                    break
+            else:
+                selected = self.data[-1][1]
         if self.resolve_callables and callable(selected):
             return cast(_T, _resolve_callable(selected, *args, **kwargs))
         return selected

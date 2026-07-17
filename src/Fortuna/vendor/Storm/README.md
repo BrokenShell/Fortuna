@@ -1,14 +1,14 @@
 # Vendored Storm
 
 Fortuna vendors the canonical `include/Storm/Storm.hpp` header from the immutable
-Storm 5.0.1 release.
+Storm 5.0.2 release.
 
 - Upstream: <https://github.com/BrokenShell/Storm>
-- Release: `v5.0.1`
-- Tagged commit: `dc9d3896eead79f545ec22adaad0a576f48845c5`
-- Source asset: `Storm-5.0.1.tar.gz`
-- Source asset SHA-256: `66555bef83b0d9291b33d320d90ccb06f84525d77723b1f5a3c761968b93d00a`
-- Header SHA-256: `ff673a97965c2d37733545f9246b174ea76771ba36a0f14b4f3fe7fa764f1cd0`
+- Release: `v5.0.2`
+- Tagged commit: `4fa78882f36566107628306ae405107fefbeeb1d`
+- Source asset: `Storm-5.0.2.tar.gz`
+- Source asset SHA-256: `df212d4f299db6124aaebeb5f077a371c815d2af6387147c7e1da278d7c2dede`
+- Header SHA-256: `db0a678fbb19a5d2ab341013df1a111f16cb76f7f289366458bf0d169949d653`
 - License: MIT; see `LICENSE` in this directory.
 
 Do not replace this header from Storm's moving default branch. Update it only as

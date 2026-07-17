@@ -40,6 +40,17 @@ cdef extern from "src/Fortuna/cpp/fortuna_core.hpp" namespace "FortunaCore":
         void unlock() noexcept nogil
         void prepare() except + nogil
 
+    cdef cppclass WideIndexCore:
+        WideIndexCore(uint64_t) except +
+        WideIndexCore(GeneratorCore&, uint64_t) except +
+        uint64_t draw_module() except +
+        uint64_t draw(GeneratorCore&) except +
+
+    cdef cppclass PreparedWeightedIndexCore:
+        PreparedWeightedIndexCore(const vector[double]&) except +
+        uint64_t draw_module() except +
+        uint64_t draw(GeneratorCore&) except +
+
     const char* core_storm_version "FortunaCore::storm_version"() noexcept nogil
     GeneratorCore* core_module_generator "FortunaCore::module_generator"() except + nogil
     void core_module_seed "FortunaCore::module_seed"(uint64_t) except + nogil
@@ -1397,6 +1408,78 @@ cdef class Generator:
 
     def _sample_materialized(self, list working, Py_ssize_t checked_k):
         return _sample_generator_materialized(self._generator, working, checked_k)
+
+
+cdef class _WideIndexSelector:
+    cdef WideIndexCore* _selector
+    cdef object _owner
+
+    def __cinit__(self, size, generator=None):
+        cdef uint64_t checked = _as_uint64(size, "size")
+        cdef Generator exact_generator
+        self._selector = NULL
+        self._owner = generator
+        if generator is None:
+            self._selector = new WideIndexCore(checked)
+        elif type(generator) is Generator:
+            exact_generator = generator
+            self._selector = new WideIndexCore(exact_generator._generator[0], checked)
+        else:
+            raise TypeError("generator must be an exact Fortuna.Generator or None")
+
+    def __dealloc__(self):
+        if self._selector != NULL:
+            del self._selector
+
+    def __call__(self):
+        cdef uint64_t result
+        cdef Generator exact_generator
+        if self._owner is None:
+            result = self._selector.draw_module()
+        else:
+            exact_generator = self._owner
+            result = self._selector.draw(exact_generator._generator[0])
+        return result
+
+
+cdef class _PreparedWeightedIndex:
+    cdef PreparedWeightedIndexCore* _selector
+    cdef object _owner
+
+    def __cinit__(self, weights, generator=None):
+        cdef vector[double] prepared
+        self._selector = NULL
+        self._owner = generator
+        for weight in weights:
+            prepared.push_back(_as_double(weight, "weight"))
+        if generator is None:
+            self._selector = new PreparedWeightedIndexCore(prepared)
+        elif type(generator) is Generator:
+            self._selector = new PreparedWeightedIndexCore(prepared)
+        else:
+            raise TypeError("generator must be an exact Fortuna.Generator or None")
+
+    def __dealloc__(self):
+        if self._selector != NULL:
+            del self._selector
+
+    def __call__(self):
+        cdef uint64_t result
+        cdef Generator exact_generator
+        if self._owner is None:
+            result = self._selector.draw_module()
+        else:
+            exact_generator = self._owner
+            result = self._selector.draw(exact_generator._generator[0])
+        return result
+
+
+def _wide_index_selector(size, generator=None):
+    return _WideIndexSelector(size, generator)
+
+
+def _prepared_weighted_index(weights, generator=None):
+    return _PreparedWeightedIndex(weights, generator)
 
 
 def storm_version():

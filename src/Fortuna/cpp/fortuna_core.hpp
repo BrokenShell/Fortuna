@@ -14,6 +14,7 @@
 #include <numbers>
 #include <random>
 #include <stdexcept>
+#include <vector>
 
 #ifdef _WIN32
 #include <process.h>
@@ -550,6 +551,56 @@ inline auto checked_size(const std::uint64_t value) -> std::size_t {
     }
     return static_cast<std::size_t>(value);
 }
+
+class WideIndexCore {
+public:
+    explicit WideIndexCore(const std::uint64_t size) : selector_{make_module(size)} {}
+
+    WideIndexCore(GeneratorCore& generator, const std::uint64_t size)
+        : selector_{make(generator, size)} {}
+
+    auto draw_module() -> std::uint64_t {
+        module_prepare();
+        return static_cast<std::uint64_t>(selector_(module_prepared_engine()));
+    }
+
+    auto draw(GeneratorCore& generator) -> std::uint64_t {
+        GeneratorLockGuard guard{generator};
+        return static_cast<std::uint64_t>(selector_(generator.engine()));
+    }
+
+private:
+    static auto make_module(const std::uint64_t size) -> Storm::wide_index_selector {
+        module_prepare();
+        return Storm::wide_index_selector{module_prepared_engine(), checked_size(size)};
+    }
+
+    static auto make(GeneratorCore& generator, const std::uint64_t size)
+        -> Storm::wide_index_selector {
+        GeneratorLockGuard guard{generator};
+        return Storm::wide_index_selector{generator.engine(), checked_size(size)};
+    }
+
+    Storm::wide_index_selector selector_;
+};
+
+class PreparedWeightedIndexCore {
+public:
+    explicit PreparedWeightedIndexCore(const std::vector<double>& weights) : selector_{weights} {}
+
+    auto draw_module() const -> std::uint64_t {
+        module_prepare();
+        return static_cast<std::uint64_t>(selector_(module_prepared_engine()));
+    }
+
+    auto draw(GeneratorCore& generator) const -> std::uint64_t {
+        GeneratorLockGuard guard{generator};
+        return static_cast<std::uint64_t>(selector_(generator.engine()));
+    }
+
+private:
+    Storm::PreparedWeightedIndex selector_;
+};
 
 // The small numeric dispatch surface keeps Cython declarations narrow. These
 // operation codes are private to Fortuna's compiled extension.

@@ -4,17 +4,25 @@
 #include <algorithm>
 #include <array>
 #include <bit>
+#include <cmath>
+#include <concepts>
 #include <cstddef>
 #include <cstdint>
+#include <initializer_list>
+#include <iterator>
 #include <limits>
+#include <numeric>
 #include <random>
+#include <ranges>
 #include <stdexcept>
+#include <utility>
+#include <vector>
 
 namespace Storm {
 
 using engine_type = std::mt19937_64;
 
-inline constexpr char version[] = "5.0.1";
+inline constexpr char version[] = "5.0.2";
 
 namespace detail {
 
@@ -54,6 +62,54 @@ inline void seed_from_entropy(engine_type& engine) {
     engine.seed(sequence);
 }
 
+inline void insert_ability_roll(std::array<std::uint64_t, 3>& best,
+                                const std::uint64_t value) noexcept {
+    if (value <= best[0]) {
+        return;
+    }
+    best[0] = value;
+    if (best[0] > best[1]) {
+        const auto lower = best[1];
+        best[1] = best[0];
+        best[0] = lower;
+    }
+    if (best[1] > best[2]) {
+        const auto lower = best[2];
+        best[2] = best[1];
+        best[1] = lower;
+    }
+}
+
+inline constexpr auto integer_sqrt(const std::size_t value) noexcept -> std::size_t {
+    if (value < 2) {
+        return value;
+    }
+
+    std::size_t low = 1;
+    std::size_t high = value / 2 + 1;
+    std::size_t result = 1;
+    while (low <= high) {
+        const std::size_t middle = low + (high - low) / 2;
+        if (middle <= value / middle) {
+            result = middle;
+            low = middle + 1;
+        } else {
+            high = middle - 1;
+        }
+    }
+    return result;
+}
+
+inline constexpr auto subtract_modulo(const std::size_t value,
+                                      const std::size_t decrement,
+                                      const std::size_t modulus) noexcept -> std::size_t {
+    const std::size_t reduced_decrement = decrement % modulus;
+    if (value >= reduced_decrement) {
+        return value - reduced_decrement;
+    }
+    return modulus - (reduced_decrement - value);
+}
+
 }  // namespace detail
 
 class Generator {
@@ -84,6 +140,62 @@ inline auto canonical(engine_type& engine) noexcept -> double {
 }
 
 inline auto canonical() -> double { return canonical(thread_engine()); }
+
+class PreparedWeightedIndex {
+public:
+    explicit PreparedWeightedIndex(const std::initializer_list<double> weights) {
+        cumulative_.reserve(weights.size());
+        initialize(weights.begin(), weights.end());
+    }
+
+    template<std::ranges::input_range Range>
+        requires std::convertible_to<std::ranges::range_reference_t<Range>, double>
+    explicit PreparedWeightedIndex(Range&& weights) {
+        if constexpr (std::ranges::sized_range<Range>) {
+            cumulative_.reserve(static_cast<std::size_t>(std::ranges::size(weights)));
+        }
+        initialize(std::ranges::begin(weights), std::ranges::end(weights));
+    }
+
+    [[nodiscard]] auto operator()(engine_type& engine) const -> std::size_t {
+        std::uniform_real_distribution<double> distribution{0.0, total_};
+        const double draw = distribution(engine);
+        const double effective_draw = draw < total_ ? draw : maximum_draw_;
+        const auto selected = std::ranges::upper_bound(cumulative_, effective_draw);
+        return static_cast<std::size_t>(selected - cumulative_.begin());
+    }
+
+private:
+    template<std::input_iterator Iterator, std::sentinel_for<Iterator> Sentinel>
+        requires std::convertible_to<std::iter_reference_t<Iterator>, double>
+    void initialize(Iterator first, const Sentinel last) {
+        for (; first != last; ++first) {
+            const auto weight = static_cast<double>(*first);
+            if (!std::isfinite(weight) || weight < 0.0) {
+                throw std::invalid_argument{
+                    "PreparedWeightedIndex requires finite, nonnegative weights"};
+            }
+            if (weight > std::numeric_limits<double>::max() - total_) {
+                throw std::overflow_error{
+                    "PreparedWeightedIndex total weight is not representable"};
+            }
+            total_ += weight;
+            cumulative_.push_back(total_);
+        }
+        if (cumulative_.empty()) {
+            throw std::invalid_argument{"PreparedWeightedIndex requires at least one weight"};
+        }
+        if (total_ == 0.0) {
+            throw std::invalid_argument{
+                "PreparedWeightedIndex requires at least one positive weight"};
+        }
+        maximum_draw_ = std::nextafter(total_, 0.0);
+    }
+
+    std::vector<double> cumulative_;
+    double total_{0.0};
+    double maximum_draw_{0.0};
+};
 
 inline auto uniform_unsigned(engine_type& engine,
                              const std::uint64_t low,
@@ -124,6 +236,55 @@ inline auto uniform_index(engine_type& engine, const std::size_t size) -> std::s
 inline auto uniform_index(const std::size_t size) -> std::size_t {
     return uniform_index(thread_engine(), size);
 }
+
+class wide_index_selector {
+public:
+    explicit wide_index_selector(engine_type& engine, const std::size_t size)
+        : permutation_{make_permutation(engine, size)},
+          cursor_{permutation_.size() - 1},
+          rotation_width_{detail::integer_sqrt(size)},
+          distance_{static_cast<double>(rotation_width_) / 4.0} {}
+
+    [[nodiscard]] auto operator()(engine_type& engine) -> std::size_t {
+        distance_type sample = 0;
+        do {
+            sample = distance_(engine);
+        } while (sample >= static_cast<distance_type>(rotation_width_));
+
+        cursor_ = detail::subtract_modulo(
+            cursor_, static_cast<std::size_t>(sample) + 1, permutation_.size());
+        return permutation_[cursor_];
+    }
+
+private:
+    using distance_type = std::uint64_t;
+
+    static auto make_permutation(engine_type& engine, const std::size_t size)
+        -> std::vector<std::size_t> {
+        if (size == 0) {
+            throw std::invalid_argument{"wide_index_selector requires a nonzero size"};
+        }
+
+        std::vector<std::size_t> permutation(size);
+        std::iota(permutation.begin(), permutation.end(), std::size_t{0});
+        const std::size_t last = size - 1;
+        std::size_t position = last;
+        while (position > 0) {
+            --position;
+            const auto other = static_cast<std::size_t>(Storm::uniform_unsigned(
+                engine,
+                static_cast<std::uint64_t>(position),
+                static_cast<std::uint64_t>(last)));
+            std::swap(permutation[position], permutation[other]);
+        }
+        return permutation;
+    }
+
+    std::vector<std::size_t> permutation_;
+    std::size_t cursor_ = 0;
+    std::size_t rotation_width_;
+    std::poisson_distribution<distance_type> distance_;
+};
 
 inline auto random_range(engine_type& engine,
                          const std::int64_t start,
@@ -203,10 +364,7 @@ inline auto ability_dice(engine_type& engine, const std::size_t dice_count) -> s
     std::array<std::uint64_t, 3> best{};
     for (std::size_t index = 0; index < dice_count; ++index) {
         const auto value = static_cast<std::uint64_t>(roll_die(engine, 6));
-        if (value > best[0]) {
-            best[0] = value;
-            std::ranges::sort(best);
-        }
+        detail::insert_ability_roll(best, value);
         if (best[0] == 6) {
             break;
         }

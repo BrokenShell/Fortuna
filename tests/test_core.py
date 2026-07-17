@@ -12,7 +12,7 @@ import Fortuna
 
 
 def test_version_and_seed_zero_are_deterministic():
-    assert Fortuna.storm_version() == "5.0.1"
+    assert Fortuna.storm_version() == "5.0.2"
     first = Fortuna.Generator(0)
     second = Fortuna.Generator(0)
     assert first.random_below(2**64, count=32) == second.random_below(2**64, count=32)
