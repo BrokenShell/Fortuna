@@ -233,14 +233,14 @@ a value-engine behavior.
 
 | API | Construction and behavior |
 | --- | --- |
-| `RandomValue(collection, *, resolve_callables=True, generator=None)` | Prepare a materialized nonempty iterable. Calling the object or its `uniform` method selects uniformly. `cycle` advances in input order, `truffle_shuffle` uses the stateful wide-uniform strategy, and `front_triangular`, `center_triangular`, and `back_triangular` select through the corresponding positional profile. The truffle selector is created lazily on its first use. `take(count, ...)` repeats the default uniform strategy. |
+| `RandomValue(collection, *, resolve_callables=True, generator=None)` | Prepare a materialized nonempty iterable. Calling the object or its `uniform` method selects uniformly. `cycle` advances in input order and `truffle_shuffle` uses the stateful wide-uniform strategy. `front_triangular`, `center_triangular`, and `back_triangular` use bounded triangular positions. `front_normal`, `center_normal`, and `back_normal` use discrete three-sigma normal weights. The truffle and normal selectors are prepared independently on first use. `take(count, ...)` repeats the default uniform strategy. |
 | `TruffleShuffle(collection, *, resolve_callables=True, generator=None)` | Shuffle once, then rotate a nonempty collection by randomized short distances before each selection. |
 | `WeightedChoice(weighted_table=None, *, relative=None, cumulative=None, resolve_callables=True, generator=None)` | Prepare exactly one weighted table. A positional `weighted_table` and `relative=` accept finite nonnegative relative `(weight, value)` pairs with a positive finite total. `cumulative=` accepts finite nonnegative nondecreasing `(boundary, value)` pairs with a positive final boundary; equal boundaries represent zero-weight entries. Draws supplied by custom generators, subclass overrides, or monkeypatched module functions must be finite real numbers in `[0, total)`. |
 
-TruffleShuffle's Poisson movement and WeightedChoice's real draw use C++
-standard-library distributions. Their seeded sequences are repeatable within
-one platform and toolchain build. Exact seeded sequences are
-platform-and-toolchain-specific.
+RandomValue's normal profiles, TruffleShuffle's Poisson movement, and
+WeightedChoice's real draw use C++ standard-library real or probability draws.
+Their seeded sequences are repeatable within one platform and toolchain build.
+Exact seeded sequences are platform-and-toolchain-specific.
 
 `RandomValue` methods are ordinary bound callables, which supports the prepared
 generator pattern directly:
@@ -251,6 +251,8 @@ loot = Fortuna.RandomValue(["copper", "potion", "wand"])
 uniform_drop = loot()
 loot_gen = loot.front_triangular
 front_loaded_drop = loot_gen()
+rare_gen = loot.back_normal
+strongly_rare_drop = rare_gen()
 next_in_order = loot.cycle()
 
 rarity = Fortuna.WeightedChoice(relative=[(80, "common"), (18, "rare"), (2, "legendary")])

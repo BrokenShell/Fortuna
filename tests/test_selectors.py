@@ -57,13 +57,20 @@ def test_custom_shuffle_and_sample_validate_injected_indexes():
 
 def test_random_value_is_uniform_by_default_and_exposes_slim_strategies():
     selector = RandomValue(
-        ("front", "center", "back"), generator=FixedGenerator(indices=(1, 2, 0, 1))
+        ("front", "center", "back"),
+        generator=FixedGenerator(
+            indices=(1, 2, 0, 1),
+            floats=(0.0, 0.02, 0.5),
+        ),
     )
 
     assert selector() == "center"
     assert selector.uniform() == "back"
     assert selector.front_triangular() == "front"
     assert selector.center_triangular() == "center"
+    assert selector.front_normal() == "front"
+    assert selector.center_normal() == "center"
+    assert selector.back_normal() == "back"
 
 
 def test_random_value_cycle_take_and_callable_resolution():

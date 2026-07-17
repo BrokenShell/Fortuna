@@ -151,9 +151,11 @@ Methods can be stored as dedicated callables:
 
 ```python
 front_loaded_loot = loot.front_triangular
+strongly_front_loaded_loot = loot.front_normal
 
 first_drop = front_loaded_loot()
 second_drop = front_loaded_loot()
+exceptional_drop = strongly_front_loaded_loot()
 ```
 
 This makes each selection strategy usable as a lightweight prepared generator.
@@ -318,6 +320,23 @@ middle_leaning = treasure.center_triangular()
 rare_leaning = treasure.back_triangular()
 ```
 
+Use the normal profiles for a stronger curved falloff. They stretch three
+standard deviations across the table while keeping every entry reachable:
+
+```python
+common_heavy = treasure.front_normal()
+middle_heavy = treasure.center_normal()
+rare_heavy = treasure.back_normal()
+```
+
+With five entries, their approximate probabilities are:
+
+| Profile | First | Second | Middle | Fourth | Last |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `front_normal` | 46.1% | 34.8% | 15.0% | 3.7% | 0.5% |
+| `center_normal` | 0.7% | 19.4% | 59.8% | 19.4% | 0.7% |
+| `back_normal` | 0.5% | 3.7% | 15.0% | 34.8% | 46.1% |
+
 The module-level profile functions return an index. Use that form when one
 draw needs to coordinate parallel tables:
 
@@ -330,8 +349,9 @@ rare_item = item_names[rare_index]
 rare_item_value = item_values[rare_index]
 ```
 
-These profiles are bounded integer algorithms with stable Fortuna 6 draw
-schedules.
+The triangular profiles are bounded integer algorithms with stable Fortuna 6
+draw schedules. The normal profiles use a prepared floating draw and are
+repeatable within one platform and toolchain build.
 
 ## Sampling and shuffling
 

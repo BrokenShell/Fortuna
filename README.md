@@ -134,7 +134,8 @@ The public numeric families include:
 - Triangular, normal, log-normal, exponential, gamma, Weibull, beta, Pareto,
   von Mises, binomial, negative-binomial, geometric, Poisson, extreme-value,
   chi-squared, Cauchy, Fisher F, and Student's t distributions.
-- Front, center, and back triangular positional profiles.
+- Front, center, and back triangular index profiles and prepared normal value
+  profiles.
 
 The complete domains and failure contracts live in the
 [API reference](https://github.com/BrokenShell/Fortuna/blob/main/docs/api.md).
@@ -186,10 +187,13 @@ next_in_order = loot.cycle()
 front_loaded_drop = loot.front_triangular()
 center_loaded_drop = loot.center_triangular()
 back_loaded_drop = loot.back_triangular()
+strongly_front_loaded_drop = loot.front_normal()
+strongly_center_loaded_drop = loot.center_normal()
+strongly_back_loaded_drop = loot.back_normal()
 wide_drop = loot.truffle_shuffle()
 ```
 
-Its methods are normal bound callables. This supports the prepared-generator
+Its methods are ordinary bound callables. This supports the prepared-generator
 pattern directly:
 
 ```python
@@ -298,11 +302,22 @@ treasure = Fortuna.RandomValue(table)
 front = treasure.front_triangular()
 center = treasure.center_triangular()
 back = treasure.back_triangular()
+
+strong_front = treasure.front_normal()
+strong_center = treasure.center_normal()
+strong_back = treasure.back_normal()
 ```
 
 - `front_triangular` uses the smaller of two uniform indexes.
 - `center_triangular` uses their integer midpoint.
 - `back_triangular` uses the larger index.
+- `front_normal` and `back_normal` stretch mirrored half-normal curves across
+  the table.
+- `center_normal` stretches a complete centered normal curve across the table.
+
+The normal profiles place their farthest positions at three standard
+deviations. Every item remains reachable while the ends of each curve carry
+approximately 1.1% of its peak weight before normalization.
 
 ## Process and thread behavior
 
@@ -333,10 +348,11 @@ stream-derivation, uniform value-selection, sampling, and shuffle schedules are
 stable across supported platforms throughout the Fortuna 6 line.
 
 Standard-library probability distributions, `random_float`, custom floating
-transforms, `TruffleShuffle`'s Poisson movement, and `WeightedChoice`'s real
-draw depend partly on C++ standard-library implementations. They are repeatable
-within one platform and toolchain build. Their exact seeded sequences are
-platform-and-toolchain-specific. See
+transforms, `RandomValue`'s normal profiles, `TruffleShuffle`'s Poisson
+movement, and `WeightedChoice`'s real draw depend partly on C++
+standard-library implementations. They are repeatable within one platform and
+toolchain build. Their exact seeded sequences are platform- and
+toolchain-specific. See
 [Algorithm and design notes](https://github.com/BrokenShell/Fortuna/blob/main/docs/algorithms.md)
 for the complete boundary.
 

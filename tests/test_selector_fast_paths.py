@@ -65,6 +65,19 @@ def test_random_value_triangular_paths_preserve_callable_resolution(method):
     assert getattr(selector, method)(4) == 5
 
 
+@pytest.mark.parametrize(
+    "method",
+    ["front_normal", "center_normal", "back_normal"],
+)
+def test_random_value_normal_paths_preserve_callable_resolution(method):
+    selector = RandomValue(
+        (lambda value: value + 1,),
+        generator=Fortuna.Generator(SEED),
+    )
+
+    assert getattr(selector, method)(4) == 5
+
+
 def test_truffle_shuffle_matches_native_shuffle_and_rotation_schedule():
     generator = Fortuna.Generator(SEED)
     control = Fortuna.Generator(SEED)

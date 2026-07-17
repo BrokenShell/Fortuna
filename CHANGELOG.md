@@ -1,9 +1,10 @@
 # Changelog
 
-## 6.1.0
+## 6.1.1
 
-Fortuna 6.1.0 makes relative and cumulative weighted tables equal,
-first-class inputs to one prepared value engine.
+Fortuna 6.1.1 makes relative and cumulative weighted tables equal,
+first-class inputs and adds three honest normal positional profiles to
+`RandomValue`.
 
 ### Added
 
@@ -13,6 +14,10 @@ first-class inputs to one prepared value engine.
   including printed percentile and tabletop roll tables.
 - Runtime, typing, seeded-equivalence, invalid-domain, and benchmark coverage
   for both weighted input forms.
+- `RandomValue.front_normal`, `center_normal`, and `back_normal` as discrete
+  three-sigma profiles spanning the complete prepared table.
+- Statistical, seeded-equivalence, lazy-construction, typing, validation, and
+  benchmark coverage for the normal profiles.
 
 ### Changed
 
@@ -24,6 +29,8 @@ first-class inputs to one prepared value engine.
   `WeightedChoice(relative=table)`.
 - Usage examples lead with prepared value engines. Lower-level index forms are
   shown only where retaining an index provides a distinct capability.
+- Normal profiles prepare their cumulative weights independently on first use,
+  then select through Storm's logarithmic cumulative path with one real draw.
 
 ## 6.0.4
 

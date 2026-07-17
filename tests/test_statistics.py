@@ -271,3 +271,32 @@ def test_triangular_profiles_have_honest_positional_ordering() -> None:
     assert statistics.fmean(triangular["front_triangular"]) < midpoint
     _assert_bounded_mean(triangular["center_triangular"], midpoint, low=0, high=size - 1)
     assert statistics.fmean(triangular["back_triangular"]) > midpoint
+
+
+def test_random_value_normal_profiles_match_three_sigma_kernel_weights() -> None:
+    size = 5
+    sample_size = 30_000
+    front_weights = [math.exp(-0.5 * (3 * position / (size - 1)) ** 2) for position in range(size)]
+    center_weights = [
+        math.exp(-0.5 * (3 * abs(2 * position - (size - 1)) / (size - 1)) ** 2)
+        for position in range(size)
+    ]
+
+    for offset, (method, weights) in enumerate(
+        (
+            ("front_normal", front_weights),
+            ("center_normal", center_weights),
+            ("back_normal", list(reversed(front_weights))),
+        )
+    ):
+        selector = Fortuna.RandomValue(
+            range(size),
+            resolve_callables=False,
+            generator=Fortuna.Generator(0xF07A_5100 + offset),
+        )
+        samples = [getattr(selector, method)() for _ in range(sample_size)]
+        counts = Counter(samples)
+        total = sum(weights)
+
+        for position, weight in enumerate(weights):
+            _assert_probability(counts[position], sample_size, weight / total)

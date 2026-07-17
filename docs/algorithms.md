@@ -130,6 +130,54 @@ schedules.
 The profiles are most useful when a sequence is already ordered by rarity,
 priority, progression, or some other meaningful axis.
 
+## Prepared normal profiles
+
+`RandomValue` provides three discrete Gaussian-shaped categorical profiles.
+For a table of size `n`, each position receives a weight proportional to the
+standard normal density kernel:
+
+$$
+w_i = e^{-x_i^2 / 2}
+$$
+
+For $n > 1$, Fortuna maps table position $i$ to curve distance with:
+
+$$
+\begin{aligned}
+x_i^{\text{front}}  &= \frac{3i}{n-1} \\
+x_i^{\text{center}} &= \frac{3\lvert 2i-(n-1) \rvert}{n-1} \\
+x_i^{\text{back}}   &= \frac{3(n-1-i)}{n-1}
+\end{aligned}
+$$
+
+`front_normal` therefore takes the right half of the normal curve, places its
+peak at the first position, and stretches that half across the complete table.
+`back_normal` applies the exact mirror image. `center_normal` places the full
+curve's peak at the table center and stretches each half to its corresponding
+edge.
+
+Horizontal scaling controls how quickly the weights fall across the table.
+The factor `3` places each farthest position three standard deviations from
+the peak. Vertical scaling has no effect on the resulting selection
+probabilities because normalization cancels any common multiplier:
+
+$$
+p_i = \frac{w_i}{\sum_{j=0}^{n-1} w_j}
+$$
+
+For an even-sized table, the normal center lies between the two middle
+positions, giving them equal maximum weight. A singleton receives weight one.
+At three standard deviations the endpoint kernel weight is
+$e^{-9/2} \approx 0.0111$, about 1.1% of the peak. A normal curve never reaches
+zero, so normalization produces a categorical distribution without making any
+entry unreachable. The absolute probability of an endpoint depends on the
+table size because all positional weights share the normalized total.
+
+Each profile prepares cumulative boundaries lazily on its first use. Repeated
+selection uses Storm's logarithmic cumulative selector and consumes one uniform
+real draw. Profile preparation consumes no entropy. Callable resolution stays
+in Fortuna after selection.
+
 ## Knuth-B shuffle
 
 Fortuna's native shuffle uses the forward Knuth-B form. Given positions from
@@ -243,6 +291,7 @@ Fortuna documents two tiers of deterministic reproducibility.
 ### Repeatable within one platform and toolchain build
 
 - `random_float` and standard-library probability distribution transforms.
+- RandomValue's prepared normal positional profiles.
 - TruffleShuffle's standard-library Poisson movement.
 - WeightedChoice's standard-library real draw.
 - Custom triangular, Pareto, and von Mises transforms.
