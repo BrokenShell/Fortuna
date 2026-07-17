@@ -51,12 +51,17 @@ jobs:
         with:
           enable-cache: true
           python-version: ${{ matrix.python }}
-      - run: uv sync --frozen --group dev --no-build-isolation-package Fortuna --reinstall-package Fortuna
+      - name: Sync the editable source build
+        if: runner.os != 'Windows'
+        run: uv sync --frozen --group dev --no-build-isolation-package Fortuna --reinstall-package Fortuna
+      - name: Sync Windows test dependencies
+        if: runner.os == 'Windows'
+        run: uv sync --frozen --group dev --no-install-project
       - name: Build and install the Windows wheel
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          uv build --no-config --no-sources --wheel
+          uv build --no-config --no-sources --wheel --config-setting setup-args=--vsenv
           $wheel = (Get-ChildItem dist -Filter '*.whl' | Select-Object -First 1).FullName
           if (-not $wheel) { throw 'Windows wheel was not built' }
           uv pip install --python .venv\Scripts\python.exe --reinstall $wheel
