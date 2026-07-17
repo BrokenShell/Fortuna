@@ -86,12 +86,14 @@ The complete retained strategy set is `uniform`, `cycle`, `truffle_shuffle`,
 provides `take`; its default repeated strategy is uniform. `QuantumMonty` is
 removed without an alias.
 
-`WeightedChoice` accepts relative `(weight, value)` pairs and replaces
-`RelativeWeightedChoice`. Cumulative-threshold tables and
-`CumulativeWeightedChoice` have no replacement:
+`WeightedChoice` replaces both weighted selector classes. Relative tables may
+remain positional or use `relative=`. Cumulative thresholds use `cumulative=`:
 
 ```python
-rarity = Fortuna.WeightedChoice([(80, "common"), (18, "rare"), (2, "legendary")])
+rarity = Fortuna.WeightedChoice(relative=[(80, "common"), (18, "rare"), (2, "legendary")])
+treasure = Fortuna.WeightedChoice(
+    cumulative=[(30, "coins"), (60, "gem"), (90, "potion"), (100, "magic item")]
+)
 ```
 
 ## Negative integer continuations
@@ -128,8 +130,7 @@ The following concepts do not have compatibility replacements:
 - Numeric limit and clamp helpers.
 - `FlexCat`; compose ordinary mappings and retained value engines where needed.
 - `QuantumMonty`; use `RandomValue` and an explicit retained strategy.
-- Public `resolve`, `RelativeWeightedChoice`, `CumulativeWeightedChoice`, and
-  `cumulative_weighted_choice`.
+- Public `resolve`.
 - Mixed, exponential/normal, Poisson, and quantum positional profiles.
 - MonkeyScope integration and `Fortuna[scope]`.
 

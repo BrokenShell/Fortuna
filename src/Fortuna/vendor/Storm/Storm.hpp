@@ -22,7 +22,7 @@ namespace Storm {
 
 using engine_type = std::mt19937_64;
 
-inline constexpr char version[] = "5.0.2";
+inline constexpr char version[] = "5.1.0";
 
 namespace detail {
 
@@ -60,6 +60,17 @@ inline void seed_from_entropy(engine_type& engine) {
     }
     std::seed_seq sequence{words.begin(), words.end()};
     engine.seed(sequence);
+}
+
+inline auto select_prepared_weighted_index(engine_type& engine,
+                                           const std::vector<double>& cumulative,
+                                           const double total,
+                                           const double maximum_draw) -> std::size_t {
+    std::uniform_real_distribution<double> distribution{0.0, total};
+    const double draw = distribution(engine);
+    const double effective_draw = draw < total ? draw : maximum_draw;
+    const auto selected = std::ranges::upper_bound(cumulative, effective_draw);
+    return static_cast<std::size_t>(selected - cumulative.begin());
 }
 
 inline void insert_ability_roll(std::array<std::uint64_t, 3>& best,
@@ -158,11 +169,8 @@ public:
     }
 
     [[nodiscard]] auto operator()(engine_type& engine) const -> std::size_t {
-        std::uniform_real_distribution<double> distribution{0.0, total_};
-        const double draw = distribution(engine);
-        const double effective_draw = draw < total_ ? draw : maximum_draw_;
-        const auto selected = std::ranges::upper_bound(cumulative_, effective_draw);
-        return static_cast<std::size_t>(selected - cumulative_.begin());
+        return detail::select_prepared_weighted_index(
+            engine, cumulative_, total_, maximum_draw_);
     }
 
 private:
@@ -188,6 +196,65 @@ private:
         if (total_ == 0.0) {
             throw std::invalid_argument{
                 "PreparedWeightedIndex requires at least one positive weight"};
+        }
+        maximum_draw_ = std::nextafter(total_, 0.0);
+    }
+
+    std::vector<double> cumulative_;
+    double total_{0.0};
+    double maximum_draw_{0.0};
+};
+
+class PreparedCumulativeWeightedIndex {
+public:
+    explicit PreparedCumulativeWeightedIndex(
+        const std::initializer_list<double> cumulative_boundaries) {
+        cumulative_.reserve(cumulative_boundaries.size());
+        initialize(cumulative_boundaries.begin(), cumulative_boundaries.end());
+    }
+
+    template<std::ranges::input_range Range>
+        requires std::convertible_to<std::ranges::range_reference_t<Range>, double>
+    explicit PreparedCumulativeWeightedIndex(Range&& cumulative_boundaries) {
+        if constexpr (std::ranges::sized_range<Range>) {
+            cumulative_.reserve(
+                static_cast<std::size_t>(std::ranges::size(cumulative_boundaries)));
+        }
+        initialize(std::ranges::begin(cumulative_boundaries),
+                   std::ranges::end(cumulative_boundaries));
+    }
+
+    [[nodiscard]] auto operator()(engine_type& engine) const -> std::size_t {
+        return detail::select_prepared_weighted_index(
+            engine, cumulative_, total_, maximum_draw_);
+    }
+
+private:
+    template<std::input_iterator Iterator, std::sentinel_for<Iterator> Sentinel>
+        requires std::convertible_to<std::iter_reference_t<Iterator>, double>
+    void initialize(Iterator first, const Sentinel last) {
+        for (; first != last; ++first) {
+            const auto boundary = static_cast<double>(*first);
+            if (!std::isfinite(boundary) || boundary < 0.0) {
+                throw std::invalid_argument{
+                    "PreparedCumulativeWeightedIndex requires finite, nonnegative "
+                    "boundaries"};
+            }
+            if (!cumulative_.empty() && boundary < total_) {
+                throw std::invalid_argument{
+                    "PreparedCumulativeWeightedIndex requires monotonically "
+                    "nondecreasing boundaries"};
+            }
+            cumulative_.push_back(boundary);
+            total_ = boundary;
+        }
+        if (cumulative_.empty()) {
+            throw std::invalid_argument{
+                "PreparedCumulativeWeightedIndex requires at least one boundary"};
+        }
+        if (total_ == 0.0) {
+            throw std::invalid_argument{
+                "PreparedCumulativeWeightedIndex requires a positive final boundary"};
         }
         maximum_draw_ = std::nextafter(total_, 0.0);
     }

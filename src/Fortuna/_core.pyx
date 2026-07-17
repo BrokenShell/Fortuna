@@ -46,8 +46,8 @@ cdef extern from "src/Fortuna/cpp/fortuna_core.hpp" namespace "FortunaCore":
         uint64_t draw_module() except +
         uint64_t draw(GeneratorCore&) except +
 
-    cdef cppclass PreparedWeightedIndexCore:
-        PreparedWeightedIndexCore(const vector[double]&) except +
+    cdef cppclass PreparedCumulativeWeightedIndexCore:
+        PreparedCumulativeWeightedIndexCore(const vector[double]&) except +
         uint64_t draw_module() except +
         uint64_t draw(GeneratorCore&) except +
 
@@ -1442,20 +1442,20 @@ cdef class _WideIndexSelector:
         return result
 
 
-cdef class _PreparedWeightedIndex:
-    cdef PreparedWeightedIndexCore* _selector
+cdef class _PreparedCumulativeWeightedIndex:
+    cdef PreparedCumulativeWeightedIndexCore* _selector
     cdef object _owner
 
-    def __cinit__(self, weights, generator=None):
+    def __cinit__(self, boundaries, generator=None):
         cdef vector[double] prepared
         self._selector = NULL
         self._owner = generator
-        for weight in weights:
-            prepared.push_back(_as_double(weight, "weight"))
+        for boundary in boundaries:
+            prepared.push_back(_as_double(boundary, "cumulative boundary"))
         if generator is None:
-            self._selector = new PreparedWeightedIndexCore(prepared)
+            self._selector = new PreparedCumulativeWeightedIndexCore(prepared)
         elif type(generator) is Generator:
-            self._selector = new PreparedWeightedIndexCore(prepared)
+            self._selector = new PreparedCumulativeWeightedIndexCore(prepared)
         else:
             raise TypeError("generator must be an exact Fortuna.Generator or None")
 
@@ -1478,8 +1478,8 @@ def _wide_index_selector(size, generator=None):
     return _WideIndexSelector(size, generator)
 
 
-def _prepared_weighted_index(weights, generator=None):
-    return _PreparedWeightedIndex(weights, generator)
+def _prepared_cumulative_weighted_index(boundaries, generator=None):
+    return _PreparedCumulativeWeightedIndex(boundaries, generator)
 
 
 def storm_version():

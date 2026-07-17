@@ -1,5 +1,28 @@
 # Changelog
 
+## 6.1.0
+
+Fortuna 6.1.0 makes relative and cumulative weighted tables equal,
+first-class inputs to one prepared value engine.
+
+### Added
+
+- `WeightedChoice(relative=...)` as the explicit spelling of the existing
+  positional relative-weight contract.
+- `WeightedChoice(cumulative=...)` for direct cumulative-boundary tables,
+  including printed percentile and tabletop roll tables.
+- Runtime, typing, seeded-equivalence, invalid-domain, and benchmark coverage
+  for both weighted input forms.
+
+### Changed
+
+- Vendored Storm was upgraded from 5.0.2 to the immutable 5.1.0 release.
+- Relative tables are accumulated once in Fortuna. Cumulative tables preserve
+  their supplied boundaries. Both forms feed Storm's direct prepared
+  cumulative selector and retain the same logarithmic draw path.
+- Passing a weighted table positionally remains equivalent to
+  `WeightedChoice(relative=table)`.
+
 ## 6.0.4
 
 Fortuna 6.0.4 tunes release builds for their native compiler and architecture

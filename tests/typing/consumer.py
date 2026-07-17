@@ -87,6 +87,9 @@ assert_type(value_generator.take(2), list[Direction])
 assert_type(Fortuna.TruffleShuffle(words)(), Direction)
 relative_weights: tuple[tuple[int, Direction], ...] = ((1, "north"), (1, "south"))
 assert_type(Fortuna.WeightedChoice(relative_weights)(), Direction)
+assert_type(Fortuna.WeightedChoice(relative=relative_weights)(), Direction)
+cumulative_weights: tuple[tuple[int, Direction], ...] = ((1, "north"), (2, "south"))
+assert_type(Fortuna.WeightedChoice(cumulative=cumulative_weights)(), Direction)
 
 
 def selected_direction() -> Direction:

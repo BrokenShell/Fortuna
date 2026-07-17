@@ -91,9 +91,11 @@ behavior, not just result ranges. In particular:
   independently callable; `take` repeats the default uniform strategy.
 - Callable resolution belongs to value engines internally. Preserve exception
   propagation and the cycle and depth guards.
-- `WeightedChoice` accepts only relative `(weight, value)` tables. Validate
-  finite, nonnegative weights, a positive finite total, and untrusted injected
-  draws before selection.
+- `WeightedChoice` accepts exactly one positional-relative, explicit-relative,
+  or cumulative table. Validate finite nonnegative relative weights and their
+  positive finite total; validate finite nonnegative nondecreasing cumulative
+  boundaries and their positive final value. Validate untrusted injected draws
+  before selection.
 - Callers own synchronization for stateful value engines. A native generator
   lock protects its engine; surrounding Python selection state requires its own
   synchronization.

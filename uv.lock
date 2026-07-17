@@ -48,7 +48,7 @@ wheels = [
 
 [[package]]
 name = "fortuna"
-version = "6.0.4"
+version = "6.1.0"
 source = { editable = "." }
 
 [package.dev-dependencies]

@@ -416,21 +416,38 @@ class RandomValue(_ValueEngine[_T]):
         return value
 
 
-def _weighted_pairs(weighted_table: Iterable[tuple[_Weight, _T]]) -> list[tuple[float, _T]]:
+def _weighted_pairs(
+    weighted_table: Iterable[tuple[_Weight, _T]],
+    *,
+    table_name: str,
+    number_name: str,
+) -> list[tuple[float, _T]]:
     result: list[tuple[float, _T]] = []
-    for position, pair in enumerate(weighted_table):
+    try:
+        iterator = iter(weighted_table)
+    except TypeError as error:
+        message = f"{table_name} must be an iterable of ({number_name}, value) pairs"
+        raise TypeError(message) from error
+    for position, pair in enumerate(iterator):
         try:
-            weight, value = pair
+            number, value = pair
         except (TypeError, ValueError) as error:
-            raise TypeError(f"weighted item {position} must be a (weight, value) pair") from error
-        if isinstance(weight, bool) or not isinstance(weight, Real):
-            raise TypeError(f"weight at position {position} must be a real number")
-        numeric_weight = float(weight)
-        if not math.isfinite(numeric_weight):
-            raise ValueError(f"weight at position {position} must be finite")
-        result.append((numeric_weight, value))
+            raise TypeError(
+                f"{table_name} item {position} must be a ({number_name}, value) pair"
+            ) from error
+        if isinstance(number, bool) or not isinstance(number, Real):
+            raise TypeError(f"{number_name} at position {position} must be a real number")
+        try:
+            numeric = float(number)
+        except (TypeError, ValueError, OverflowError) as error:
+            raise ValueError(
+                f"{number_name} at position {position} must be representable as a float"
+            ) from error
+        if not math.isfinite(numeric):
+            raise ValueError(f"{number_name} at position {position} must be finite")
+        result.append((numeric, value))
     if not result:
-        raise ValueError("weighted_table must not be empty")
+        raise ValueError(f"{table_name} must not be empty")
     return result
 
 
@@ -451,7 +468,10 @@ def _validated_weighted_draw(value: Any, total: float) -> float:
 
 
 class WeightedChoice(_ValueEngine[_T]):
-    """Choose values using nonnegative relative real weights."""
+    """Prepare selection from one relative-weight or cumulative-boundary table.
+
+    A positional table is equivalent to the explicit ``relative=`` form.
+    """
 
     __slots__ = ("_selector", "data", "total")
 
@@ -473,35 +493,103 @@ class WeightedChoice(_ValueEngine[_T]):
         generator: _core.Generator | _FloatGenerator | None = None,
     ) -> None: ...
 
+    @overload
     def __init__(
         self,
-        weighted_table: Iterable[tuple[_Weight, Any]],
         *,
+        relative: Iterable[tuple[_Weight, _T]],
+        resolve_callables: Literal[False],
+        generator: _core.Generator | _FloatGenerator | None = None,
+    ) -> None: ...
+
+    @overload
+    def __init__(
+        self,
+        *,
+        relative: Iterable[tuple[_Weight, _Resolvable[_T]]],
+        resolve_callables: Literal[True] = True,
+        generator: _core.Generator | _FloatGenerator | None = None,
+    ) -> None: ...
+
+    @overload
+    def __init__(
+        self,
+        *,
+        cumulative: Iterable[tuple[_Weight, _T]],
+        resolve_callables: Literal[False],
+        generator: _core.Generator | _FloatGenerator | None = None,
+    ) -> None: ...
+
+    @overload
+    def __init__(
+        self,
+        *,
+        cumulative: Iterable[tuple[_Weight, _Resolvable[_T]]],
+        resolve_callables: Literal[True] = True,
+        generator: _core.Generator | _FloatGenerator | None = None,
+    ) -> None: ...
+
+    def __init__(
+        self,
+        weighted_table: Iterable[tuple[_Weight, Any]] | None = None,
+        *,
+        relative: Iterable[tuple[_Weight, Any]] | None = None,
+        cumulative: Iterable[tuple[_Weight, Any]] | None = None,
         resolve_callables: bool = True,
         generator: _core.Generator | _FloatGenerator | None = None,
     ) -> None:
         super().__init__(resolve_callables=resolve_callables, generator=generator)
-        cumulative = 0.0
+        supplied = sum(source is not None for source in (weighted_table, relative, cumulative))
+        if supplied != 1:
+            raise TypeError(
+                "WeightedChoice requires exactly one of weighted_table, relative, or cumulative"
+            )
+
+        cumulative_input = cumulative is not None
+        if cumulative_input:
+            table = cast(Iterable[tuple[_Weight, Any]], cumulative)
+            table_name = "cumulative"
+            number_name = "cumulative boundary"
+        else:
+            table = cast(
+                Iterable[tuple[_Weight, Any]],
+                relative if relative is not None else weighted_table,
+            )
+            table_name = "relative" if relative is not None else "weighted_table"
+            number_name = "weight"
+
         data: list[tuple[float, _T]] = []
-        weights: list[float] = []
-        for weight, value in _weighted_pairs(weighted_table):
-            if weight < 0.0:
+        boundaries: list[float] = []
+        total = 0.0
+        for number, value in _weighted_pairs(table, table_name=table_name, number_name=number_name):
+            if number < 0.0:
+                if cumulative_input:
+                    raise ValueError("cumulative boundaries must be nonnegative")
                 raise ValueError("weights must be nonnegative")
-            cumulative += weight
-            if not math.isfinite(cumulative):
-                raise ValueError("weight total must be finite")
-            data.append((cumulative, value))
-            weights.append(weight)
-        if cumulative <= 0.0:
+            if cumulative_input:
+                if boundaries and number < total:
+                    raise ValueError("cumulative boundaries must be nondecreasing")
+                total = number
+            else:
+                total += number
+                if not math.isfinite(total):
+                    raise ValueError("weight total must be finite")
+            boundaries.append(total)
+            data.append((total, value))
+        if total <= 0.0:
+            if cumulative_input:
+                raise ValueError("final cumulative boundary must be positive")
             raise ValueError("at least one weight must be positive")
         self.data = tuple(data)
-        self.total = cumulative
+        self.total = total
         native_source = type(generator) is _core.Generator or (
             generator is None and _core.random_float is _NATIVE_RANDOM_FLOAT
         )
         native_generator = cast(_core.Generator | None, generator)
         self._selector = (
-            _core._prepared_weighted_index(weights, native_generator) if native_source else None
+            _core._prepared_cumulative_weighted_index(boundaries, native_generator)
+            if native_source
+            else None
         )
 
     def __call__(self, *args: Any, **kwargs: Any) -> _T:

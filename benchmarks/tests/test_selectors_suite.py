@@ -29,7 +29,7 @@ def test_selector_suite_names_are_unique_and_cover_each_api_family():
     assert all(case.suite == "selectors" for case in cases)
     assert all(case.workload_payload["declared"] for case in cases)
     assert all(case.workload_payload["input"] is not None for case in cases)
-    assert len(cases) == 56
+    assert len(cases) == 62
     for prefix in (
         "random-value-",
         "truffle-",
@@ -138,6 +138,22 @@ def test_weighted_choice_workloads_preserve_relative_weight_scaling():
         assert fixture["id"] == f"weighted-relative-{size}"
         assert fixture["size"] == size
         assert fixture["weight_model"] == "relative"
+
+
+def test_weighted_choice_cumulative_workloads_are_explicit():
+    cases = _cases_by_name()
+
+    for size in (4, 100, 1_000):
+        call = cases[f"weighted-choice-cumulative-call-{size}"].workload_payload
+        construction = cases[f"weighted-choice-cumulative-construction-{size}"].workload_payload
+        fixture = call["input"]["fixtures"][0]
+
+        assert call["input"]["constructor"] == {
+            "cumulative": {"fixture": f"weighted-cumulative-{size}"}
+        }
+        assert fixture["weight_model"] == "cumulative"
+        assert construction["args"] == []
+        assert construction["kwargs"] == {"cumulative": {"fixture": f"weighted-cumulative-{size}"}}
 
 
 def test_collection_workloads_define_population_mutation_and_source_recipes():

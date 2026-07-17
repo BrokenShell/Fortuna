@@ -44,7 +44,7 @@ from ._core import (
 )
 from ._selectors import RandomValue, TruffleShuffle, WeightedChoice, random_value, sample, shuffle
 
-__version__ = "6.0.4"
+__version__ = "6.1.0"
 
 __all__ = (
     "__version__",
