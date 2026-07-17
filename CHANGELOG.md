@@ -18,6 +18,8 @@ while preserving public behavior and seeded schedules.
   selector and numeric APIs remaining within the accepted regression ceiling.
 - Windows release wheels explicitly activate MSVC, preventing an unrelated
   compiler on `PATH` from introducing nonstandard runtime dependencies.
+- Windows release wheels bundle their required MSVC C++ Standard Library DLL,
+  allowing imports on pristine systems without a separate runtime installer.
 - macOS x86_64, Linux, and Windows retain the verified non-LTO release policy.
 
 ## 6.0.3
