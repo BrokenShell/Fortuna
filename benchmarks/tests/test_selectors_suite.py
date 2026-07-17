@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from benchmarks.suites import all_cases, suite_names
-from benchmarks.suites.selectors import RANDOM_VALUE_METHODS, selector_cases
+from benchmarks.suites.selectors import RANDOM_VALUE_METHODS, SHUFFLE_SIZES, selector_cases
 
 
 def _cases_by_name():
@@ -29,7 +29,7 @@ def test_selector_suite_names_are_unique_and_cover_each_api_family():
     assert all(case.suite == "selectors" for case in cases)
     assert all(case.workload_payload["declared"] for case in cases)
     assert all(case.workload_payload["input"] is not None for case in cases)
-    assert len(cases) == 45
+    assert len(cases) == 56
     for prefix in (
         "random-value-",
         "truffle-",
@@ -155,6 +155,28 @@ def test_collection_workloads_define_population_mutation_and_source_recipes():
     assert shuffle["args"] == [{"fixture": "mutable-values-10"}]
     assert shuffle["input"]["fixtures"][0]["recipe"] == "list(range(10))"
     assert shuffle["input"]["mutation"] == "in place across timed loop iterations"
+
+
+def test_shuffle_covers_public_rng_owners_across_the_size_matrix():
+    cases = _cases_by_name()
+
+    for size in SHUFFLE_SIZES:
+        fixture = {
+            "id": f"mutable-values-{size}",
+            "recipe": f"list(range({size}))",
+            "size": size,
+            "type": "list",
+        }
+        for name, callable_name in (
+            (f"shuffle-public-{size}", "Fortuna.shuffle"),
+            (f"shuffle-generator-method-{size}", "Generator.shuffle"),
+        ):
+            workload = cases[name].workload_payload
+
+            assert workload["args"] == [{"fixture": fixture["id"]}]
+            assert workload["input"]["callable"] == callable_name
+            assert workload["input"]["fixtures"] == [fixture]
+            assert workload["input"]["mutation"] == "in place across timed loop iterations"
 
 
 def test_sample_custom_generator_fallback_has_exact_workload_metadata():

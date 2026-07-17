@@ -14,6 +14,7 @@ SEED = 0x5EED
 VALUES_100 = tuple(range(100))
 SAMPLE_REGIMES = ((100, 10), (1_000, 10), (1_000, 500))
 WEIGHT_SIZES = (4, 100, 1_000)
+SHUFFLE_SIZES = (0, 1, 10, 100, 1_000, 10_000, 100_000, 1_000_000)
 RANDOM_VALUE_METHODS = (
     "uniform",
     "cycle",
@@ -475,7 +476,7 @@ def selector_cases() -> list[BenchmarkCase]:
         )
     )
 
-    for size in (0, 1, 10, 100):
+    for size in SHUFFLE_SIZES:
         values_id = f"mutable-values-{size}"
         values = _range_fixture(values_id, size=size, container="list")
         cases.append(
@@ -498,20 +499,26 @@ def selector_cases() -> list[BenchmarkCase]:
             )
         )
 
-    cases.append(
-        _case(
-            "shuffle-generator-method-100",
-            fortuna,
-            error,
-            lambda module: _shuffle_setup(module, size=100, generator_method=True),
-            workload_args=(_fixture_reference("mutable-values-100"),),
-            workload_input={
-                "callable": "Generator.shuffle",
-                "source": {"type": "Fortuna.Generator", "seed": SEED},
-                "mutation": "in place across timed loop iterations",
-                "fixtures": [_range_fixture("mutable-values-100", size=100, container="list")],
-            },
-            setup_variant="Generator.shuffle",
+    for size in SHUFFLE_SIZES:
+        values_id = f"mutable-values-{size}"
+        cases.append(
+            _case(
+                f"shuffle-generator-method-{size}",
+                fortuna,
+                error,
+                lambda module, size=size: _shuffle_setup(
+                    module,
+                    size=size,
+                    generator_method=True,
+                ),
+                workload_args=(_fixture_reference(values_id),),
+                workload_input={
+                    "callable": "Generator.shuffle",
+                    "source": {"type": "Fortuna.Generator", "seed": SEED},
+                    "mutation": "in place across timed loop iterations",
+                    "fixtures": [_range_fixture(values_id, size=size, container="list")],
+                },
+                setup_variant="Generator.shuffle",
+            )
         )
-    )
     return cases

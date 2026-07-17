@@ -43,7 +43,7 @@ jobs:
       - name: Verify source distribution contents and isolated installation
         shell: bash
         run: |
-          archive="$(find dist -maxdepth 1 -name '*.tar.gz' -print -quit)"
+          archive="$(realpath "$(find dist -maxdepth 1 -name '*.tar.gz' -print -quit)")"
           test -n "$archive"
           members="$(tar -tzf "$archive")"
           for required in \
@@ -59,9 +59,9 @@ jobs:
             grep -q "/$required$" <<<"$members"
           done
           uv venv --python 3.14.6 /tmp/fortuna-sdist-check
-          uv pip install --python /tmp/fortuna-sdist-check/bin/python "$archive"
           cd /tmp
-          /tmp/fortuna-sdist-check/bin/python -c "from importlib.metadata import version; from pathlib import Path; import Fortuna; root = Path(Fortuna.__file__).parent; assert version('Fortuna') == Fortuna.__version__ == '6.0.3'; assert Fortuna.storm_version() == '5.0.2'; assert (root / '_core.pyi').is_file() and (root / 'py.typed').is_file(); a = Fortuna.Generator(0); b = Fortuna.Generator(0); assert [a.random_int(-10, 10) for _ in range(8)] == [b.random_int(-10, 10) for _ in range(8)]"
+          uv pip install --python /tmp/fortuna-sdist-check/bin/python "$archive"
+          /tmp/fortuna-sdist-check/bin/python -c "from importlib.metadata import version; from pathlib import Path; import Fortuna; root = Path(Fortuna.__file__).parent; assert version('Fortuna') == Fortuna.__version__ == '6.0.4'; assert Fortuna.storm_version() == '5.0.2'; assert (root / '_core.pyi').is_file() and (root / 'py.typed').is_file(); a = Fortuna.Generator(0); b = Fortuna.Generator(0); assert [a.random_int(-10, 10) for _ in range(8)] == [b.random_int(-10, 10) for _ in range(8)]"
       - name: Store source distribution as a workflow artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
@@ -81,18 +81,23 @@ jobs:
           - runner: ubuntu-24.04
             platform: linux
             arch: x86_64
+            config_settings: ""
           - runner: ubuntu-24.04
             platform: linux
             arch: aarch64
+            config_settings: ""
           - runner: macos-15-intel
             platform: macos
             arch: x86_64
+            config_settings: ""
           - runner: macos-15
             platform: macos
             arch: arm64
+            config_settings: "setup-args=-Db_lto=true"
           - runner: windows-latest
             platform: windows
             arch: AMD64
+            config_settings: ""
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
         with:
@@ -112,8 +117,9 @@ jobs:
           CIBW_BUILD: "cp314-*"
           CIBW_BUILD_FRONTEND: "build[uv]"
           CIBW_SKIP: "*-musllinux_*"
+          CIBW_CONFIG_SETTINGS: ${{ matrix.config_settings }}
           CIBW_TEST_COMMAND: >-
-            python -c "from importlib.metadata import version; from pathlib import Path; import Fortuna; root = Path(Fortuna.__file__).parent; assert version('Fortuna') == Fortuna.__version__ == '6.0.3'; assert Fortuna.storm_version() == '5.0.2'; assert (root / '_core.pyi').is_file() and (root / 'py.typed').is_file(); a = Fortuna.Generator(0); b = Fortuna.Generator(0); assert [a.random_int(-10, 10) for _ in range(8)] == [b.random_int(-10, 10) for _ in range(8)]"
+            python -c "from importlib.metadata import version; from pathlib import Path; import Fortuna; root = Path(Fortuna.__file__).parent; assert version('Fortuna') == Fortuna.__version__ == '6.0.4'; assert Fortuna.storm_version() == '5.0.2'; assert (root / '_core.pyi').is_file() and (root / 'py.typed').is_file(); a = Fortuna.Generator(0); b = Fortuna.Generator(0); assert [a.random_int(-10, 10) for _ in range(8)] == [b.random_int(-10, 10) for _ in range(8)]"
         with:
           output-dir: wheelhouse
       - name: Store wheels as workflow artifacts

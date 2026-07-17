@@ -204,6 +204,14 @@ both macOS architectures and Windows AMD64 use native hosted runners. Download
 the artifacts and smoke-test representative wheels on real target machines
 before treating a release candidate as complete.
 
+Release optimization is platform-specific and evidence-driven. The macOS arm64
+matrix entry passes `-Db_lto=true` to Meson through cibuildwheel's backend
+configuration settings. macOS x86_64, Linux, and Windows retain the project O3
+configuration without LTO. Keep this policy at the release-workflow boundary:
+ordinary local and source-distribution builds must remain portable, and a
+compiler or architecture must earn a release override through controlled
+public-API benchmarks and complete correctness checks.
+
 ## Bump the release version
 
 A release version is repeated deliberately at packaging and verification

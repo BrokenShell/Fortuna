@@ -1,5 +1,23 @@
 # Changelog
 
+## 6.0.4
+
+Fortuna 6.0.4 tunes release builds for their native compiler and architecture
+while preserving public behavior and seeded schedules.
+
+### Added
+
+- Public benchmark coverage for module-level and explicit-generator shuffle
+  paths from empty inputs through one million elements.
+
+### Changed
+
+- macOS arm64 release wheels enable link-time optimization. Controlled
+  fresh-process measurements showed approximately 13–18% faster public shuffle
+  throughput from one thousand through one million elements, with priority
+  selector and numeric APIs remaining within the accepted regression ceiling.
+- macOS x86_64, Linux, and Windows release wheels retain the verified O3 policy.
+
 ## 6.0.3
 
 Fortuna 6.0.3 adopts Storm's prepared selector primitives at the native boundary
