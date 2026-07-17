@@ -16,10 +16,11 @@ uv run python -c "import Fortuna; print(Fortuna.storm_version())"
 `--frozen` makes the checked-in `uv.lock` authoritative for the development,
 test, and native editable-build toolchain. Cython, Meson, meson-python, and
 Ninja are explicit development dependencies. The setup command disables build
-isolation only for the editable Fortuna checkout and forces a local rebuild so
-Meson's loader records the current environment's persistent Ninja path rather
-than reusing an environment-specific cached loader. The same tools are pinned
-in `build-system.requires` because
+isolation only for the editable Fortuna checkout; `tool.uv` also records that
+requirement so ordinary `uv sync` and `uv run` commands cannot build Fortuna in
+a temporary isolated environment. Meson's loader therefore records the current
+environment's persistent Ninja path. The same tools are pinned in
+`build-system.requires` because
 standalone PEP 517 builds do not consume `uv.lock`. Review both sets of pins
 deliberately when updating the toolchain. When changing dependencies, update
 the project metadata and lock together with `uv add`, `uv remove`, or `uv lock`;
@@ -30,6 +31,14 @@ not already detected it:
 
 ```console
 uv sync --reinstall-package Fortuna --group dev
+```
+
+If an editable loader created before this configuration still references a
+deleted `.cache/uv/builds-v0/.tmp*/bin/ninja`, discard the cached editable wheel
+and rebuild it in the project environment:
+
+```console
+uv sync --reinstall-package Fortuna --no-cache
 ```
 
 ## Engine and process contract

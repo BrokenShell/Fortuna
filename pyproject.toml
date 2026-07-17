@@ -55,6 +55,12 @@ dev = [
     "ruff>=0.12.0",
 ]
 
+[tool.uv]
+# meson-python's editable loader records the Ninja executable used at build
+# time. Keep Fortuna's build in the project environment so that path remains
+# stable after uv removes its temporary isolated-build environment.
+no-build-isolation-package = ["Fortuna"]
+
 [tool.pyright]
 include = ["src/Fortuna", "tests/typing"]
 pythonVersion = "3.14"
